@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRU Performance App — Interactive Mockup</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .role-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .role-bar span { font-size: 13px; color: #666; }
+  .role-btn {
+    font-size: 12px;
+    padding: 5px 16px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    color: #666;
+  }
+  .role-btn.active { background: #111; color: #fff; border-color: #111; }
+
+  .phone {
+    width: 320px;
+    border: 2.5px solid #222;
+    border-radius: 38px;
+    overflow: hidden;
+    background: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .screen { display: none; flex-direction: column; height: 660px; background: #fff; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* Top bar */
+  .topbar { background: #111; color: #fff; padding: 14px 16px 11px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .topbar-title { font-size: 15px; font-weight: 500; }
+  .topbar-sub { font-size: 10px; opacity: .55; font-weight: 400; margin-top: 1px; }
+  .back { font-size: 20px; cursor: pointer; opacity: .6; line-height: 1; }
+
+  /* Nav tabs */
+  .nav-tabs { display: flex; border-top: 1px solid #e5e5e5; background: #fff; flex-shrink: 0; }
+  .nav-tabs button { flex: 1; border: none; background: none; padding: 9px 4px 7px; font-size: 10px; color: #aaa; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; }
+  .nav-tabs button.on { color: #111; }
+  .nav-tabs button i { font-size: 19px; }
+
+  /* Scrollable content */
+  .scroll { flex: 1; overflow-y: auto; padding: 12px 14px; }
+
+  /* Pills */
+  .pill { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; }
+  .g { background: #dcfce7; color: #166534; }
+  .y { background: #fef9c3; color: #854d0e; }
+  .r { background: #fee2e2; color: #991b1b; }
+
+  /* Rows */
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+  .row:last-child { border-bottom: none; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Cards */
+  .card { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+
+  /* Stats */
+  .stat-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .stat { flex: 1; background: #f9f9f9; border-radius: 8px; padding: 9px; text-align: center; border: 1px solid #eee; }
+  .stat .v { font-size: 18px; font-weight: 500; color: #111; }
+  .stat .l { font-size: 10px; color: #888; margin-top: 1px; }
+
+  /* Buttons */
+  .btn { background: #111; color: #fff; border: none; border-radius: 8px; padding: 12px; width: 100%; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; font-family: inherit; }
+
+  /* Inputs */
+  .inp { border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #aaa; margin-bottom: 8px; background: #f9f9f9; width: 100%; display: block; }
+
+  /* AI bubbles */
+  .ai-b { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 10px; border-bottom-left-radius: 2px; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: #111; margin-bottom: 8px; }
+  .u-b { background: #111; color: #fff; border-radius: 10px; border-bottom-right-radius: 2px; padding: 9px 12px; font-size: 12px; margin-bottom: 8px; align-self: flex-end; max-width: 75%; }
+
+  /* Notifications */
+  .notif { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 10px; padding: 11px; margin-bottom: 8px; display: flex; gap: 9px; }
+  .nd { width: 7px; height: 7px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+
+  /* Login role cards */
+  .role-card { flex: 1; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .role-card.selected { border: 2px solid #111; background: #111; }
+  .role-card.selected i { color: #fff !important; }
+  .role-card.selected div { color: #fff !important; }
+</style>
+</head>
+<body>
+
+<h1>TRU Performance App — Interactive Mockup</h1>
+<p style="font-size:12px;color:#888;margin-bottom:14px;text-align:center">NexGen Optimize · July 2026</p>
+
+<div class="role-bar">
+  <span>Demo as:</span>
+  <button class="role-btn active" id="rb-coach" onclick="loginAs('coach')">Coach</button>
+  <button class="role-btn" id="rb-athlete" onclick="loginAs('athlete')">Athlete</button>
+</div>
+
+<div class="phone">
+
+  <!-- ═══ LOGIN ═══ -->
+  <div class="screen active" id="s-login" style="justify-content:center;padding:36px 24px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:22px;font-weight:500;color:#111">TRU Performance</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">Coaching intelligence platform</div>
+    </div>
+    <div class="inp">lisaudoko@nexgen.com</div>
+    <div class="inp">••••••••</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <div class="role-card selected" id="role-coach" onclick="setRole('coach')">
+        <i class="ti ti-clipboard-list" style="font-size:20px;color:#fff"></i>
+        <div style="font-size:12px;font-weight:500;margin-top:4px;color:#fff">Coach</div>
+      </div>
+      <div class="role-card" id="role-athlete" onclick="setRole('athlete')">
+        <i class="ti ti-run" style="font-size:20px;color:#aaa"></i>
+        <div style="font-size:12px;font-weight:500;margin-top:4px;color:#aaa">Athlete</div>
+      </div>
+    </div>
+    <button class="btn" onclick="goHome()">Log in</button>
+    <div style="text-align:center;margin-top:12px;font-size:12px;color:#888">Don't have an account? <span style="color:#111;font-weight:500">Sign up</span></div>
+  </div>
+
+  <!-- ═══ COACH SCREENS ═══ -->
+
+  <!-- COACH SQUAD OVERVIEW -->
+  <div class="screen" id="s-c-squad">
+    <div class="topbar">
+      <div style="flex:1">
+        <div class="topbar-title">My Squad</div>
+        <div class="topbar-sub">Throwers R Us · Week 42</div>
+      </div>
+      <i class="ti ti-bell" style="font-size:17px;opacity:.8;cursor:pointer" onclick="go('s-c-notifs')"></i>
+    </div>
+    <div style="padding:10px 14px 0;flex-shrink:0">
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <div style="flex:1;background:#dcfce7;border-radius:8px;padding:8px;text-align:center"><div style="font-size:17px;font-weight:500;color:#166534">18</div><div style="font-size:10px;color:#166534">Logged</div></div>
+        <div style="flex:1;background:#fee2e2;border-radius:8px;padding:8px;text-align:center"><div style="font-size:17px;font-weight:500;color:#991b1b">4</div><div style="font-size:10px;color:#991b1b">Missing</div></div>
+        <div style="flex:1;background:#fef9c3;border-radius:8px;padding:8px;text-align:center"><div style="font-size:17px;font-weight:500;color:#854d0e">3</div><div style="font-size:10px;color:#854d0e">Alerts</div></div>
+      </div>
+    </div>
+    <div class="scroll" style="padding:0 14px">
+      <div class="row" onclick="go('s-c-athlete')" style="cursor:pointer">
+        <div class="dot" style="background:#22c55e"></div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:#111">Marcus Thompson</div><div style="font-size:11px;color:#888">Shot Put · 16.4m · Proj 16.9m</div></div>
+        <span class="pill y">Borderline</span>
+      </div>
+      <div class="row" onclick="go('s-c-athlete')" style="cursor:pointer">
+        <div class="dot" style="background:#22c55e"></div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:#111">Simone Clarke</div><div style="font-size:11px;color:#888">Discus · 44.9m · Proj 46.8m</div></div>
+        <span class="pill g">On track</span>
+      </div>
+      <div class="row" onclick="go('s-c-athlete')" style="cursor:pointer">
+        <div class="dot" style="background:#facc15"></div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:#111">Kezia Campbell</div><div style="font-size:11px;color:#888">Discus · 42.1m · Stalled</div></div>
+        <span class="pill r">Alert</span>
+      </div>
+      <div class="row">
+        <div class="dot" style="background:#ef4444"></div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:#111">Devon Reid</div><div style="font-size:11px;color:#888">Shot Put · 14.8m</div></div>
+        <span class="pill r">No log ×2</span>
+      </div>
+      <div class="row">
+        <div class="dot" style="background:#22c55e"></div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:#111">André Brown</div><div style="font-size:11px;color:#888">Hammer · 52.3m</div></div>
+        <span class="pill y">High RPE</span>
+      </div>
+      <div class="row">
+        <div class="dot" style="background:#22c55e"></div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:#111">Tiana Lewis</div><div style="font-size:11px;color:#888">Javelin · 38.7m · Proj 40.1m</div></div>
+        <span class="pill g">On track</span>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="on"><i class="ti ti-users"></i>Squad</button>
+      <button onclick="go('s-c-heatmap')"><i class="ti ti-grid-dots"></i>Heatmap</button>
+      <button onclick="go('s-c-standards')"><i class="ti ti-trophy"></i>Standards</button>
+      <button onclick="go('s-c-ai')"><i class="ti ti-message-circle"></i>AI</button>
+    </div>
+  </div>
+
+  <!-- COACH INDIVIDUAL ATHLETE (all 4 charts) -->
+  <div class="screen" id="s-c-athlete">
+    <div class="topbar">
+      <span class="back" onclick="go('s-c-squad')">‹</span>
+      <div style="flex:1"><div class="topbar-title">Marcus Thompson</div><div class="topbar-sub">Shot Put · Full report</div></div>
+      <span class="pill y" style="font-size:10px">Borderline</span>
+    </div>
+    <div class="scroll">
+      <div class="stat-row">
+        <div class="stat"><div class="v">16.4m</div><div class="l">Season best</div></div>
+        <div class="stat"><div class="v" style="color:#166534">+0.6m</div><div class="l">vs baseline</div></div>
+        <div class="stat"><div class="v">7.1</div><div class="l">Avg RPE</div></div>
+      </div>
+
+      <!-- CHART 1: Trajectory + projection -->
+      <div class="card">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:2px">Throw trajectory + projection</div>
+        <div style="font-size:9px;color:#999;margin-bottom:8px">Solid = actual · Dotted = projected · Shaded = confidence band</div>
+        <svg width="100%" viewBox="0 0 280 130">
+          <rect x="22" y="8" width="90" height="98" rx="2" fill="#f3f4f6" opacity=".7"/>
+          <rect x="114" y="8" width="142" height="98" rx="2" fill="#dbeafe" opacity=".4"/>
+          <text x="67" y="116" font-size="8" fill="#aaa" text-anchor="middle">SPP</text>
+          <text x="185" y="116" font-size="8" fill="#1e40af" text-anchor="middle">Competition phase</text>
+          <line x1="22" y1="18" x2="270" y2="18" stroke="#991b1b" stroke-width=".8" stroke-dasharray="3,3" opacity=".6"/>
+          <text x="272" y="21" font-size="8" fill="#991b1b" text-anchor="end">17.0m</text>
+          <polygon points="190,46 235,34 255,28 255,48 235,55 190,62" fill="#111" opacity=".08"/>
+          <polyline points="28,105 60,96 92,86 124,76 156,65 190,53" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="190,53 235,40 255,35" fill="none" stroke="#111" stroke-width="1.4" stroke-dasharray="5,4" opacity=".65"/>
+          <circle cx="28" cy="105" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="60" cy="96" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="92" cy="86" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="124" cy="76" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="156" cy="65" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="190" cy="53" r="4.5" fill="#111"/>
+          <text x="190" y="44" font-size="9" fill="#111" text-anchor="middle" font-weight="500">16.4m</text>
+          <text x="255" y="28" font-size="8" fill="#aaa" text-anchor="end">~16.9m</text>
+          <line x1="255" y1="8" x2="255" y2="106" stroke="#991b1b" stroke-width=".8" stroke-dasharray="2,2" opacity=".45"/>
+          <text x="255" y="7" font-size="8" fill="#991b1b" text-anchor="middle">B&amp;G</text>
+          <line x1="22" y1="106" x2="270" y2="106" stroke="#ccc" stroke-width=".5"/>
+          <text x="28" y="125" font-size="8" fill="#aaa" text-anchor="middle">W35</text>
+          <text x="190" y="125" font-size="8" fill="#111" text-anchor="middle" font-weight="500">NOW</text>
+          <line x1="22" y1="8" x2="22" y2="106" stroke="#ccc" stroke-width=".5"/>
+          <text x="18" y="18" font-size="8" fill="#aaa" text-anchor="end">17.0</text>
+          <text x="18" y="106" font-size="8" fill="#aaa" text-anchor="end">15.8</text>
+        </svg>
+      </div>
+
+      <!-- CHART 2: Training load + RPE -->
+      <div class="card">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:2px">Training load + RPE</div>
+        <div style="font-size:9px;color:#999;margin-bottom:8px">Bars = volume load · Orange = RPE · Red dashed = RPE 8 threshold</div>
+        <svg width="100%" viewBox="0 0 280 110">
+          <line x1="28" y1="8" x2="28" y2="92" stroke="#ccc" stroke-width=".5"/>
+          <line x1="28" y1="92" x2="270" y2="92" stroke="#ccc" stroke-width=".5"/>
+          <text x="24" y="12" font-size="8" fill="#aaa" text-anchor="end">2400</text>
+          <text x="24" y="50" font-size="8" fill="#aaa" text-anchor="end">1600</text>
+          <text x="24" y="92" font-size="8" fill="#aaa" text-anchor="end">800</text>
+          <rect x="38" y="73" width="20" height="19" rx="2" fill="#111" opacity=".15"/>
+          <rect x="72" y="58" width="20" height="34" rx="2" fill="#111" opacity=".2"/>
+          <rect x="106" y="45" width="20" height="47" rx="2" fill="#111" opacity=".25"/>
+          <rect x="140" y="28" width="20" height="64" rx="2" fill="#111" opacity=".3"/>
+          <rect x="174" y="52" width="20" height="40" rx="2" fill="#111" opacity=".2"/>
+          <rect x="208" y="42" width="20" height="50" rx="2" fill="#111" opacity=".26"/>
+          <rect x="242" y="36" width="20" height="56" rx="2" fill="#111" opacity=".28"/>
+          <line x1="28" y1="40" x2="270" y2="40" stroke="#991b1b" stroke-width=".7" stroke-dasharray="3,3" opacity=".5"/>
+          <text x="272" y="43" font-size="7" fill="#991b1b">8</text>
+          <polyline points="48,64 82,64 116,50 150,36 184,64 218,50 252,50" fill="none" stroke="#854d0e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="48" cy="64" r="2.5" fill="#854d0e"/>
+          <circle cx="82" cy="64" r="2.5" fill="#854d0e"/>
+          <circle cx="116" cy="50" r="2.5" fill="#854d0e"/>
+          <circle cx="150" cy="36" r="3.5" fill="#854d0e"/>
+          <circle cx="184" cy="64" r="2.5" fill="#854d0e"/>
+          <circle cx="218" cy="50" r="2.5" fill="#854d0e"/>
+          <circle cx="252" cy="50" r="2.5" fill="#854d0e"/>
+          <text x="48" y="101" font-size="7.5" fill="#aaa" text-anchor="middle">W35</text>
+          <text x="150" y="101" font-size="7.5" fill="#aaa" text-anchor="middle">W38</text>
+          <text x="252" y="101" font-size="7.5" fill="#111" text-anchor="middle" font-weight="500">W41</text>
+        </svg>
+        <div style="font-size:10px;color:#854d0e;margin-top:4px">Acute:chronic ratio 1.4 · W38 peak load — monitor this week</div>
+      </div>
+
+      <!-- CHART 3: Strength progression -->
+      <div class="card">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:2px">Strength progression — test weeks</div>
+        <div style="font-size:9px;color:#999;margin-bottom:8px">Key lift 1RM maxes across the season (lbs)</div>
+        <svg width="100%" viewBox="0 0 280 110">
+          <line x1="28" y1="8" x2="28" y2="92" stroke="#ccc" stroke-width=".5"/>
+          <line x1="28" y1="92" x2="270" y2="92" stroke="#ccc" stroke-width=".5"/>
+          <line x1="28" y1="35" x2="270" y2="35" stroke="#eee" stroke-width=".5" stroke-dasharray="3,4"/>
+          <line x1="28" y1="63" x2="270" y2="63" stroke="#eee" stroke-width=".5" stroke-dasharray="3,4"/>
+          <text x="24" y="12" font-size="8" fill="#aaa" text-anchor="end">240</text>
+          <text x="24" y="38" font-size="8" fill="#aaa" text-anchor="end">200</text>
+          <text x="24" y="66" font-size="8" fill="#aaa" text-anchor="end">160</text>
+          <text x="24" y="92" font-size="8" fill="#aaa" text-anchor="end">120</text>
+          <!-- Squat: 195→39.5, 205→32.5, 215→25.5, 220→22 -->
+          <polyline points="65,40 130,33 195,26 255,22" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="65" cy="40" r="3.5" fill="#111"/>
+          <circle cx="130" cy="33" r="3.5" fill="#111"/>
+          <circle cx="195" cy="26" r="3.5" fill="#111"/>
+          <circle cx="255" cy="22" r="4" fill="#111"/>
+          <text x="255" y="16" font-size="9" fill="#111" text-anchor="middle" font-weight="500">220</text>
+          <!-- Clean -->
+          <polyline points="65,61 130,56 195,50 255,47" fill="none" stroke="#555" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="65" cy="61" r="3" fill="#555"/>
+          <circle cx="130" cy="56" r="3" fill="#555"/>
+          <circle cx="195" cy="50" r="3" fill="#555"/>
+          <circle cx="255" cy="47" r="3.5" fill="#555"/>
+          <text x="255" y="41" font-size="8.5" fill="#555" text-anchor="middle">185</text>
+          <!-- Bench -->
+          <polyline points="65,75 130,71 195,65 255,61" fill="none" stroke="#aaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5,3"/>
+          <circle cx="65" cy="75" r="3" fill="#aaa"/>
+          <circle cx="130" cy="71" r="3" fill="#aaa"/>
+          <circle cx="195" cy="65" r="3" fill="#aaa"/>
+          <circle cx="255" cy="61" r="3" fill="#aaa"/>
+          <text x="65" y="101" font-size="8" fill="#aaa" text-anchor="middle">Sep</text>
+          <text x="130" y="101" font-size="8" fill="#aaa" text-anchor="middle">Nov</text>
+          <text x="195" y="101" font-size="8" fill="#aaa" text-anchor="middle">Jan</text>
+          <text x="255" y="101" font-size="8" fill="#111" text-anchor="middle" font-weight="500">Apr</text>
+        </svg>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+          <span style="font-size:10px;color:#888;display:flex;align-items:center;gap:4px"><span style="width:14px;height:2px;background:#111;display:inline-block"></span>Squat</span>
+          <span style="font-size:10px;color:#888;display:flex;align-items:center;gap:4px"><span style="width:14px;height:2px;background:#555;display:inline-block"></span>Clean</span>
+          <span style="font-size:10px;color:#888;display:flex;align-items:center;gap:4px"><span style="width:14px;height:2px;background:#aaa;display:inline-block"></span>Bench</span>
+        </div>
+      </div>
+
+      <!-- CHART 4: Correlation scatter -->
+      <div class="card">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:2px">Strength ↔ throw correlation</div>
+        <div style="font-size:9px;color:#999;margin-bottom:8px">Squat max vs shot put distance · Each dot = test week</div>
+        <svg width="100%" viewBox="0 0 280 110">
+          <line x1="28" y1="8" x2="28" y2="92" stroke="#ccc" stroke-width=".5"/>
+          <line x1="28" y1="92" x2="270" y2="92" stroke="#ccc" stroke-width=".5"/>
+          <text x="24" y="12" font-size="8" fill="#aaa" text-anchor="end">17.0</text>
+          <text x="24" y="92" font-size="8" fill="#aaa" text-anchor="end">15.0</text>
+          <text x="28" y="103" font-size="8" fill="#aaa">180</text>
+          <text x="255" y="103" font-size="8" fill="#aaa" text-anchor="end">240</text>
+          <text x="148" y="110" font-size="8" fill="#888" text-anchor="middle">Squat (lbs)</text>
+          <line x1="45" y1="86" x2="258" y2="22" stroke="#111" stroke-width="1.2" opacity=".25"/>
+          <circle cx="65" cy="76" r="4.5" fill="#111" opacity=".8"/>
+          <circle cx="93" cy="70" r="4.5" fill="#111" opacity=".8"/>
+          <circle cx="120" cy="59" r="4.5" fill="#111" opacity=".8"/>
+          <circle cx="148" cy="54" r="4.5" fill="#111" opacity=".8"/>
+          <circle cx="175" cy="46" r="4.5" fill="#111" opacity=".8"/>
+          <circle cx="202" cy="38" r="5.5" fill="#111"/>
+          <text x="214" y="35" font-size="9" fill="#111" font-weight="500">Now</text>
+          <rect x="156" y="62" width="90" height="24" rx="4" fill="#fff" stroke="#ddd" stroke-width=".5"/>
+          <text x="201" y="73" font-size="10" fill="#166534" text-anchor="middle" font-weight="500">r = 0.97</text>
+          <text x="201" y="82" font-size="8.5" fill="#888" text-anchor="middle">Strong correlation</text>
+        </svg>
+        <div style="font-size:10px;color:#166534;margin-top:4px;font-weight:500">Strength gains are translating. Continue current approach.</div>
+      </div>
+
+      <!-- Peak timing -->
+      <div class="card" style="padding:10px 12px">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:8px">Peak timing indicator</div>
+        <div style="display:flex;gap:6px">
+          <div style="flex:1;background:#fef9c3;border-radius:8px;padding:9px;text-align:center">
+            <div style="font-size:12px;color:#854d0e;font-weight:500">Borderline</div>
+            <div style="font-size:10px;color:#854d0e;margin-top:2px">May peak 1 wk early</div>
+          </div>
+          <div style="flex:1;font-size:11px;color:#888;line-height:1.5;padding:6px">RPE trending ↑<br>Load on schedule<br>Form ↑ this block</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COACH HEATMAP -->
+  <div class="screen" id="s-c-heatmap">
+    <div class="topbar"><div class="topbar-title">Squad RPE heatmap</div><div style="font-size:10px;opacity:.55;margin-left:auto">Last 8 weeks</div></div>
+    <div class="scroll">
+      <div style="font-size:10px;color:#888;margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;background:#dcfce7;border-radius:2px;display:inline-block"></span>Low</span>
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;background:#fef9c3;border-radius:2px;display:inline-block"></span>Moderate</span>
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;background:#fee2e2;border-radius:2px;display:inline-block"></span>High</span>
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;background:#e0e0e0;border-radius:2px;display:inline-block"></span>Missing</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed" id="hmap">
+          <thead><tr>
+            <td style="font-size:9px;color:#aaa;width:68px"></td>
+            <td style="font-size:9px;color:#aaa;text-align:center">35</td>
+            <td style="font-size:9px;color:#aaa;text-align:center">36</td>
+            <td style="font-size:9px;color:#aaa;text-align:center">37</td>
+            <td style="font-size:9px;color:#aaa;text-align:center">38</td>
+            <td style="font-size:9px;color:#aaa;text-align:center">39</td>
+            <td style="font-size:9px;color:#aaa;text-align:center">40</td>
+            <td style="font-size:9px;color:#aaa;text-align:center">41</td>
+            <td style="font-size:9px;color:#aaa;text-align:center">42</td>
+          </tr></thead>
+          <tbody id="hmapbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:8px">This week's flags</div>
+        <div style="font-size:11px;color:#888;display:flex;gap:6px;margin-bottom:7px"><span style="color:#991b1b">●</span><span>André Brown — RPE 9 for 3 straight weeks. Reduce volume.</span></div>
+        <div style="font-size:11px;color:#888;display:flex;gap:6px;margin-bottom:7px"><span style="color:#991b1b">●</span><span>Devon Reid — no log ×2. Attendance risk.</span></div>
+        <div style="font-size:11px;color:#888;display:flex;gap:6px"><span style="color:#854d0e">●</span><span>Kezia Campbell — RPE low but throws flat. Possible disengagement.</span></div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button onclick="go('s-c-squad')"><i class="ti ti-users"></i>Squad</button>
+      <button class="on"><i class="ti ti-grid-dots"></i>Heatmap</button>
+      <button onclick="go('s-c-standards')"><i class="ti ti-trophy"></i>Standards</button>
+      <button onclick="go('s-c-ai')"><i class="ti ti-message-circle"></i>AI</button>
+    </div>
+  </div>
+
+  <!-- COACH QUALIFYING STANDARDS -->
+  <div class="screen" id="s-c-standards">
+    <div class="topbar"><div class="topbar-title">Qualifying standards</div><div style="font-size:10px;opacity:.55;margin-left:auto">B&amp;G Champs</div></div>
+    <div class="scroll">
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <div style="background:#111;color:#fff;border-radius:20px;padding:3px 10px;font-size:11px">B&amp;G Champs</div>
+        <div style="border:1px solid #e0e0e0;border-radius:20px;padding:3px 10px;font-size:11px;color:#888">Carifta</div>
+        <div style="border:1px solid #e0e0e0;border-radius:20px;padding:3px 10px;font-size:11px;color:#888">World Jnr</div>
+      </div>
+      <div style="font-size:10px;font-weight:500;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Shot put · Standard 17.0m</div>
+      <div class="card" style="padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px"><div><div style="font-size:13px;font-weight:500;color:#111">Marcus Thompson</div><div style="font-size:10px;color:#888">SB 16.4m · Proj 16.9m · 6 wks left</div></div><span class="pill y">−0.1m</span></div>
+        <div style="background:#f0f0f0;border-radius:20px;height:7px"><div style="background:#854d0e;width:78%;height:100%;border-radius:20px"></div></div>
+      </div>
+      <div class="card" style="padding:10px 12px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px"><div><div style="font-size:13px;font-weight:500;color:#111">Devon Reid</div><div style="font-size:10px;color:#888">SB 14.8m · No data</div></div><span class="pill r">−2.2m</span></div>
+        <div style="background:#f0f0f0;border-radius:20px;height:7px"><div style="background:#991b1b;width:38%;height:100%;border-radius:20px"></div></div>
+      </div>
+      <div style="font-size:10px;font-weight:500;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Discus · Standard 46.0m</div>
+      <div class="card" style="padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px"><div><div style="font-size:13px;font-weight:500;color:#111">Simone Clarke</div><div style="font-size:10px;color:#888">SB 44.9m · Proj 46.8m</div></div><span class="pill g">On track</span></div>
+        <div style="background:#f0f0f0;border-radius:20px;height:7px"><div style="background:#166534;width:92%;height:100%;border-radius:20px"></div></div>
+      </div>
+      <div class="card" style="padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px"><div><div style="font-size:13px;font-weight:500;color:#111">Kezia Campbell</div><div style="font-size:10px;color:#888">SB 42.1m · Stalled 4 weeks</div></div><span class="pill r">−3.9m</span></div>
+        <div style="background:#f0f0f0;border-radius:20px;height:7px"><div style="background:#991b1b;width:50%;height:100%;border-radius:20px"></div></div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button onclick="go('s-c-squad')"><i class="ti ti-users"></i>Squad</button>
+      <button onclick="go('s-c-heatmap')"><i class="ti ti-grid-dots"></i>Heatmap</button>
+      <button class="on"><i class="ti ti-trophy"></i>Standards</button>
+      <button onclick="go('s-c-ai')"><i class="ti ti-message-circle"></i>AI</button>
+    </div>
+  </div>
+
+  <!-- COACH AI ASSISTANT -->
+  <div class="screen" id="s-c-ai">
+    <div class="topbar"><span class="back" onclick="go('s-c-squad')">‹</span><div class="topbar-title">AI assistant</div></div>
+    <div style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column">
+      <div class="ai-b">Good morning, Coach. 3 athletes need your attention — Kezia's strength is up but throws are flat (4 weeks), Devon hasn't logged in 2 weeks, and André's RPE is spiking.</div>
+      <div class="u-b">Who's on track for B&amp;G Champs?</div>
+      <div class="ai-b"><strong>On track:</strong> Simone (proj 46.8m vs 46.0m), Tiana (proj 40.1m)<br><br><strong>Borderline:</strong> Marcus — 0.1m gap with 6 weeks left.<br><br><strong>Not tracking:</strong> Kezia (stalled), Devon (no data)</div>
+      <div class="u-b">What should I do about Kezia?</div>
+      <div class="ai-b">Squat is up 12kg but throws haven't moved in 4 weeks. Classic technique regression signal. RPE is low (5.5 avg) — she has capacity. Recommend a technical session this week, hold lifting volume.</div>
+    </div>
+    <div style="padding:8px 12px;border-top:1px solid #eee;display:flex;gap:8px;background:#fff;flex-shrink:0">
+      <div style="flex:1;border:1px solid #e0e0e0;border-radius:20px;padding:9px 12px;font-size:12px;color:#aaa">Ask anything about your squad…</div>
+      <div style="background:#111;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer"><i class="ti ti-arrow-up" style="font-size:15px"></i></div>
+    </div>
+  </div>
+
+  <!-- COACH NOTIFICATIONS -->
+  <div class="screen" id="s-c-notifs">
+    <div class="topbar"><span class="back" onclick="go('s-c-squad')">‹</span><div class="topbar-title">Notifications</div></div>
+    <div class="scroll">
+      <div class="notif"><div class="nd" style="background:#166534"></div><div><div style="font-size:12px;font-weight:500;color:#111">New PB — Simone Clarke</div><div style="font-size:11px;color:#888;margin-top:1px">Discus 44.9m · Season best by 0.3m</div><div style="font-size:10px;color:#aaa;margin-top:2px">10 min ago</div></div></div>
+      <div class="notif"><div class="nd" style="background:#991b1b"></div><div><div style="font-size:12px;font-weight:500;color:#111">Anomaly — Kezia Campbell</div><div style="font-size:11px;color:#888;margin-top:1px">Squat +12kg but throws flat 4 weeks. Technique regression?</div><div style="font-size:10px;color:#aaa;margin-top:2px">2 hours ago</div></div></div>
+      <div class="notif"><div class="nd" style="background:#991b1b"></div><div><div style="font-size:12px;font-weight:500;color:#111">Missing log — Devon Reid</div><div style="font-size:11px;color:#888;margin-top:1px">2 consecutive weeks without submission</div><div style="font-size:10px;color:#aaa;margin-top:2px">Yesterday</div></div></div>
+      <div class="notif"><div class="nd" style="background:#854d0e"></div><div><div style="font-size:12px;font-weight:500;color:#111">High load — André Brown</div><div style="font-size:11px;color:#888;margin-top:1px">RPE 9 for 3 weeks. A:C ratio 1.6 — consider deload.</div><div style="font-size:10px;color:#aaa;margin-top:2px">2 days ago</div></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ ATHLETE SCREENS ═══ -->
+
+  <!-- ATHLETE WORKOUT -->
+  <div class="screen" id="s-a-home">
+    <div class="topbar"><div><div class="topbar-title">Today's workout</div><div class="topbar-sub">Week 2 · 85% intensity</div></div></div>
+    <div class="scroll">
+      <div class="card" style="margin-bottom:12px">
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Your current maxes</div>
+        <div style="display:flex;gap:14px;font-size:13px;color:#111">
+          <span>Squat <strong>220</strong></span><span>Bench <strong>165</strong></span><span>Clean <strong>185</strong></span>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:500;color:#888;margin-bottom:8px">5 × 5 sets · calculated from your maxes</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <div><div style="font-size:14px;font-weight:500;color:#111">Back Squat</div><div style="font-size:11px;color:#888">5 × 5 @ 187 lbs</div></div>
+        <span style="background:#111;color:#fff;border-radius:8px;padding:3px 8px;font-size:11px">3 / 5 ✓</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <div><div style="font-size:14px;font-weight:500;color:#111">Wide Bench</div><div style="font-size:11px;color:#888">5 × 5 @ 140 lbs</div></div>
+        <span style="font-size:12px;color:#aaa">Not started</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <div><div style="font-size:14px;font-weight:500;color:#111">Power Clean</div><div style="font-size:11px;color:#888">5 × 5 @ 157 lbs</div></div>
+        <span style="font-size:12px;color:#aaa">Not started</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+        <div><div style="font-size:14px;font-weight:500;color:#111">Deadlift</div><div style="font-size:11px;color:#888">3 × 5 @ 220 lbs</div></div>
+        <span style="font-size:12px;color:#aaa">Not started</span>
+      </div>
+      <button class="btn" onclick="go('s-a-logger')">Done — log my throw</button>
+    </div>
+    <div class="nav-tabs">
+      <button class="on"><i class="ti ti-barbell"></i>Workout</button>
+      <button onclick="go('s-a-progress')"><i class="ti ti-chart-line"></i>Progress</button>
+      <button onclick="go('s-a-logger')"><i class="ti ti-plus"></i>Log</button>
+      <button><i class="ti ti-user"></i>Profile</button>
+    </div>
+  </div>
+
+  <!-- ATHLETE PROGRESS (charts) -->
+  <div class="screen" id="s-a-progress">
+    <div class="topbar"><div class="topbar-title">My progress</div><div style="font-size:10px;opacity:.55;margin-left:auto">Marcus Thompson</div></div>
+    <div class="scroll">
+      <div class="stat-row">
+        <div class="stat"><div class="v">16.4m</div><div class="l">Season best</div></div>
+        <div class="stat"><div class="v" style="color:#166534">+0.6m</div><div class="l">vs baseline</div></div>
+        <div class="stat"><div class="v" style="color:#854d0e">−0.1m</div><div class="l">to qualify</div></div>
+      </div>
+
+      <!-- Athlete trajectory chart -->
+      <div class="card">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:2px">My throw trajectory</div>
+        <div style="font-size:9px;color:#999;margin-bottom:8px">Shot put this season · Dotted = projection</div>
+        <svg width="100%" viewBox="0 0 270 120">
+          <line x1="22" y1="10" x2="252" y2="10" stroke="#eee" stroke-width=".5" stroke-dasharray="3,3"/>
+          <text x="254" y="13" font-size="8" fill="#aaa">Goal</text>
+          <line x1="22" y1="24" x2="252" y2="24" stroke="#991b1b" stroke-width=".8" stroke-dasharray="3,3" opacity=".55"/>
+          <text x="254" y="27" font-size="8" fill="#991b1b">17.0</text>
+          <polygon points="185,50 230,38 245,32 245,52 230,56 185,66" fill="#111" opacity=".07"/>
+          <polyline points="28,100 58,92 88,82 118,72 148,61 185,50" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="185,50 230,44 245,41" fill="none" stroke="#111" stroke-width="1.4" stroke-dasharray="5,4" opacity=".6"/>
+          <circle cx="185" cy="50" r="5" fill="#111"/>
+          <rect x="130" y="38" width="48" height="16" rx="4" fill="#dcfce7"/>
+          <text x="154" y="49" font-size="9" fill="#166534" text-anchor="middle" font-weight="500">PB 16.4m ✓</text>
+          <circle cx="28" cy="100" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="58" cy="92" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="88" cy="82" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="118" cy="72" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <circle cx="148" cy="61" r="3" fill="#fff" stroke="#111" stroke-width="1.8"/>
+          <line x1="22" y1="104" x2="252" y2="104" stroke="#ccc" stroke-width=".5"/>
+          <text x="28" y="115" font-size="8" fill="#aaa" text-anchor="middle">W35</text>
+          <text x="185" y="115" font-size="8" fill="#111" text-anchor="middle" font-weight="500">NOW</text>
+          <text x="245" y="115" font-size="8" fill="#854d0e" text-anchor="middle">B&amp;G</text>
+          <line x1="22" y1="10" x2="22" y2="104" stroke="#ccc" stroke-width=".5"/>
+          <text x="18" y="24" font-size="8" fill="#991b1b" text-anchor="end">17.0</text>
+          <text x="18" y="104" font-size="8" fill="#aaa" text-anchor="end">15.8</text>
+        </svg>
+      </div>
+
+      <!-- Strength gauges -->
+      <div class="card">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:10px">Strength snapshot</div>
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:3px"><span>Back squat</span><span style="color:#111;font-weight:500">220 / 250 lbs</span></div>
+          <div style="background:#f0f0f0;border-radius:20px;height:7px"><div style="background:#111;width:88%;height:100%;border-radius:20px"></div></div>
+        </div>
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:3px"><span>Power clean</span><span style="color:#111;font-weight:500">185 / 210 lbs</span></div>
+          <div style="background:#f0f0f0;border-radius:20px;height:7px"><div style="background:#555;width:74%;height:100%;border-radius:20px"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:3px"><span>Wide bench</span><span style="color:#111;font-weight:500">165 / 190 lbs</span></div>
+          <div style="background:#f0f0f0;border-radius:20px;height:7px"><div style="background:#aaa;width:69%;height:100%;border-radius:20px"></div></div>
+        </div>
+      </div>
+
+      <!-- Qualifying -->
+      <div class="card" style="padding:10px 12px">
+        <div style="font-size:11px;font-weight:500;color:#111;margin-bottom:6px">B&amp;G Champs qualifying</div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:#888">Standard: 17.0m</span><span style="color:#854d0e;font-weight:500">Need +0.1m</span></div>
+        <div style="background:#f0f0f0;border-radius:20px;height:8px"><div style="background:#854d0e;width:78%;height:100%;border-radius:20px"></div></div>
+        <div style="font-size:10px;color:#888;margin-top:6px">Projected at deadline: 16.9m · 6 weeks remaining</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button onclick="go('s-a-home')"><i class="ti ti-barbell"></i>Workout</button>
+      <button class="on"><i class="ti ti-chart-line"></i>Progress</button>
+      <button onclick="go('s-a-logger')"><i class="ti ti-plus"></i>Log</button>
+      <button><i class="ti ti-user"></i>Profile</button>
+    </div>
+  </div>
+
+  <!-- ATHLETE LOGGER -->
+  <div class="screen" id="s-a-logger">
+    <div class="topbar"><span class="back" onclick="go('s-a-home')">‹</span><div class="topbar-title">Log this week</div></div>
+    <div class="scroll">
+      <div class="card" style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:500;color:#111;margin-bottom:4px">Natural language entry</div>
+        <div style="font-size:11px;color:#888;margin-bottom:8px">Type it how you'd say it — the app parses it</div>
+        <div style="border:1px solid #ccc;border-radius:8px;padding:11px;font-size:13px;color:#111;background:#f9f9f9">"threw 16.1m, RPE 7, felt strong"</div>
+        <div style="font-size:10px;color:#166534;margin-top:7px">✓ Parsed: 16.1m · RPE 7 · Shot put</div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:#aaa;margin:6px 0">— or fill manually —</div>
+      <div style="font-size:12px;color:#888;margin-bottom:4px">Best throw this week</div>
+      <div class="inp">e.g. 16.1</div>
+      <div style="font-size:12px;color:#888;margin-bottom:8px">Wellness check-in</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div style="flex:1;text-align:center"><div style="font-size:10px;color:#aaa;margin-bottom:4px">Sleep</div><div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:8px;font-size:17px;font-weight:500;color:#111">7</div></div>
+        <div style="flex:1;text-align:center"><div style="font-size:10px;color:#aaa;margin-bottom:4px">Soreness</div><div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:8px;font-size:17px;font-weight:500;color:#111">4</div></div>
+        <div style="flex:1;text-align:center"><div style="font-size:10px;color:#aaa;margin-bottom:4px">Energy</div><div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:8px;font-size:17px;font-weight:500;color:#111">8</div></div>
+      </div>
+      <button class="btn">Submit this week</button>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<p style="font-size:11px;color:#aaa;margin-top:14px;text-align:center">NexGen Optimize · TRU Performance App · Mockup v1.0 · July 2026</p>
+
+<script>
+  let currentRole = 'coach';
+
+  // Build heatmap
+  const athletes = [
+    {n:'Marcus', d:[5,6,7,8,6,7,7,7]},
+    {n:'Simone',  d:[6,5,6,7,7,6,7,6]},
+    {n:'Kezia',   d:[5,5,5,5,5,5,5,5]},
+    {n:'Devon',   d:[7,6,8,7,null,null,null,null]},
+    {n:'André',   d:[6,7,7,8,8,9,9,9]},
+    {n:'Tiana',   d:[5,6,6,7,6,6,7,7]},
+  ];
+  function cellStyle(v) {
+    if (v === null) return 'background:#e0e0e0;color:#aaa';
+    if (v <= 6) return 'background:#dcfce7;color:#166534';
+    if (v <= 7) return 'background:#fef9c3;color:#854d0e';
+    return 'background:#fee2e2;color:#991b1b';
+  }
+  const tb = document.getElementById('hmapbody');
+  athletes.forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-size:10px;color:#888;padding:2px 3px;white-space:nowrap">${a.n}</td>` +
+      a.d.map(v => `<td style="text-align:center;padding:3px 2px;font-size:10px;border-radius:3px;font-weight:500;${cellStyle(v)}">${v ?? ''}</td>`).join('');
+    tb.appendChild(tr);
+  });
+
+  function go(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function setRole(r) {
+    currentRole = r;
+    const rc = document.getElementById('role-coach');
+    const ra = document.getElementById('role-athlete');
+    if (r === 'coach') {
+      rc.classList.add('selected'); ra.classList.remove('selected');
+      rc.querySelector('i').style.color = '#fff'; rc.querySelector('div').style.color = '#fff';
+      ra.querySelector('i').style.color = '#aaa'; ra.querySelector('div').style.color = '#aaa';
+    } else {
+      ra.classList.add('selected'); rc.classList.remove('selected');
+      ra.querySelector('i').style.color = '#fff'; ra.querySelector('div').style.color = '#fff';
+      rc.querySelector('i').style.color = '#aaa'; rc.querySelector('div').style.color = '#aaa';
+    }
+  }
+
+  function goHome() {
+    go(currentRole === 'coach' ? 's-c-squad' : 's-a-home');
+  }
+
+  function loginAs(r) {
+    currentRole = r;
+    const bc = document.getElementById('rb-coach');
+    const ba = document.getElementById('rb-athlete');
+    bc.classList.toggle('active', r === 'coach');
+    ba.classList.toggle('active', r === 'athlete');
+    go(r === 'coach' ? 's-c-squad' : 's-a-home');
+  }
+</script>
+</body>
+</html>
