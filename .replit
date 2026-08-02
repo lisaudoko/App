@@ -1,3 +1,4 @@
+modules = ["nodejs-20"]
 [workflows]
 runButton = "Project"
 
@@ -20,3 +21,7 @@ args = "cd mobile && npx expo start"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[ports]]
+localPort = 8081
+externalPort = 80
