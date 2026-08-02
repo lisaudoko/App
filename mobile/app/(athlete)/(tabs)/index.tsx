@@ -12,11 +12,12 @@ import { repository } from '@/data/repository';
 import { Screen } from '@/components/Screen';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { LoadingState } from '@/components/LoadingState';
 
 export default function AthleteWorkoutScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { data, refresh } = useAthleteSelf();
+  const { data, loading, refresh } = useAthleteSelf();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -39,11 +40,34 @@ export default function AthleteWorkoutScreen() {
     setCompletedIds(authoritative);
   }
 
+  if (loading) return <LoadingState />;
   if (!data.athlete || !workout) {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
   const { squat, clean, bench } = data.athlete.currentMaxes;
+  // Any lift still at 0 means the coach hasn't entered a max for it yet — showing
+  // "@ 0 lbs" for that exercise would be nonsensical, so treat it as not configured.
+  const noMaxesYet = squat === 0 || clean === 0 || bench === 0;
+
+  if (noMaxesYet) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ backgroundColor: colors.text, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 12 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.background }}>Today&apos;s workout</Text>
+        </View>
+        <Screen scroll={false} style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+          <Ionicons name="barbell-outline" size={32} color={colors.textFaint} />
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
+            No workout yet
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+            Your coach hasn&apos;t entered your 1RM maxes yet. Your personalized workout will appear here as soon as they do.
+          </Text>
+        </Screen>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -71,7 +95,7 @@ export default function AthleteWorkoutScreen() {
         </Card>
 
         <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 8 }}>
-          {workout.exercises[0].sets} × {workout.exercises[0].reps} sets · calculated from your maxes
+          Sets and weights calculated from your current maxes
         </Text>
 
         {workout.exercises.map((ex, i) => {

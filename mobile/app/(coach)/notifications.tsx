@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Pressable } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
+import { repository } from '@/data/repository';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
+import { LoadingState } from '@/components/LoadingState';
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -20,7 +22,8 @@ function timeAgo(iso: string): string {
 
 export default function NotificationsScreen() {
   const { colors } = useAppTheme();
-  const { data, refresh } = useProgrammeData();
+  const { data, loading, refresh } = useProgrammeData();
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const dotColor = {
     success: colors.success,
@@ -29,22 +32,41 @@ export default function NotificationsScreen() {
     info: colors.textMuted,
   };
 
+  function handlePress(id: string, athleteId?: string) {
+    setReadIds((prev) => new Set(prev).add(id));
+    repository.markNotificationRead(id).catch(() => {});
+    if (athleteId) router.push(`/(coach)/athlete/${athleteId}`);
+  }
+
+  if (loading) return <LoadingState />;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Notifications" onBack={() => router.back()} />
       <Screen onRefresh={refresh}>
-        {data.notifications.map((n) => (
-          <Pressable key={n.id} onPress={() => n.athleteId && router.push(`/(coach)/athlete/${n.athleteId}`)}>
-            <Card style={{ flexDirection: 'row', gap: 9 }}>
-              <View style={{ width: 7, height: 7, borderRadius: 4, marginTop: 4, backgroundColor: dotColor[n.severity] }} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{n.title}</Text>
-                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 1 }}>{n.body}</Text>
-                <Text style={{ fontSize: 10, color: colors.textFaint, marginTop: 3 }}>{timeAgo(n.createdAt)}</Text>
-              </View>
-            </Card>
-          </Pressable>
-        ))}
+        {data.notifications.map((n) => {
+          const unread = !n.read && !readIds.has(n.id);
+          return (
+            <Pressable key={n.id} onPress={() => handlePress(n.id, n.athleteId)}>
+              <Card style={{ flexDirection: 'row', gap: 9, opacity: unread ? 1 : 0.6 }}>
+                <View
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 4,
+                    marginTop: 4,
+                    backgroundColor: unread ? dotColor[n.severity] : colors.border,
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: unread ? '700' : '500', color: colors.text }}>{n.title}</Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 1 }}>{n.body}</Text>
+                  <Text style={{ fontSize: 10, color: colors.textFaint, marginTop: 3 }}>{timeAgo(n.createdAt)}</Text>
+                </View>
+              </Card>
+            </Pressable>
+          );
+        })}
         {data.notifications.length === 0 && (
           <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>No notifications yet.</Text>
         )}

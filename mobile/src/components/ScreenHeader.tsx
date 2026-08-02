@@ -10,16 +10,17 @@ interface Props {
   onBack?: () => void;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightPress?: () => void;
+  rightLabel?: string;
 }
 
-export function ScreenHeader({ title, subtitle, onBack, rightIcon, onRightPress }: Props) {
+export function ScreenHeader({ title, subtitle, onBack, rightIcon, onRightPress, rightLabel }: Props) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.text, paddingTop: insets.top + 10 }]}>
       {onBack && (
-        <Pressable onPress={onBack} hitSlop={12} style={styles.side}>
+        <Pressable onPress={onBack} hitSlop={12} style={styles.side} accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="chevron-back" size={22} color={colors.background} />
         </Pressable>
       )}
@@ -34,7 +35,13 @@ export function ScreenHeader({ title, subtitle, onBack, rightIcon, onRightPress 
         ) : null}
       </View>
       {rightIcon && (
-        <Pressable onPress={onRightPress} hitSlop={12} style={styles.side}>
+        <Pressable
+          onPress={onRightPress}
+          hitSlop={12}
+          style={styles.side}
+          accessibilityRole="button"
+          accessibilityLabel={rightLabel ?? 'More options'}
+        >
           <Ionicons name={rightIcon} size={19} color={colors.background} />
         </Pressable>
       )}

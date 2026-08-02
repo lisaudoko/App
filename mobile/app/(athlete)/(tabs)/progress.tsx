@@ -9,16 +9,22 @@ import { Card } from '@/components/Card';
 import { StatRow } from '@/components/StatCard';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
+import { LoadingState } from '@/components/LoadingState';
 
 export default function AthleteProgressScreen() {
   const { colors } = useAppTheme();
-  const { data, refresh } = useAthleteSelf();
+  const { data, loading, refresh } = useAthleteSelf();
   const { athlete, logs } = data;
 
   const trajectory = useMemo(() => buildTrajectory(logs, 4), [logs]);
   const qualifyProjection = useMemo(() => projectAtWeek(logs, 6), [logs]);
 
+  if (loading) return <LoadingState />;
   if (!athlete) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+
+  const hasBaseline = athlete.personalBest > 0;
+  const hasQualifyingStandard = athlete.qualifyingStandard > 0;
+  const hasMaxesSet = athlete.currentMaxes.squat > 0 && athlete.currentMaxes.clean > 0 && athlete.currentMaxes.bench > 0;
 
   const lastLog = logs[logs.length - 1];
   const vsBaseline = (lastLog?.mark ?? athlete.personalBest) - athlete.baselineMark;
@@ -36,38 +42,66 @@ export default function AthleteProgressScreen() {
       <Screen onRefresh={refresh}>
         <StatRow
           stats={[
-            { label: 'Season best', value: `${athlete.personalBest}${athlete.unit}` },
-            { label: 'vs baseline', value: `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(1)}${athlete.unit}`, color: vsBaseline >= 0 ? colors.success : colors.danger },
-            { label: 'to qualify', value: `${gapToQualify >= 0 ? '+' : ''}${gapToQualify.toFixed(1)}${athlete.unit}`, color: gapToQualify >= 0 ? colors.success : colors.warning },
+            { label: 'Season best', value: hasBaseline ? `${athlete.personalBest}${athlete.unit}` : '—' },
+            {
+              label: 'vs baseline',
+              value: hasBaseline ? `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(1)}${athlete.unit}` : '—',
+              color: hasBaseline ? (vsBaseline >= 0 ? colors.success : colors.danger) : undefined,
+            },
+            {
+              label: 'to qualify',
+              value: hasBaseline && hasQualifyingStandard ? `${gapToQualify >= 0 ? '+' : ''}${gapToQualify.toFixed(1)}${athlete.unit}` : '—',
+              color: hasBaseline && hasQualifyingStandard ? (gapToQualify >= 0 ? colors.success : colors.warning) : undefined,
+            },
           ]}
         />
 
         <Card>
           <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>My throw trajectory</Text>
           <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>{athlete.event} this season · Dotted = projection</Text>
-          <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={athlete.unit} />
+          <TrajectoryChart
+            actual={trajectory.actual}
+            projected={trajectory.projected}
+            standard={hasQualifyingStandard ? athlete.qualifyingStandard : undefined}
+            unit={athlete.unit}
+          />
         </Card>
 
         <Card>
           <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 10 }}>Strength snapshot</Text>
-          {strengthRows.map((row) => {
-            const pct = row.target > 0 ? row.current / row.target : 0;
-            const barColor = pct >= 0.9 ? colors.success : pct >= 0.7 ? colors.warning : colors.textFaint;
-            return (
-              <View key={row.label} style={{ marginBottom: 10 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <Text style={{ fontSize: 11, color: colors.textMuted }}>{row.label}</Text>
-                  <Text style={{ fontSize: 11, color: colors.text, fontWeight: '500' }}>
-                    {row.current} / {row.target} lbs
-                  </Text>
+          {!hasMaxesSet && (
+            <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              Your coach hasn&apos;t entered your lift maxes yet.
+            </Text>
+          )}
+          {hasMaxesSet &&
+            strengthRows.map((row) => {
+              const pct = row.target > 0 ? row.current / row.target : 0;
+              const barColor = pct >= 0.9 ? colors.success : pct >= 0.7 ? colors.warning : colors.textFaint;
+              return (
+                <View key={row.label} style={{ marginBottom: 10 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <Text style={{ fontSize: 11, color: colors.textMuted }}>{row.label}</Text>
+                    <Text style={{ fontSize: 11, color: colors.text, fontWeight: '500' }}>
+                      {row.current} / {row.target} lbs
+                    </Text>
+                  </View>
+                  <ProgressBar pct={pct} color={barColor} />
                 </View>
-                <ProgressBar pct={pct} color={barColor} />
-              </View>
-            );
-          })}
+              );
+            })}
         </Card>
 
-        {qualifyProjection && (
+        {!hasQualifyingStandard && (
+          <Card>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Qualifying standard</Text>
+            <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              Your coach hasn&apos;t set a qualifying standard for you yet.
+            </Text>
+          </Card>
+        )}
+
+        {hasQualifyingStandard && qualifyProjection && (
           <Card>
             <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Qualifying standard</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>

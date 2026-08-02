@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { MotiView } from 'moti';
@@ -18,6 +18,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const passwordRef = useRef<TextInput>(null);
 
   async function handleLogin(overrideEmail?: string, overridePassword?: string) {
     clearError();
@@ -44,10 +45,28 @@ export default function LoginScreen() {
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
+              textContentType="emailAddress"
+              autoComplete="email"
               placeholder="you@example.com"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              blurOnSubmit={false}
             />
-            <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" />
+            <TextField
+              ref={passwordRef}
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              revealable
+              textContentType="password"
+              autoComplete="password"
+              placeholder="••••••••"
+              returnKeyType="go"
+              onSubmitEditing={() => handleLogin()}
+            />
 
             {error && (
               <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>

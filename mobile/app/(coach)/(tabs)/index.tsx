@@ -1,16 +1,19 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
+import { useAuthStore } from '@/store/authStore';
 import { detectAnomalies } from '@/engine/anomalies';
 import { estimatePeakTiming } from '@/engine/peakTiming';
 import { projectAtWeek } from '@/engine/projections';
 import { Screen } from '@/components/Screen';
 import { Pill, type PillTone } from '@/components/Pill';
+import { PROGRAMME_JOIN_CODE } from '@/data/seed';
 import type { Athlete } from '@/data/types';
 
 interface Row {
@@ -25,7 +28,33 @@ interface Row {
 export default function SquadScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { data, refresh } = useProgrammeData();
+  const { data, loading, refresh } = useProgrammeData();
+  const programmeName = useAuthStore((s) => s.session?.programmeName) ?? 'Your programme';
+
+  // Refetch on focus so the notification badge clears after visiting Notifications
+  // — tabs stay mounted across navigation, so nothing else would trigger a refetch.
+  // Skip the very first focus: useProgrammeData already fetches on mount, and this
+  // screen is focused immediately on mount too, so without the guard we'd fire the
+  // same fetch twice on cold start.
+  const hasFocusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasFocusedOnce.current) {
+        hasFocusedOnce.current = true;
+        return;
+      }
+      refresh();
+    }, [refresh]),
+  );
+
+  const currentWeekLabel = useMemo(() => {
+    let latest: { week: number; label: string } | null = null;
+    for (const logs of Object.values(data.weeklyLogs)) {
+      const last = logs[logs.length - 1];
+      if (last && (!latest || last.week > latest.week)) latest = last;
+    }
+    return latest ? latest.label : 'No results logged yet';
+  }, [data.weeklyLogs]);
 
   const rows: Row[] = useMemo(() => {
     return data.athletes.map((athlete) => {
@@ -82,6 +111,7 @@ export default function SquadScreen() {
   const loggedCount = rows.filter((r) => r.loggedThisWeek).length;
   const missingCount = rows.length - loggedCount;
   const alertCount = rows.filter((r) => r.pillTone !== 'success').length;
+  const unreadNotifications = data.notifications.filter((n) => !n.read).length;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -89,12 +119,40 @@ export default function SquadScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 16, fontWeight: '600', color: colors.background }}>My Squad</Text>
-            <Text style={{ fontSize: 11, color: colors.background, opacity: 0.6, marginTop: 1 }}>Throwers R Us · Week 42</Text>
+            <Text style={{ fontSize: 11, color: colors.background, opacity: 0.6, marginTop: 1 }}>
+              {programmeName} · {currentWeekLabel}
+            </Text>
           </View>
-          <Pressable onPress={() => router.push('/(coach)/notifications')} hitSlop={12} style={{ marginRight: 16 }}>
-            <Ionicons name="notifications-outline" size={19} color={colors.background} />
+          <Pressable
+            onPress={() => router.push('/(coach)/notifications')}
+            hitSlop={12}
+            style={{ marginRight: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel={unreadNotifications > 0 ? `Notifications, ${unreadNotifications} unread` : 'Notifications'}
+          >
+            <View>
+              <Ionicons name="notifications-outline" size={19} color={colors.background} />
+              {unreadNotifications > 0 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -4,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.danger,
+                  }}
+                />
+              )}
+            </View>
           </Pressable>
-          <Pressable onPress={() => router.push('/(coach)/settings')} hitSlop={12}>
+          <Pressable
+            onPress={() => router.push('/(coach)/settings')}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
             <Ionicons name="settings-outline" size={19} color={colors.background} />
           </Pressable>
         </View>
@@ -134,6 +192,18 @@ export default function SquadScreen() {
             </Pressable>
           </MotiView>
         ))}
+        {!loading && rows.length === 0 && (
+          <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 }}>
+            <Ionicons name="people-outline" size={32} color={colors.textFaint} />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
+              No athletes yet
+            </Text>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+              Share your programme join code with your athletes so they can sign up: {'\n'}
+              <Text style={{ fontWeight: '700', color: colors.text }}>{PROGRAMME_JOIN_CODE}</Text>
+            </Text>
+          </View>
+        )}
       </Screen>
     </View>
   );

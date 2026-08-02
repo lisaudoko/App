@@ -12,6 +12,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Pill } from '@/components/Pill';
 import { StatRow } from '@/components/StatCard';
+import { LoadingState } from '@/components/LoadingState';
 import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
 import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
@@ -20,7 +21,7 @@ import { CorrelationChart } from '@/components/charts/CorrelationChart';
 export default function CoachAthleteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useAppTheme();
-  const { data, refresh } = useProgrammeData();
+  const { data, loading, refresh } = useProgrammeData();
 
   const athlete = data.athletes.find((a) => a.id === id);
   const logs = data.weeklyLogs[id ?? ''] ?? [];
@@ -41,10 +42,15 @@ export default function CoachAthleteDetailScreen() {
     return { squats: tests.map((tt) => tt.squat), marks, r };
   }, [athlete, tests]);
 
+  if (loading) return <LoadingState />;
+
   if (!athlete) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScreenHeader title="Athlete" onBack={() => router.back()} />
+        <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>
+          This athlete couldn&apos;t be found.
+        </Text>
       </View>
     );
   }

@@ -8,20 +8,19 @@ import { useAuthStore } from '@/store/authStore';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
+import { LoadingState } from '@/components/LoadingState';
 
 export default function AthleteProfileScreen() {
   const { colors } = useAppTheme();
-  const { data, refresh } = useAthleteSelf();
+  const { data, loading, refresh } = useAthleteSelf();
   const session = useAuthStore((s) => s.session);
   const athlete = data.athlete;
 
+  if (loading) return <LoadingState />;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader
-        title="Profile"
-        rightIcon="settings-outline"
-        onRightPress={() => router.push('/(athlete)/settings')}
-      />
+      <ScreenHeader title="Profile" />
       <Screen onRefresh={refresh}>
         <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
           <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
@@ -36,7 +35,14 @@ export default function AthleteProfileScreen() {
         <Card>
           <InfoRow label="Group" value={athlete?.group ?? '—'} />
           <InfoRow label="Status" value={athlete?.status ?? '—'} />
-          <InfoRow label="Joined" value={athlete?.joinedAt?.slice(0, 10) ?? '—'} />
+          <InfoRow
+            label="Joined"
+            value={
+              athlete?.joinedAt
+                ? new Date(athlete.joinedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                : '—'
+            }
+          />
           <InfoRow label="Baseline mark" value={athlete ? `${athlete.baselineMark}${athlete.unit}` : '—'} last />
         </Card>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +38,13 @@ export function SettingsScreen() {
   async function handleDelete() {
     await deleteAccount();
     setConfirmVisible(false);
+    setConfirmText('');
     router.replace('/login');
+  }
+
+  function closeConfirm() {
+    setConfirmVisible(false);
+    setConfirmText('');
   }
 
   return (
@@ -89,34 +95,39 @@ export function SettingsScreen() {
         </Text>
       </Screen>
 
-      <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' }}>
-          <MotiView
-            from={{ translateY: 300 }}
-            animate={{ translateY: 0 }}
-            transition={{ type: 'timing', duration: 250 }}
-            style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Delete your account?</Text>
-            <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
-              This permanently deletes your profile, logged results, and workout history. This cannot be undone.
-            </Text>
-            <TextField
-              placeholder='Type "DELETE" to confirm'
-              value={confirmText}
-              onChangeText={setConfirmText}
-              autoCapitalize="characters"
-            />
-            <Button
-              label="Permanently delete account"
-              variant="danger"
-              disabled={confirmText.trim().toUpperCase() !== 'DELETE'}
-              loading={isBusy}
-              onPress={handleDelete}
-            />
-            <Button label="Cancel" variant="outline" onPress={() => setConfirmVisible(false)} />
-          </MotiView>
-        </View>
+      <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={closeConfirm}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1, justifyContent: 'flex-end' }}
+        >
+          <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' }}>
+            <MotiView
+              from={{ translateY: 300 }}
+              animate={{ translateY: 0 }}
+              transition={{ type: 'timing', duration: 250 }}
+              style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Delete your account?</Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
+                This permanently deletes your profile, logged results, and workout history. This cannot be undone.
+              </Text>
+              <TextField
+                placeholder='Type "DELETE" to confirm'
+                value={confirmText}
+                onChangeText={setConfirmText}
+                autoCapitalize="characters"
+              />
+              <Button
+                label="Permanently delete account"
+                variant="danger"
+                disabled={confirmText.trim().toUpperCase() !== 'DELETE'}
+                loading={isBusy}
+                onPress={handleDelete}
+              />
+              <Button label="Cancel" variant="outline" onPress={closeConfirm} />
+            </MotiView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

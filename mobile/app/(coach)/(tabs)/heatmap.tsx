@@ -9,6 +9,7 @@ import { detectAnomalies } from '@/engine/anomalies';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RpeHeatmapGrid } from '@/components/charts/RpeHeatmapGrid';
+import { LoadingState } from '@/components/LoadingState';
 
 const LEGEND: { label: string; bgKey: 'successBg' | 'warningBg' | 'dangerBg' | 'border'; fgKey: 'success' | 'warning' | 'danger' | 'textFaint' }[] = [
   { label: 'Low', bgKey: 'successBg', fgKey: 'success' },
@@ -19,7 +20,7 @@ const LEGEND: { label: string; bgKey: 'successBg' | 'warningBg' | 'dangerBg' | '
 
 export default function HeatmapScreen() {
   const { colors } = useAppTheme();
-  const { data, refresh } = useProgrammeData();
+  const { data, loading, refresh } = useProgrammeData();
 
   const rows = useMemo(
     () =>
@@ -35,6 +36,8 @@ export default function HeatmapScreen() {
     () => data.athletes.flatMap((a) => detectAnomalies(a, data.weeklyLogs[a.id] ?? [], data.strengthTests[a.id] ?? [])),
     [data],
   );
+
+  if (loading) return <LoadingState />;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

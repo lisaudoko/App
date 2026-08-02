@@ -28,7 +28,8 @@ export default function LoggerScreen() {
   const [submitted, setSubmitted] = useState(false);
 
   const parsed = useMemo(() => (nlText.trim() ? parseNaturalLanguageEntry(nlText) : null), [nlText]);
-  const mark = parsed?.mark ?? (manualMark ? parseFloat(manualMark) : null);
+  const manualValue = manualMark ? parseFloat(manualMark) : null;
+  const mark = parsed?.mark ?? (manualValue != null && Number.isFinite(manualValue) ? manualValue : null);
   const rpe = parsed?.rpe ?? null;
 
   async function handleSubmit() {
@@ -108,8 +109,12 @@ export default function LoggerScreen() {
           onChangeText={setManualMark}
           keyboardType="decimal-pad"
           placeholder="e.g. 16.1"
-          editable={!parsed?.mark}
         />
+        {parsed?.mark != null && manualMark.length > 0 && (
+          <Text style={{ fontSize: 10, color: colors.textFaint, marginTop: -8, marginBottom: 12 }}>
+            Using {parsed.mark}m from the text above — clear it to use this field instead.
+          </Text>
+        )}
 
         <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8 }}>Wellness check-in</Text>
         <SliderRow label="Sleep" value={sleep} onChange={setSleep} />

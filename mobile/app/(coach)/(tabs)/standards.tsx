@@ -9,10 +9,11 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Pill } from '@/components/Pill';
 import { ProgressBar } from '@/components/ProgressBar';
+import { LoadingState } from '@/components/LoadingState';
 
 export default function StandardsScreen() {
   const { colors } = useAppTheme();
-  const { data, refresh } = useProgrammeData();
+  const { data, loading, refresh } = useProgrammeData();
   const [selectedMeetId, setSelectedMeetId] = useState<string | null>(null);
 
   const meet = data.meets.find((m) => m.id === selectedMeetId) ?? data.meets[0];
@@ -28,6 +29,8 @@ export default function StandardsScreen() {
         athletes: data.athletes.filter((a) => a.event === event),
       }));
   }, [data.athletes, meet]);
+
+  if (loading) return <LoadingState />;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

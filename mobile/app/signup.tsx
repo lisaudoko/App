@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
@@ -21,9 +21,16 @@ export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [programmeName, setProgrammeName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [event, setEvent] = useState('');
+
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
+  const passwordsMatch = password === confirmPassword;
 
   async function handleSubmit() {
     clearError();
@@ -31,7 +38,7 @@ export default function SignupScreen() {
       if (role === 'coach') {
         await signupCoach({ name, email, password, programmeName: programmeName || `${name}'s Programme` });
       } else {
-        await signupAthlete({ name, email, password, joinCode, event: event || 'Shot Put' });
+        await signupAthlete({ name, email, password, joinCode, event });
       }
       router.replace('/');
     } catch {
@@ -43,7 +50,8 @@ export default function SignupScreen() {
     !!name &&
     !!email &&
     password.length >= 6 &&
-    (role === 'coach' ? true : !!joinCode);
+    passwordsMatch &&
+    (role === 'coach' ? true : !!joinCode && !!event);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -78,9 +86,59 @@ export default function SignupScreen() {
             ))}
           </View>
 
-          <TextField label="Full name" value={name} onChangeText={setName} placeholder="Jane Doe" />
-          <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
-          <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="At least 6 characters" />
+          <TextField
+            label="Full name"
+            value={name}
+            onChangeText={setName}
+            placeholder="Jane Doe"
+            textContentType="name"
+            autoComplete="name"
+            returnKeyType="next"
+            onSubmitEditing={() => emailRef.current?.focus()}
+            blurOnSubmit={false}
+          />
+          <TextField
+            ref={emailRef}
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+            placeholder="you@example.com"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            blurOnSubmit={false}
+          />
+          <TextField
+            ref={passwordRef}
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            revealable
+            textContentType="newPassword"
+            autoComplete="password-new"
+            placeholder="At least 6 characters"
+            returnKeyType="next"
+            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+            blurOnSubmit={false}
+          />
+          <TextField
+            ref={confirmPasswordRef}
+            label="Confirm password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            revealable
+            textContentType="newPassword"
+            autoComplete="password-new"
+            placeholder="Re-enter your password"
+            returnKeyType={role === 'coach' ? 'done' : 'next'}
+            error={confirmPassword.length > 0 && !passwordsMatch ? "Passwords don't match" : undefined}
+          />
 
           {role === 'coach' ? (
             <TextField label="Programme name" value={programmeName} onChangeText={setProgrammeName} placeholder="e.g. Kingston AC Throws" />
