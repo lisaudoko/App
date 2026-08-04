@@ -25,6 +25,7 @@ export default function SignupScreen() {
   const [programmeName, setProgrammeName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [event, setEvent] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -51,16 +52,17 @@ export default function SignupScreen() {
     !!email &&
     password.length >= 6 &&
     passwordsMatch &&
+    agreedToTerms &&
     (role === 'coach' ? true : !!joinCode && !!event);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <Screen>
-          <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, marginTop: 12, marginBottom: 4 }}>
+          <Text style={{ fontSize: 25, fontWeight: '600', color: colors.text, marginTop: 12, marginBottom: 4 }}>
             Create your account
           </Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 20 }}>
+          <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 20 }}>
             One app, two experiences — tell us which one you are.
           </Text>
 
@@ -90,7 +92,7 @@ export default function SignupScreen() {
             label="Full name"
             value={name}
             onChangeText={setName}
-            placeholder="Jane Doe"
+            placeholder="First Last"
             textContentType="name"
             autoComplete="name"
             returnKeyType="next"
@@ -149,12 +151,47 @@ export default function SignupScreen() {
             </>
           )}
 
-          {error && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>}
+          <Pressable
+            onPress={() => setAgreedToTerms((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: agreedToTerms }}
+            accessibilityLabel="I am 13 years of age or older, and I agree to the Terms of Service and Privacy Policy"
+            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 4, marginBottom: 16 }}
+          >
+            <View
+              style={{
+                width: 18,
+                height: 18,
+                marginTop: 1,
+                borderRadius: 4,
+                borderWidth: agreedToTerms ? 0 : 1.5,
+                borderColor: colors.border,
+                backgroundColor: agreedToTerms ? colors.accent : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {agreedToTerms && <Text style={{ color: colors.accentText, fontSize: 13, fontWeight: '700' }}>✓</Text>}
+            </View>
+            <Text style={{ fontSize: 13, color: colors.textMuted, flex: 1, lineHeight: 16 }}>
+              I am 13 years of age or older, and I agree to the{' '}
+              <Link href="/terms" style={{ color: colors.text, fontWeight: '600' }}>
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy-policy" style={{ color: colors.text, fontWeight: '600' }}>
+                Privacy Policy
+              </Link>
+              . Under 13? Ask your coach to add you instead.
+            </Text>
+          </Pressable>
+
+          {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
 
           <Button label="Create account" onPress={handleSubmit} loading={isBusy} disabled={!canSubmit} />
 
           <View style={{ alignItems: 'center', marginTop: 14 }}>
-            <Text style={{ fontSize: 12, color: colors.textMuted }}>
+            <Text style={{ fontSize: 15, color: colors.textMuted }}>
               Already have an account?{' '}
               <Link href="/login" style={{ color: colors.text, fontWeight: '600' }}>
                 Log in

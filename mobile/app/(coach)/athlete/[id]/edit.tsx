@@ -111,12 +111,12 @@ export default function EditAthleteScreen() {
       <ScreenHeader title={`Edit ${athlete.name}`} onBack={() => router.back()} />
       <Screen>
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Profile</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Profile</Text>
           <TextField label="Name" value={name} onChangeText={setName} />
 
           {programmeEventGroups.length > 1 && (
             <>
-              <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Event group</Text>
+              <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Event group</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                 {programmeEventGroups.map((g) => {
                   const active = eventGroup === g;
@@ -124,6 +124,9 @@ export default function EditAthleteScreen() {
                     <Pressable
                       key={g}
                       onPress={() => setEventGroup(g)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: active }}
+                      accessibilityLabel={EVENT_GROUP_LABEL[g]}
                       style={{
                         flex: 1,
                         alignItems: 'center',
@@ -134,7 +137,7 @@ export default function EditAthleteScreen() {
                         borderColor: colors.border,
                       }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
                         {EVENT_GROUP_LABEL[g]}
                       </Text>
                     </Pressable>
@@ -159,12 +162,12 @@ export default function EditAthleteScreen() {
             value={baselineMark}
             onChangeText={setBaselineMark}
           />
-          {error && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>}
+          {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
           <Button label="Save profile" onPress={handleSaveProfile} loading={saving} />
         </Card>
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Add strength test</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Add strength test</Text>
           <TextField label="Date (YYYY-MM-DD)" value={testDate} onChangeText={setTestDate} keyboardType="numbers-and-punctuation" />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
@@ -182,8 +185,8 @@ export default function EditAthleteScreen() {
               <TextField label="Deadlift" keyboardType="decimal-pad" value={deadlift} onChangeText={setDeadlift} />
             </View>
           </View>
-          {testError && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{testError}</Text>}
-          {testSaved && <Text style={{ color: colors.success, fontSize: 12, marginBottom: 8 }}>Strength test saved.</Text>}
+          {testError && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{testError}</Text>}
+          {testSaved && <Text style={{ color: colors.success, fontSize: 15, marginBottom: 8 }}>Strength test saved.</Text>}
           <Button label="Add test" variant="outline" onPress={handleAddStrengthTest} loading={savingTest} />
         </Card>
       </Screen>

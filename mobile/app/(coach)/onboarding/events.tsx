@@ -22,17 +22,23 @@ export default function OnboardingEventsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Welcome to TRU" subtitle="Step 1 of 2" />
       <Screen>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
+        <Text style={{ fontSize: 25, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
           What does your programme cover?
         </Text>
-        <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 20, lineHeight: 18 }}>
+        <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 20, lineHeight: 18 }}>
           Pick every event group you coach. You can add more later from Settings.
         </Text>
 
         {ALL_GROUPS.map((group) => {
           const active = selected.includes(group);
           return (
-            <Pressable key={group} onPress={() => toggle(group)}>
+            <Pressable
+              key={group}
+              onPress={() => toggle(group)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: active }}
+              accessibilityLabel={`${EVENT_GROUP_LABEL[group]}: ${EVENT_GROUP_EVENTS[group].join(', ')}`}
+            >
               <Card
                 style={{
                   borderColor: active ? colors.accent : colors.border,
@@ -43,8 +49,8 @@ export default function OnboardingEventsScreen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{EVENT_GROUP_LABEL[group]}</Text>
-                  <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
+                  <Text style={{ fontSize: 19, fontWeight: '700', color: colors.text }}>{EVENT_GROUP_LABEL[group]}</Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>
                     {EVENT_GROUP_EVENTS[group].join(', ')}
                   </Text>
                 </View>
@@ -60,7 +66,7 @@ export default function OnboardingEventsScreen() {
                     justifyContent: 'center',
                   }}
                 >
-                  {active && <Text style={{ color: colors.accentText, fontSize: 12, fontWeight: '700' }}>✓</Text>}
+                  {active && <Text style={{ color: colors.accentText, fontSize: 15, fontWeight: '700' }}>✓</Text>}
                 </View>
               </Card>
             </Pressable>

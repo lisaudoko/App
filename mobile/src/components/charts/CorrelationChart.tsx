@@ -34,7 +34,7 @@ export function CorrelationChart({ xs, ys, r, xLabel }: Props) {
   if (xs.length < 3) {
     return (
       <View style={{ height: H, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 11, color: colors.textFaint }}>Not enough data yet</Text>
+        <Text style={{ fontSize: 13, color: colors.textFaint }}>Not enough data yet</Text>
       </View>
     );
   }
@@ -52,8 +52,8 @@ export function CorrelationChart({ xs, ys, r, xLabel }: Props) {
         </CartesianChart>
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-        <Text style={{ fontSize: 9, color: colors.textMuted }}>{xLabel}</Text>
-        <Text style={{ fontSize: 10, color: strengthColor, fontWeight: '500' }}>
+        <Text style={{ fontSize: 11, color: colors.textMuted }}>{xLabel}</Text>
+        <Text style={{ fontSize: 12, color: strengthColor, fontWeight: '500' }}>
           r = {r.toFixed(2)} · {strength}
         </Text>
       </View>

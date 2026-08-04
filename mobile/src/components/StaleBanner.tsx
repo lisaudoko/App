@@ -20,7 +20,7 @@ export function StaleBanner() {
       }}
     >
       <Ionicons name="cloud-offline-outline" size={14} color={colors.warning} />
-      <Text style={{ fontSize: 11, color: colors.warning, flex: 1 }}>You&apos;re offline — showing the last saved data.</Text>
+      <Text style={{ fontSize: 13, color: colors.warning, flex: 1 }}>You&apos;re offline — showing the last saved data.</Text>
     </View>
   );
 }

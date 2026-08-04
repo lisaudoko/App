@@ -11,15 +11,23 @@ import { useAuthStore } from '@/store/authStore';
 import { detectAnomalies } from '@/engine/anomalies';
 import { estimatePeakTiming } from '@/engine/peakTiming';
 import { projectAtWeek } from '@/engine/projections';
-import { currentWeekFromLogs } from '@/engine/load';
+import { currentWeekFromLogs, buildRpeRow } from '@/engine/load';
 import { Screen } from '@/components/Screen';
 import { Pill, type PillTone } from '@/components/Pill';
 import { StaleBanner } from '@/components/StaleBanner';
 import { TrialBanner } from '@/components/TrialBanner';
+import { RpeHeatmapGrid } from '@/components/charts/RpeHeatmapGrid';
 import { useCoachAccess } from '@/hooks/useCoachAccess';
 import { repository } from '@/data/repository';
 import type { Athlete } from '@/data/types';
 import { EVENT_GROUP_DIRECTION, EVENT_GROUP_LABEL, formatPerformance, type EventGroup } from '@/lib/formatPerformance';
+
+const HEATMAP_LEGEND: { label: string; statusKey: 'onTrack' | 'borderline' | 'alert' | 'noLog' }[] = [
+  { label: 'Low', statusKey: 'onTrack' },
+  { label: 'Moderate', statusKey: 'borderline' },
+  { label: 'High', statusKey: 'alert' },
+  { label: 'Missing', statusKey: 'noLog' },
+];
 
 interface Row {
   athlete: Athlete;
@@ -39,6 +47,7 @@ export default function SquadScreen() {
   const [joinCode, setJoinCode] = React.useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [activeEventGroup, setActiveEventGroup] = useState<EventGroup | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'heatmap'>('list');
 
   React.useEffect(() => {
     repository.getMyProgrammeJoinCode().then(setJoinCode).catch(() => {});
@@ -82,9 +91,9 @@ export default function SquadScreen() {
       const warning = anomalies.find((a) => a.severity === 'warning');
 
       if (!loggedThisWeek) {
-        dotColor = colors.danger;
+        dotColor = colors.statusColors.noLog.text;
         pillLabel = 'No log';
-        pillTone = 'danger';
+        pillTone = 'neutral';
       } else if (danger) {
         dotColor = colors.danger;
         pillLabel = 'Alert';
@@ -137,6 +146,24 @@ export default function SquadScreen() {
     [eventGroupFilteredRows, activeGroup],
   );
 
+  const heatmapRows = useMemo(
+    () =>
+      eventGroupFilteredRows.map((r) => ({
+        athleteId: r.athlete.id,
+        name: r.athlete.name.split(' ')[0],
+        cells: buildRpeRow(data.weeklyLogs[r.athlete.id] ?? [], 8, currentWeek),
+      })),
+    [eventGroupFilteredRows, data.weeklyLogs, currentWeek],
+  );
+
+  const heatmapFlags = useMemo(
+    () =>
+      eventGroupFilteredRows.flatMap((r) =>
+        detectAnomalies(r.athlete, data.weeklyLogs[r.athlete.id] ?? [], data.strengthTests[r.athlete.id] ?? [], currentWeek),
+      ),
+    [eventGroupFilteredRows, data.weeklyLogs, data.strengthTests, currentWeek],
+  );
+
   const loggedCount = rows.filter((r) => r.loggedThisWeek).length;
   const missingCount = rows.length - loggedCount;
   const alertCount = rows.filter((r) => r.pillTone !== 'success').length;
@@ -144,11 +171,11 @@ export default function SquadScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ backgroundColor: colors.text, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 14 }}>
+      <View style={{ backgroundColor: colors.navBar, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.background }}>My Squad</Text>
-            <Text style={{ fontSize: 11, color: colors.background, opacity: 0.6, marginTop: 1 }}>
+            <Text style={{ fontSize: 20, fontWeight: '600', color: colors.navText }}>My Squad</Text>
+            <Text style={{ fontSize: 13, color: colors.navText, opacity: 0.6, marginTop: 1 }}>
               {programmeName} · {currentWeekLabel}
             </Text>
           </View>
@@ -159,7 +186,7 @@ export default function SquadScreen() {
             accessibilityRole="button"
             accessibilityLabel="Add athlete"
           >
-            <Ionicons name="person-add-outline" size={19} color={colors.background} />
+            <Ionicons name="person-add-outline" size={19} color={colors.navText} />
           </Pressable>
           <Pressable
             onPress={() => router.push('/(coach)/notifications')}
@@ -169,7 +196,7 @@ export default function SquadScreen() {
             accessibilityLabel={unreadNotifications > 0 ? `Notifications, ${unreadNotifications} unread` : 'Notifications'}
           >
             <View>
-              <Ionicons name="notifications-outline" size={19} color={colors.background} />
+              <Ionicons name="notifications-outline" size={19} color={colors.navText} />
               {unreadNotifications > 0 && (
                 <View
                   style={{
@@ -191,7 +218,7 @@ export default function SquadScreen() {
             accessibilityRole="button"
             accessibilityLabel="Settings"
           >
-            <Ionicons name="settings-outline" size={19} color={colors.background} />
+            <Ionicons name="settings-outline" size={19} color={colors.navText} />
           </Pressable>
         </View>
 
@@ -205,6 +232,34 @@ export default function SquadScreen() {
       {access.isTrialing && <TrialBanner daysLeft={access.daysLeft} />}
       {isStale && <StaleBanner />}
 
+      <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 16, marginTop: 12 }}>
+        {(['list', 'heatmap'] as const).map((mode) => {
+          const active = viewMode === mode;
+          return (
+            <Pressable
+              key={mode}
+              onPress={() => setViewMode(mode)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={mode === 'list' ? 'Squad list' : 'RPE heatmap'}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: active ? colors.accent : 'transparent',
+                borderWidth: active ? 0 : 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                {mode === 'list' ? 'Squad' : 'Heatmap'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {eventGroups.length > 1 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10 }}>
           <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
@@ -217,6 +272,9 @@ export default function SquadScreen() {
                     setActiveEventGroup(g);
                     setActiveGroup(null);
                   }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={g ? EVENT_GROUP_LABEL[g] : 'All events'}
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 6,
@@ -226,7 +284,7 @@ export default function SquadScreen() {
                     borderColor: active ? colors.text : colors.border,
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: active ? colors.background : colors.textMuted }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: active ? colors.background : colors.textMuted }}>
                     {g ? EVENT_GROUP_LABEL[g] : 'All events'}
                   </Text>
                 </Pressable>
@@ -236,7 +294,7 @@ export default function SquadScreen() {
         </ScrollView>
       )}
 
-      {groups.length > 0 && (
+      {viewMode === 'list' && groups.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10 }}>
           <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
             {[null, ...groups].map((g) => {
@@ -245,6 +303,9 @@ export default function SquadScreen() {
                 <Pressable
                   key={g ?? 'all'}
                   onPress={() => setActiveGroup(g)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={g ?? 'All'}
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 6,
@@ -254,7 +315,7 @@ export default function SquadScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <Text style={{ fontSize: 11, color: active ? colors.accentText : colors.textMuted }}>{g ?? 'All'}</Text>
+                  <Text style={{ fontSize: 13, color: active ? colors.accentText : colors.textMuted }}>{g ?? 'All'}</Text>
                 </Pressable>
               );
             })}
@@ -262,59 +323,92 @@ export default function SquadScreen() {
         </ScrollView>
       )}
 
-      <Screen onRefresh={refresh} padded={false} style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-        {visibleRows.map((row, i) => (
-          <MotiView
-            key={row.athlete.id}
-            from={{ opacity: 0, translateY: 8 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 250, delay: i * 40 }}
-          >
-            <Pressable
-              onPress={() => router.push(`/(coach)/athlete/${row.athlete.id}`)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-                paddingVertical: 12,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-              }}
+      {viewMode === 'list' ? (
+        <Screen onRefresh={refresh} padded={false} style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          {visibleRows.map((row, i) => (
+            <MotiView
+              key={row.athlete.id}
+              from={{ opacity: 0, translateY: 8 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 250, delay: i * 40 }}
             >
-              <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: row.dotColor }} />
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>{row.athlete.name}</Text>
-                  {!!row.athlete.group && (
-                    <Text style={{ fontSize: 9, color: colors.textFaint, backgroundColor: colors.surfaceAlt, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }}>
-                      {row.athlete.group}
-                    </Text>
-                  )}
+              <Pressable
+                onPress={() => router.push(`/(coach)/athlete/${row.athlete.id}`)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: row.dotColor }} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '500', color: colors.text }}>{row.athlete.name}</Text>
+                    {!!row.athlete.group && (
+                      <Text style={{ fontSize: 11, color: colors.textFaint, backgroundColor: colors.surfaceAlt, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }}>
+                        {row.athlete.group}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 13, color: colors.textMuted }}>{row.subtitle}</Text>
                 </View>
-                <Text style={{ fontSize: 11, color: colors.textMuted }}>{row.subtitle}</Text>
+                <Pill label={row.pillLabel} tone={row.pillTone} />
+              </Pressable>
+            </MotiView>
+          ))}
+          {!loading && rows.length === 0 && (
+            <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 }}>
+              <Ionicons name="people-outline" size={32} color={colors.textFaint} />
+              <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
+                No athletes yet
+              </Text>
+              <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+                Add them yourself from the + above, or share your programme join code so they can sign up: {'\n'}
+                <Text style={{ fontWeight: '700', color: colors.text }}>{joinCode ?? '…'}</Text>
+              </Text>
+            </View>
+          )}
+          {!loading && rows.length > 0 && visibleRows.length === 0 && (
+            <Text style={{ fontSize: 15, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>
+              No athletes in &quot;{activeGroup}&quot;.
+            </Text>
+          )}
+        </Screen>
+      ) : (
+        <Screen onRefresh={refresh}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 }}>RPE heatmap · Last 8 weeks</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            {HEATMAP_LEGEND.map((l) => (
+              <View key={l.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: colors.statusColors[l.statusKey].text }} />
+                <Text style={{ fontSize: 12, color: colors.textMuted }}>{l.label}</Text>
               </View>
-              <Pill label={row.pillLabel} tone={row.pillTone} />
-            </Pressable>
-          </MotiView>
-        ))}
-        {!loading && rows.length === 0 && (
-          <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 }}>
-            <Ionicons name="people-outline" size={32} color={colors.textFaint} />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
-              No athletes yet
-            </Text>
-            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
-              Add them yourself from the + above, or share your programme join code so they can sign up: {'\n'}
-              <Text style={{ fontWeight: '700', color: colors.text }}>{joinCode ?? '…'}</Text>
-            </Text>
+            ))}
           </View>
-        )}
-        {!loading && rows.length > 0 && visibleRows.length === 0 && (
-          <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>
-            No athletes in &quot;{activeGroup}&quot;.
-          </Text>
-        )}
-      </Screen>
+
+          <RpeHeatmapGrid rows={heatmapRows} />
+
+          <View style={{ marginTop: 20 }}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 10 }}>This week&apos;s flags</Text>
+            {heatmapFlags.length === 0 && <Text style={{ fontSize: 15, color: colors.textMuted }}>No flags — squad looks steady.</Text>}
+            {heatmapFlags.map((f, i) => (
+              <Pressable
+                key={i}
+                onPress={() => router.push(`/(coach)/athlete/${f.athleteId}`)}
+                style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}
+              >
+                <Text style={{ color: f.severity === 'danger' ? colors.danger : colors.warning }}>●</Text>
+                <Text style={{ fontSize: 13, color: colors.textMuted, flex: 1 }}>
+                  {f.athleteName} — {f.message}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </Screen>
+      )}
     </View>
   );
 }
@@ -322,8 +416,8 @@ export default function SquadScreen() {
 function StatBox({ value, label, bg, fg }: { value: number; label: string; bg: string; fg: string }) {
   return (
     <View style={{ flex: 1, backgroundColor: bg, borderRadius: 8, paddingVertical: 8, alignItems: 'center' }}>
-      <Text style={{ fontSize: 17, fontWeight: '600', color: fg }}>{value}</Text>
-      <Text style={{ fontSize: 10, color: fg }}>{label}</Text>
+      <Text style={{ fontSize: 21, fontWeight: '600', color: fg }}>{value}</Text>
+      <Text style={{ fontSize: 12, color: fg }}>{label}</Text>
     </View>
   );
 }

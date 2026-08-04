@@ -40,6 +40,8 @@ export default function LoggerScreen() {
   const [sleep, setSleep] = useState(7);
   const [soreness, setSoreness] = useState(4);
   const [energy, setEnergy] = useState(7);
+  const [motivation, setMotivation] = useState(7);
+  const [bodyWeight, setBodyWeight] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -74,11 +76,13 @@ export default function LoggerScreen() {
         sleep,
         soreness,
         energy,
+        motivation,
+        bodyWeight: bodyWeight ? parseFloat(bodyWeight) : null,
         notes,
       });
       await refresh();
       if (isNewPersonalBest) {
-        notifyPersonalBest(data.athlete.name, mark, data.athlete.unit).catch(() => {});
+        notifyPersonalBest(data.athlete.name, mark, perfUnit).catch(() => {});
       }
     } finally {
       setSubmitting(false);
@@ -91,6 +95,7 @@ export default function LoggerScreen() {
     setParsed(null);
     setParseError(null);
     setManualMark('');
+    setBodyWeight('');
   }
 
   if (submitted) {
@@ -99,9 +104,9 @@ export default function LoggerScreen() {
         <ScreenHeader title="Log this week" onBack={() => router.back()} />
         <Screen scroll={false} style={{ alignItems: 'center', justifyContent: 'center' }}>
           <MotiView from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 300 }}>
-            <Text style={{ fontSize: 40, textAlign: 'center' }}>✅</Text>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>Logged!</Text>
-            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center' }}>
+            <Text style={{ fontSize: 50, textAlign: 'center' }}>✅</Text>
+            <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>Logged!</Text>
+            <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4, textAlign: 'center' }}>
               {loggedMark != null ? formatPerformance(loggedMark, perfUnit) : '—'} · RPE {loggedRpe ?? '—'}
             </Text>
             <Button label="Back to workout" onPress={() => router.push('/(athlete)/(tabs)')} />
@@ -119,8 +124,8 @@ export default function LoggerScreen() {
         {!manualMode ? (
           <>
             <Card>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Natural language entry</Text>
-              <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8 }}>Type it how you&apos;d say it — we&apos;ll parse it</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Natural language entry</Text>
+              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>Type it how you&apos;d say it — we&apos;ll parse it</Text>
               <TextField
                 value={nlText}
                 onChangeText={(t) => {
@@ -133,7 +138,7 @@ export default function LoggerScreen() {
                 }
                 multiline
               />
-              {parseError && <Text style={{ fontSize: 10, color: colors.danger, marginTop: 4 }}>{parseError}</Text>}
+              {parseError && <Text style={{ fontSize: 12, color: colors.danger, marginTop: 4 }}>{parseError}</Text>}
               {!parsed && (
                 <Button label="Parse entry" onPress={handleParse} loading={parsing} disabled={!nlText.trim()} />
               )}
@@ -143,14 +148,14 @@ export default function LoggerScreen() {
               {parsed && (
                 <MotiView from={{ opacity: 0, translateY: 6 }} animate={{ opacity: 1, translateY: 0 }} exit={{ opacity: 0 }}>
                   <Card>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 6 }}>We understood</Text>
-                    <Text style={{ fontSize: 14, color: colors.text }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 6 }}>We understood</Text>
+                    <Text style={{ fontSize: 18, color: colors.text }}>
                       {parsed.mark != null ? formatPerformance(parsed.mark, perfUnit) : `No ${isTimed ? 'time' : 'distance'}`}{' '}
                       · {parsed.rpe != null ? `RPE ${parsed.rpe}` : 'No RPE'}
                     </Text>
-                    {parsed.notes && <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>{parsed.notes}</Text>}
+                    {parsed.notes && <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 4 }}>{parsed.notes}</Text>}
                     {parsed.confidence === 'low' && (
-                      <Text style={{ fontSize: 10, color: colors.warning, marginTop: 4 }}>
+                      <Text style={{ fontSize: 12, color: colors.warning, marginTop: 4 }}>
                         Not fully sure about this one — check it before confirming.
                       </Text>
                     )}
@@ -172,15 +177,15 @@ export default function LoggerScreen() {
               )}
             </AnimatePresence>
 
-            <Text style={{ textAlign: 'center', fontSize: 11, color: colors.textFaint, marginVertical: 10 }}>— or —</Text>
+            <Text style={{ textAlign: 'center', fontSize: 13, color: colors.textFaint, marginVertical: 10 }}>— or —</Text>
             <Pressable onPress={() => setManualMode(true)}>
-              <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600', textAlign: 'center' }}>Enter manually</Text>
+              <Text style={{ fontSize: 15, color: colors.text, fontWeight: '600', textAlign: 'center' }}>Enter manually</Text>
             </Pressable>
           </>
         ) : (
           <>
             <Pressable onPress={() => setManualMode(false)} style={{ marginBottom: 8 }}>
-              <Text style={{ fontSize: 11, color: colors.textMuted }}>← Back to natural language entry</Text>
+              <Text style={{ fontSize: 13, color: colors.textMuted }}>← Back to natural language entry</Text>
             </Pressable>
 
             <TextField
@@ -195,10 +200,18 @@ export default function LoggerScreen() {
           </>
         )}
 
-        <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8, marginTop: 4 }}>Wellness check-in</Text>
+        <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 8, marginTop: 4 }}>Wellness check-in</Text>
         <SliderRow label="Sleep" value={sleep} onChange={setSleep} max={10} />
         <SliderRow label="Soreness" value={soreness} onChange={setSoreness} max={10} />
         <SliderRow label="Energy" value={energy} onChange={setEnergy} max={10} />
+        <SliderRow label="Motivation" value={motivation} onChange={setMotivation} max={10} />
+        <TextField
+          label="Body weight (lbs) — optional"
+          value={bodyWeight}
+          onChangeText={setBodyWeight}
+          keyboardType="decimal-pad"
+          placeholder="e.g. 178"
+        />
 
         {manualMode && (
           <Button
@@ -221,8 +234,8 @@ function SliderRow({ label, value, onChange, max }: { label: string; value: numb
   return (
     <View style={{ marginBottom: 14 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 11, color: colors.textMuted }}>{label}</Text>
-        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>{value}</Text>
+        <Text style={{ fontSize: 13, color: colors.textMuted }}>{label}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '600', color: colors.text }}>{value}</Text>
       </View>
       <Slider
         minimumValue={1}

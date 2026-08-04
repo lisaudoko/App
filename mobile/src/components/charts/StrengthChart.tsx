@@ -29,7 +29,7 @@ export function StrengthChart({ tests }: Props) {
   if (tests.length < 3) {
     return (
       <View style={{ height: H, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 11, color: colors.textFaint }}>Not enough data yet</Text>
+        <Text style={{ fontSize: 13, color: colors.textFaint }}>Not enough data yet</Text>
       </View>
     );
   }
@@ -55,8 +55,8 @@ export function StrengthChart({ tests }: Props) {
         </CartesianChart>
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-        <Text style={{ fontSize: 9, color: colors.textFaint }}>{tests[0].label}</Text>
-        <Text style={{ fontSize: 9, color: colors.text, fontWeight: '500' }}>
+        <Text style={{ fontSize: 11, color: colors.textFaint }}>{tests[0].label}</Text>
+        <Text style={{ fontSize: 11, color: colors.text, fontWeight: '500' }}>
           {last.label} · Squat {last.squat} · Clean {last.clean} · Bench {last.bench}
         </Text>
       </View>

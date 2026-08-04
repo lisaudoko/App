@@ -117,12 +117,13 @@ export default function AiAssistantScreen() {
           paddingBottom: 8,
         }}
       >
-        <Text style={{ fontSize: 11, color: colors.textMuted }}>Deep analysis</Text>
+        <Text style={{ fontSize: 13, color: colors.textMuted }}>Deep analysis</Text>
         <Switch
           value={deepAnalysis}
           onValueChange={setDeepAnalysis}
           trackColor={{ true: colors.accent, false: colors.border }}
           thumbColor={colors.surface}
+          accessibilityLabel="Deep analysis"
         />
       </View>
 
@@ -134,8 +135,12 @@ export default function AiAssistantScreen() {
         <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} bounces={false}>
           {messages.length === 0 && (
             <View style={{ marginTop: 12 }}>
-              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 14 }}>
+              <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 8 }}>
                 Ask me anything about your squad — qualifying status, risk flags, or a specific athlete.
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 14, lineHeight: 14 }}>
+                Responses are AI-generated from your squad&apos;s logged data and may be incomplete or inaccurate —
+                use your own judgement before acting on them.
               </Text>
               {SUGGESTED_PROMPTS.map((prompt) => (
                 <Pressable
@@ -150,7 +155,7 @@ export default function AiAssistantScreen() {
                     marginBottom: 8,
                   }}
                 >
-                  <Text style={{ fontSize: 12, color: colors.text }}>{prompt}</Text>
+                  <Text style={{ fontSize: 15, color: colors.text }}>{prompt}</Text>
                 </Pressable>
               ))}
             </View>
@@ -179,7 +184,7 @@ export default function AiAssistantScreen() {
                   padding: 11,
                 }}
               >
-                <Text style={{ fontSize: 13, lineHeight: 19, color: m.role === 'user' ? colors.accentText : colors.text }}>
+                <Text style={{ fontSize: 17, lineHeight: 19, color: m.role === 'user' ? colors.accentText : colors.text }}>
                   {m.text}
                 </Text>
               </View>
@@ -187,12 +192,12 @@ export default function AiAssistantScreen() {
           ))}
           {thinking && (
             <View style={{ alignSelf: 'flex-start' }}>
-              <Text style={{ fontSize: 12, color: colors.textFaint }}>Thinking…</Text>
+              <Text style={{ fontSize: 15, color: colors.textFaint }}>Thinking…</Text>
             </View>
           )}
           {error && (
             <View style={{ alignSelf: 'flex-start' }}>
-              <Text style={{ fontSize: 12, color: colors.danger }}>{error}</Text>
+              <Text style={{ fontSize: 15, color: colors.danger }}>{error}</Text>
             </View>
           )}
         </ScrollView>
@@ -220,7 +225,7 @@ export default function AiAssistantScreen() {
               borderRadius: 20,
               paddingHorizontal: 14,
               paddingVertical: 9,
-              fontSize: 13,
+              fontSize: 17,
               color: colors.text,
             }}
             onSubmitEditing={() => send(input)}
@@ -228,6 +233,9 @@ export default function AiAssistantScreen() {
           />
           <Pressable
             onPress={() => send(input)}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            accessibilityState={{ disabled: thinking }}
             style={{
               width: 36,
               height: 36,

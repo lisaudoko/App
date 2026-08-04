@@ -2,6 +2,7 @@ import React, { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { radius } from '@/theme/spacing';
 
 interface Props extends TextInputProps {
   label?: string;
@@ -51,13 +52,13 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
 });
 
 const styles = StyleSheet.create({
-  label: { fontSize: 12, marginBottom: 4, fontWeight: '500' },
+  label: { fontSize: 15, marginBottom: 4, fontWeight: '500' },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 11,
-    fontSize: 14,
+    fontSize: 18,
   },
-  error: { fontSize: 11, marginTop: 4 },
+  error: { fontSize: 13, marginTop: 4 },
 });

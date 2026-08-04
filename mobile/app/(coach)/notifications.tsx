@@ -72,16 +72,16 @@ export default function NotificationsScreen() {
                   }}
                 />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, fontWeight: unread ? '700' : '500', color: colors.text }}>{n.title}</Text>
-                  <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 1 }}>{n.body}</Text>
-                  <Text style={{ fontSize: 10, color: colors.textFaint, marginTop: 3 }}>{timeAgo(n.createdAt)}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: unread ? '700' : '500', color: colors.text }}>{n.title}</Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 1 }}>{n.body}</Text>
+                  <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 3 }}>{timeAgo(n.createdAt)}</Text>
                 </View>
               </Card>
             </Pressable>
           );
         })}
         {data.notifications.length === 0 && (
-          <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>No notifications yet.</Text>
+          <Text style={{ fontSize: 15, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>No notifications yet.</Text>
         )}
       </Screen>
     </View>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { radius, spacing } from '@/theme/spacing';
 
 export function Card({ style, ...props }: ViewProps) {
   const { colors } = useAppTheme();
@@ -19,8 +20,8 @@ export function Card({ style, ...props }: ViewProps) {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: radius.lg,
+    padding: spacing.md + 2,
+    marginBottom: spacing.md,
   },
 });

@@ -22,7 +22,7 @@ export default function OnboardingConfigScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Configure your programme" subtitle="Step 2 of 2" onBack={() => router.back()} />
       <Screen>
-        <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
+        <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
           Set qualifying standards, competition date, and how each group trains. You can change any of this later
           from Settings.
         </Text>

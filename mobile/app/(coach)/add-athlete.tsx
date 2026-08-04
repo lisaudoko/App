@@ -28,6 +28,7 @@ export default function AddAthleteScreen() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
 
   useEffect(() => {
     repository.getProgrammeConfig().then((config) => {
@@ -37,7 +38,7 @@ export default function AddAthleteScreen() {
     });
   }, []);
 
-  const canSubmit = !!name && !!email && password.length >= 6 && !!eventGroup;
+  const canSubmit = !!name && !!email && password.length >= 6 && !!eventGroup && hasPermission;
 
   async function handleSubmit() {
     setError(null);
@@ -77,13 +78,13 @@ export default function AddAthleteScreen() {
   if (done) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title="Add athlete" onBack={() => router.back()} />
+        <ScreenHeader title="Add athlete" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(coach)/(tabs)'))} />
         <Screen scroll={false} style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 40, textAlign: 'center' }}>✅</Text>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
+          <Text style={{ fontSize: 50, textAlign: 'center' }}>✅</Text>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
             {name} added
           </Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+          <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
             Share these login details with them:{'\n'}
             <Text style={{ fontWeight: '600', color: colors.text }}>{email}</Text> / {password}
           </Text>
@@ -99,6 +100,7 @@ export default function AddAthleteScreen() {
               setEvent('');
               setBaselineMark('');
               setQualifyingStandard('');
+              setHasPermission(false);
               if (programmeEventGroups.length !== 1) setEventGroup(null);
             }}
           />
@@ -111,12 +113,12 @@ export default function AddAthleteScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Add athlete" onBack={() => router.back()} />
       <Screen>
-        <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 16 }}>
+        <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16 }}>
           Creates an athlete account directly in your programme — no join code needed. Set a temporary password and
           share it with them.
         </Text>
 
-        <TextField label="Full name" value={name} onChangeText={setName} placeholder="Jane Doe" textContentType="name" />
+        <TextField label="Full name" value={name} onChangeText={setName} placeholder="First Last" textContentType="name" />
         <TextField
           label="Email"
           value={email}
@@ -138,7 +140,7 @@ export default function AddAthleteScreen() {
         />
         {programmeEventGroups.length > 1 && (
           <>
-            <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Event group</Text>
+            <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Event group</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
               {programmeEventGroups.map((group) => {
                 const active = eventGroup === group;
@@ -146,6 +148,9 @@ export default function AddAthleteScreen() {
                   <Pressable
                     key={group}
                     onPress={() => setEventGroup(group)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                    accessibilityLabel={EVENT_GROUP_LABEL[group]}
                     style={{
                       flex: 1,
                       alignItems: 'center',
@@ -156,7 +161,7 @@ export default function AddAthleteScreen() {
                       borderColor: colors.border,
                     }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
                       {EVENT_GROUP_LABEL[group]}
                     </Text>
                   </Pressable>
@@ -187,7 +192,35 @@ export default function AddAthleteScreen() {
           placeholder="Target standard for this athlete"
         />
 
-        {error && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>}
+        <Pressable
+          onPress={() => setHasPermission((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: hasPermission }}
+          accessibilityLabel="I confirm I have permission to create this account"
+          style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}
+        >
+          <View
+            style={{
+              width: 18,
+              height: 18,
+              marginTop: 1,
+              borderRadius: 4,
+              borderWidth: hasPermission ? 0 : 1.5,
+              borderColor: colors.border,
+              backgroundColor: hasPermission ? colors.accent : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {hasPermission && <Text style={{ color: colors.accentText, fontSize: 13, fontWeight: '700' }}>✓</Text>}
+          </View>
+          <Text style={{ fontSize: 13, color: colors.textMuted, flex: 1, lineHeight: 16 }}>
+            I confirm I have this athlete&apos;s permission to create this account — or, if they&apos;re under 13, their
+            parent or guardian&apos;s permission.
+          </Text>
+        </Pressable>
+
+        {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
 
         <Button label="Add athlete" onPress={handleSubmit} loading={busy} disabled={!canSubmit} />
       </Screen>
@@ -195,8 +228,8 @@ export default function AddAthleteScreen() {
       <Modal visible={limitModalVisible} transparent animationType="fade" onRequestClose={() => setLimitModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 20 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Plan limit reached</Text>
-            <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 16, lineHeight: 19 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Plan limit reached</Text>
+            <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 16, lineHeight: 19 }}>
               You&apos;ve reached your {access.tier ? (TIER_LABEL[access.tier] ?? access.tier) : ''} plan limit of{' '}
               {Number.isFinite(access.athleteLimit) ? access.athleteLimit : ''} athletes. Upgrade to add more.
             </Text>

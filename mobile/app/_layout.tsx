@@ -55,6 +55,10 @@ function RootNavigation() {
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="reset-password" />
+        <Stack.Screen name="privacy-policy" />
+        <Stack.Screen name="terms" />
         <Stack.Screen name="(coach)" />
         <Stack.Screen name="(athlete)" />
       </Stack>

@@ -18,5 +18,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // PKCE (rather than the default implicit flow) puts the password-reset
+    // code in a plain query param the app can read via expo-router, instead
+    // of a URL hash fragment that React Native deep links don't reliably
+    // preserve.
+    flowType: 'pkce',
   },
 });

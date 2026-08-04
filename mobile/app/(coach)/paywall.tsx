@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { Platform, Pressable, Text, View } from 'react-native';
+import { Link, router } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { Purchases } from '@/lib/revenuecat';
 import type { PurchasesPackage } from 'react-native-purchases';
@@ -85,25 +85,28 @@ export default function PaywallScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Upgrade" onBack={router.canGoBack() ? () => router.back() : undefined} />
       <Screen>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
+        <Text style={{ fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
           Your 30-day free trial has ended
         </Text>
-        <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 20 }}>
+        <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 20 }}>
           Pick a plan to keep coaching your squad. Cancel anytime.
         </Text>
 
         {offeringsError && (
-          <Text style={{ fontSize: 11, color: colors.warning, marginBottom: 12 }}>{offeringsError}</Text>
+          <Text style={{ fontSize: 13, color: colors.warning, marginBottom: 12 }}>{offeringsError}</Text>
         )}
 
         {TIERS.map((tier) => (
           <Card key={tier.productId} style={{ borderWidth: tier.popular ? 2 : 1, borderColor: tier.popular ? colors.accent : colors.border }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{tier.name}</Text>
+              <Text style={{ fontSize: 19, fontWeight: '700', color: colors.text }}>{tier.name}</Text>
               {tier.popular && <Pill label="Most popular" tone="success" />}
             </View>
-            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text }}>{tier.price}</Text>
-            <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>{tier.limit}</Text>
+            <Text style={{ fontSize: 25, fontWeight: '700', color: colors.text }}>{tier.price}</Text>
+            <Text style={{ fontSize: 15, color: colors.textMuted }}>{tier.limit}</Text>
+            <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 12 }}>
+              Billed monthly. Auto-renews until cancelled.
+            </Text>
             <Button
               label={`Subscribe to ${tier.name}`}
               onPress={() => handleSubscribe(tier)}
@@ -113,7 +116,21 @@ export default function PaywallScreen() {
           </Card>
         ))}
 
-        {error && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8, textAlign: 'center' }}>{error}</Text>}
+        {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8, textAlign: 'center' }}>{error}</Text>}
+
+        <Text style={{ fontSize: 12, color: colors.textFaint, lineHeight: 15, marginBottom: 16, textAlign: 'center' }}>
+          Payment will be charged to your {Platform.OS === 'ios' ? 'Apple ID' : 'Google Play account'} at confirmation of
+          purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of
+          the current period. Manage or cancel anytime in your device&apos;s account settings. See our{' '}
+          <Link href="/terms" style={{ color: colors.textMuted, fontWeight: '600' }}>
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy-policy" style={{ color: colors.textMuted, fontWeight: '600' }}>
+            Privacy Policy
+          </Link>
+          .
+        </Text>
 
         <Button label="Restore purchases" variant="outline" onPress={handleRestore} loading={restoring} />
 
@@ -124,7 +141,7 @@ export default function PaywallScreen() {
           }}
           style={{ marginTop: 16, alignItems: 'center' }}
         >
-          <Text style={{ fontSize: 12, color: colors.textFaint }}>Log out</Text>
+          <Text style={{ fontSize: 15, color: colors.textFaint }}>Log out</Text>
         </Pressable>
       </Screen>
     </View>

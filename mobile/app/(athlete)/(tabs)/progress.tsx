@@ -1,27 +1,92 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
+import { repository } from '@/data/repository';
+import type { Meet, MeetEntry } from '@/data/types';
 import { buildTrajectory, projectAtWeek } from '@/engine/projections';
+import { estimateWeekForDate } from '@/engine/meetEntry';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { StatRow } from '@/components/StatCard';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
+import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
+import { StrengthChart } from '@/components/charts/StrengthChart';
+import { CorrelationChart } from '@/components/charts/CorrelationChart';
 import { LoadingState } from '@/components/LoadingState';
 import { StaleBanner } from '@/components/StaleBanner';
-import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
+import { acuteChronicRatio } from '@/engine/load';
+import { pearsonCorrelation } from '@/engine/stats';
+import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
 
 export default function AthleteProgressScreen() {
   const { colors } = useAppTheme();
   const { data, loading, isStale, refresh } = useAthleteSelf();
-  const { athlete, logs } = data;
+  const { athlete, logs, tests } = data;
   const direction = EVENT_GROUP_DIRECTION[athlete?.eventGroup ?? 'throws'];
   const perfUnit: PerformanceUnit = athlete?.unit === 's' ? 'seconds' : 'metres';
+  const [meetResults, setMeetResults] = useState<{ entry: MeetEntry; meet: Meet }[]>([]);
+
+  useEffect(() => {
+    repository.getMyMeetEntries().then(setMeetResults);
+  }, []);
+
+  const meetPoints = useMemo(
+    () =>
+      meetResults
+        .filter((r) => r.entry.finalMark != null)
+        .map((r) => ({
+          week: estimateWeekForDate(logs, r.meet.date),
+          mark: r.entry.finalMark as number,
+          meetName: r.meet.name,
+          date: r.meet.date,
+        })),
+    [meetResults, logs],
+  );
+
+  const competitionBest = useMemo(() => {
+    let best: number | null = null;
+    for (const r of meetResults) {
+      if (r.entry.finalMark == null) continue;
+      if (best == null || isBetter(r.entry.finalMark, best, direction)) best = r.entry.finalMark;
+    }
+    return best;
+  }, [meetResults, direction]);
 
   const trajectory = useMemo(() => buildTrajectory(logs, 4, direction), [logs, direction]);
   const qualifyProjection = useMemo(() => projectAtWeek(logs, 6, direction), [logs, direction]);
+  const acRatio = useMemo(() => acuteChronicRatio(logs), [logs]);
+
+  const correlation = useMemo(() => {
+    if (tests.length < 2) return null;
+    const loggedWeeks = logs.filter((l) => l.mark != null && l.loggedAt);
+    if (loggedWeeks.length < 2) return null;
+
+    const paired = tests
+      .map((test) => {
+        const testTime = new Date(test.date).getTime();
+        let closest: (typeof loggedWeeks)[number] | null = null;
+        let closestDiff = Infinity;
+        for (const log of loggedWeeks) {
+          const diff = Math.abs(new Date(log.loggedAt as string).getTime() - testTime);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closest = log;
+          }
+        }
+        return closest ? { squat: test.squat, mark: closest.mark as number } : null;
+      })
+      .filter((p): p is { squat: number; mark: number } => p != null);
+
+    if (paired.length < 2) return null;
+    const r = pearsonCorrelation(
+      paired.map((p) => p.squat),
+      paired.map((p) => p.mark),
+    );
+    return { squats: paired.map((p) => p.squat), marks: paired.map((p) => p.mark), r };
+  }, [tests, logs]);
 
   if (loading) return <LoadingState />;
   if (!athlete) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
@@ -56,6 +121,9 @@ export default function AthleteProgressScreen() {
         <StatRow
           stats={[
             { label: 'Season best', value: hasBaseline ? formatPerformance(athlete.personalBest, perfUnit) : '—' },
+            competitionBest != null
+              ? { label: 'Competition best', value: formatPerformance(competitionBest, perfUnit), color: colors.success }
+              : { label: 'Competition best', value: '—' },
             {
               label: 'vs baseline',
               value: hasBaseline ? `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(2)}${unitSuffix}` : '—',
@@ -70,22 +138,37 @@ export default function AthleteProgressScreen() {
         />
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>
             My {groupNoun} trajectory
           </Text>
-          <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>{athlete.event} this season · Dotted = projection</Text>
+          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>
+            {athlete.event} this season · Dotted = projection · ■ = meet result
+          </Text>
           <TrajectoryChart
             actual={trajectory.actual}
             projected={trajectory.projected}
             standard={hasQualifyingStandard ? athlete.qualifyingStandard : undefined}
             unit={perfUnit}
+            meetPoints={meetPoints}
           />
         </Card>
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 10 }}>Strength snapshot</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Training load + RPE</Text>
+          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Bars = volume load · Line = RPE · Red dashed = RPE 8 threshold</Text>
+          <LoadRpeChart logs={logs} />
+          {acRatio != null && (
+            <Text style={{ fontSize: 12, color: acRatio > 1.3 ? colors.danger : colors.textMuted, marginTop: 4 }}>
+              Acute:chronic ratio {acRatio.toFixed(1)}
+              {acRatio > 1.3 ? ' — elevated, take it easy this week' : ''}
+            </Text>
+          )}
+        </Card>
+
+        <Card>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 10 }}>Strength snapshot</Text>
           {!hasMaxesSet && (
-            <Text style={{ fontSize: 12, color: colors.textMuted }}>
+            <Text style={{ fontSize: 15, color: colors.textMuted }}>
               Your coach hasn&apos;t entered your lift maxes yet.
             </Text>
           )}
@@ -96,8 +179,8 @@ export default function AthleteProgressScreen() {
               return (
                 <View key={row.label} style={{ marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <Text style={{ fontSize: 11, color: colors.textMuted }}>{row.label}</Text>
-                    <Text style={{ fontSize: 11, color: colors.text, fontWeight: '500' }}>
+                    <Text style={{ fontSize: 13, color: colors.textMuted }}>{row.label}</Text>
+                    <Text style={{ fontSize: 13, color: colors.text, fontWeight: '500' }}>
                       {row.current} / {row.target} lbs
                     </Text>
                   </View>
@@ -107,10 +190,31 @@ export default function AthleteProgressScreen() {
             })}
         </Card>
 
+        {tests.length >= 3 && (
+          <Card>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression</Text>
+            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>1RM maxes across test dates (lbs)</Text>
+            <StrengthChart tests={tests} />
+          </Card>
+        )}
+
+        {correlation && (
+          <Card>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
+            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} mark · Each dot = test week</Text>
+            <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel="Squat (lbs)" />
+            <Text style={{ fontSize: 12, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
+              {Math.abs(correlation.r) >= 0.7
+                ? 'Your strength gains are translating well.'
+                : `Strength and ${groupNoun}s are diverging — worth flagging to your coach.`}
+            </Text>
+          </Card>
+        )}
+
         {!hasQualifyingStandard && (
           <Card>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Qualifying standard</Text>
-            <Text style={{ fontSize: 12, color: colors.textMuted }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Qualifying standard</Text>
+            <Text style={{ fontSize: 15, color: colors.textMuted }}>
               Your coach hasn&apos;t set a qualifying standard for you yet.
             </Text>
           </Card>
@@ -118,17 +222,17 @@ export default function AthleteProgressScreen() {
 
         {hasQualifyingStandard && qualifyProjection && (
           <Card>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Qualifying standard</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Qualifying standard</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              <Text style={{ fontSize: 15, color: colors.textMuted }}>
                 Standard: {formatPerformance(athlete.qualifyingStandard, perfUnit)}
               </Text>
-              <Text style={{ fontSize: 12, fontWeight: '500', color: hasQualified ? colors.success : colors.warning }}>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: hasQualified ? colors.success : colors.warning }}>
                 {hasQualified ? 'Qualified' : `Need ${Math.abs(qualifyGap).toFixed(2)}${unitSuffix} more`}
               </Text>
             </View>
             <ProgressBar pct={qualifyPct} color={hasQualified ? colors.success : colors.warning} />
-            <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 6 }}>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 6 }}>
               Projected: {formatPerformance(qualifyProjection.mark, perfUnit)} in 6 weeks
             </Text>
           </Card>

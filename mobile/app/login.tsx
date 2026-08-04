@@ -36,8 +36,8 @@ export default function LoginScreen() {
         <Screen>
           <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 350 }}>
             <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 32 }}>
-              <Text style={{ fontSize: 22, fontWeight: '600', color: colors.text }}>TRU Performance</Text>
-              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>Coaching intelligence platform</Text>
+              <Text style={{ fontSize: 28, fontWeight: '600', color: colors.text }}>TRU Performance</Text>
+              <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4 }}>Coaching intelligence platform</Text>
             </View>
 
             <TextField
@@ -69,13 +69,19 @@ export default function LoginScreen() {
             />
 
             {error && (
-              <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>
+              <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>
             )}
 
             <Button label="Log in" onPress={() => handleLogin()} loading={isBusy} disabled={!email || !password} />
 
+            <View style={{ alignItems: 'center', marginTop: 10 }}>
+              <Link href="/forgot-password" style={{ fontSize: 15, color: colors.textMuted }}>
+                Forgot password?
+              </Link>
+            </View>
+
             <View style={{ alignItems: 'center', marginTop: 14 }}>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              <Text style={{ fontSize: 15, color: colors.textMuted }}>
                 Don&apos;t have an account?{' '}
                 <Link href="/signup" style={{ color: colors.text, fontWeight: '600' }}>
                   Sign up
@@ -83,33 +89,37 @@ export default function LoginScreen() {
               </Text>
             </View>
 
-            <View style={{ marginTop: 40, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16 }}>
-              <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 8, textAlign: 'center' }}>Demo accounts</Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    label="Demo Coach"
-                    variant="outline"
-                    onPress={() => {
-                      setEmail('coach@tru-demo.app');
-                      setPassword('TruDemo!2026');
-                      handleLogin('coach@tru-demo.app', 'TruDemo!2026');
-                    }}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    label="Demo Athlete"
-                    variant="outline"
-                    onPress={() => {
-                      setEmail('athlete-a@tru-demo.app');
-                      setPassword('TruDemo!2026');
-                      handleLogin('athlete-a@tru-demo.app', 'TruDemo!2026');
-                    }}
-                  />
+            {__DEV__ && (
+              <View style={{ marginTop: 40, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16 }}>
+                <Text style={{ fontSize: 13, color: colors.textFaint, marginBottom: 8, textAlign: 'center' }}>
+                  Demo accounts (dev builds only)
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="Demo Coach"
+                      variant="outline"
+                      onPress={() => {
+                        setEmail('coach@tru-demo.app');
+                        setPassword('TruDemo!2026');
+                        handleLogin('coach@tru-demo.app', 'TruDemo!2026');
+                      }}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="Demo Athlete"
+                      variant="outline"
+                      onPress={() => {
+                        setEmail('athlete-a@tru-demo.app');
+                        setPassword('TruDemo!2026');
+                        handleLogin('athlete-a@tru-demo.app', 'TruDemo!2026');
+                      }}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
+            )}
           </MotiView>
         </Screen>
       </KeyboardAvoidingView>

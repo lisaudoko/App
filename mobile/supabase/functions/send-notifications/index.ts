@@ -5,7 +5,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { Expo } from 'npm:expo-server-sdk@3';
 import { corsHeaders } from '../_shared/cors.ts';
-import { projectToWeek, computeGap, isBetter, type Direction } from '../_shared/projections.ts';
+import { projectToWeek, computeGap, isBetter, formatPerformance, type Direction } from '../_shared/projections.ts';
 
 const HIGH_RPE_THRESHOLD = 8;
 const STRENGTH_INCREASE_THRESHOLD = 0.1; // 10%
@@ -26,7 +26,7 @@ function directionFor(eventGroup: string | null): Direction {
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const expo = new Expo();
 
-type NotificationType = 'pb' | 'missing_log' | 'high_rpe' | 'anomaly' | 'qualifying_risk';
+type NotificationType = 'pb' | 'missing_log' | 'high_rpe' | 'anomaly' | 'qualifying_risk' | 'meet_pb' | 'meet_qualified';
 
 interface WeeklyLogRow {
   id: string;
@@ -35,6 +35,16 @@ interface WeeklyLogRow {
   week_number: number;
   best_performance: number | null;
   rpe: number | null;
+}
+
+interface MeetEntryRow {
+  id: string;
+  meet_id: string;
+  athlete_id: string;
+  programme_id: string;
+  event: string;
+  final_mark: number | null;
+  qualified: boolean;
 }
 
 async function pushToUser(userId: string, title: string, body: string, athleteId: string) {
@@ -78,10 +88,49 @@ async function log(
   }
 }
 
+async function checkMeetEntryEvent(record: MeetEntryRow, oldRecord: MeetEntryRow | null, athleteName: string, eventGroup: string | null) {
+  const direction = directionFor(eventGroup);
+  const unit = eventGroup === 'sprints' ? 'seconds' : 'metres';
+
+  // Qualified just flipped true — notify both athlete and coach.
+  if (record.qualified && !oldRecord?.qualified) {
+    const message = `${athleteName} qualified ✓ — ${record.event}${record.final_mark != null ? ` (${formatPerformance(record.final_mark, unit)})` : ''}`;
+    await log(record.athlete_id, record.programme_id, 'meet_qualified', message, true, true, 'Qualified! ✓', `Qualified — ${athleteName}`);
+  }
+
+  // final_mark changed — check if it beats every prior mark (training + other meets).
+  if (record.final_mark == null || record.final_mark === oldRecord?.final_mark) return;
+
+  const [{ data: priorLogs }, { data: priorEntries }] = await Promise.all([
+    supabase.from('weekly_logs').select('best_performance').eq('athlete_id', record.athlete_id).not('best_performance', 'is', null),
+    supabase
+      .from('meet_entries')
+      .select('final_mark')
+      .eq('athlete_id', record.athlete_id)
+      .neq('id', record.id)
+      .not('final_mark', 'is', null),
+  ]);
+  const priorMarks = [
+    ...((priorLogs ?? []).map((l) => l.best_performance as number)),
+    ...((priorEntries ?? []).map((e) => e.final_mark as number)),
+  ];
+  if (priorMarks.length === 0) return;
+
+  let priorBest: number | null = null;
+  for (const v of priorMarks) {
+    if (priorBest == null || isBetter(v, priorBest, direction)) priorBest = v;
+  }
+  if (priorBest != null && isBetter(record.final_mark, priorBest, direction)) {
+    const { data: meet } = await supabase.from('meets').select('name').eq('id', record.meet_id).maybeSingle();
+    const message = `${athleteName} PB — ${formatPerformance(record.final_mark, unit)} at ${meet?.name ?? 'a meet'}`;
+    await log(record.athlete_id, record.programme_id, 'meet_pb', message, false, true, '', `New meet PB — ${athleteName}`);
+  }
+}
+
 async function checkNewPB(row: WeeklyLogRow, athleteName: string, eventGroup: string | null) {
   if (row.best_performance == null) return;
   const direction = directionFor(eventGroup);
-  const unit = eventGroup === 'sprints' ? 's' : 'm';
+  const unit = eventGroup === 'sprints' ? 'seconds' : 'metres';
 
   const { data: priorLogs } = await supabase
     .from('weekly_logs')
@@ -97,7 +146,7 @@ async function checkNewPB(row: WeeklyLogRow, athleteName: string, eventGroup: st
     if (priorBest == null || isBetter(v, priorBest, direction)) priorBest = v;
   }
   if (priorBest != null && isBetter(row.best_performance, priorBest, direction)) {
-    const message = `New PB — ${athleteName}: ${row.best_performance}${unit} (was ${priorBest}${unit})`;
+    const message = `New PB — ${athleteName}: ${formatPerformance(row.best_performance, unit)} (was ${formatPerformance(priorBest, unit)})`;
     await log(row.athlete_id, row.programme_id, 'pb', message, true, true, 'New PB! 🎉', `New PB — ${athleteName}`);
   }
 }
@@ -154,7 +203,7 @@ async function checkQualifyingRisk(
 ) {
   if (qualifyingStandard == null) return;
   const direction = directionFor(eventGroup);
-  const unit = eventGroup === 'sprints' ? 's' : 'm';
+  const unit = eventGroup === 'sprints' ? 'seconds' : 'metres';
 
   const { data: logs } = await supabase
     .from('weekly_logs')
@@ -169,7 +218,7 @@ async function checkQualifyingRisk(
 
   const gap = computeGap(projection.projected, qualifyingStandard, direction);
   if (gap > 0) {
-    const message = `${athleteName}: projected ${projection.projected.toFixed(2)}${unit} vs standard ${qualifyingStandard}${unit} — qualifying at risk`;
+    const message = `${athleteName}: projected ${formatPerformance(projection.projected, unit)} vs standard ${formatPerformance(qualifyingStandard, unit)} — qualifying at risk`;
     await log(athleteId, programmeId, 'qualifying_risk', message, false, true, '', `Qualifying risk — ${athleteName}`);
   }
 }
@@ -234,6 +283,17 @@ Deno.serve(async (req) => {
       );
 
       return new Response(JSON.stringify({ ok: true, mode: 'insert' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.trigger === 'meet_entry' && body.record) {
+      const record = body.record as MeetEntryRow;
+      const oldRecord = (body.old_record ?? null) as MeetEntryRow | null;
+      const { data: athlete } = await supabase.from('profiles').select('full_name, event_group').eq('id', record.athlete_id).single();
+      await checkMeetEntryEvent(record, oldRecord, athlete?.full_name ?? 'Athlete', athlete?.event_group ?? null);
+
+      return new Response(JSON.stringify({ ok: true, mode: 'meet_entry' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

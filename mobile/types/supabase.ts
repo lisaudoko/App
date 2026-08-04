@@ -29,27 +29,115 @@ export type Database = {
         }
         Relationships: []
       }
+      meet_entries: {
+        Row: {
+          athlete_id: string
+          attempts: Json
+          bib_number: string | null
+          coach_notes: string | null
+          created_at: string
+          event: string
+          final_mark: number | null
+          id: string
+          meet_id: string
+          next_steps: string | null
+          place: number | null
+          programme_id: string
+          qualified: boolean
+          seed_mark: number | null
+          technical_cues: string | null
+        }
+        Insert: {
+          athlete_id: string
+          attempts?: Json
+          bib_number?: string | null
+          coach_notes?: string | null
+          created_at?: string
+          event: string
+          final_mark?: number | null
+          id?: string
+          meet_id: string
+          next_steps?: string | null
+          place?: number | null
+          programme_id: string
+          qualified?: boolean
+          seed_mark?: number | null
+          technical_cues?: string | null
+        }
+        Update: {
+          athlete_id?: string
+          attempts?: Json
+          bib_number?: string | null
+          coach_notes?: string | null
+          created_at?: string
+          event?: string
+          final_mark?: number | null
+          id?: string
+          meet_id?: string
+          next_steps?: string | null
+          place?: number | null
+          programme_id?: string
+          qualified?: boolean
+          seed_mark?: number | null
+          technical_cues?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meet_entries_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_entries_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_entries_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "programmes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meets: {
         Row: {
+          conditions: string | null
           created_at: string
           date: string
+          general_notes: string | null
           id: string
+          location: string | null
+          meet_type: string | null
           name: string
           programme_id: string
           standards: Json
         }
         Insert: {
+          conditions?: string | null
           created_at?: string
           date: string
+          general_notes?: string | null
           id?: string
+          location?: string | null
+          meet_type?: string | null
           name: string
           programme_id: string
           standards?: Json
         }
         Update: {
+          conditions?: string | null
           created_at?: string
           date?: string
+          general_notes?: string | null
           id?: string
+          location?: string | null
+          meet_type?: string | null
           name?: string
           programme_id?: string
           standards?: Json
@@ -215,6 +303,7 @@ export type Database = {
       programmes: {
         Row: {
           created_at: string
+          created_by: string | null
           event_groups: string[]
           id: string
           join_code: string
@@ -222,6 +311,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           event_groups?: string[]
           id?: string
           join_code?: string
@@ -229,6 +319,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           event_groups?: string[]
           id?: string
           join_code?: string
@@ -343,9 +434,11 @@ export type Database = {
           athlete_id: string
           best_performance: number | null
           best_throw: number | null
+          body_weight: number | null
           created_at: string
           energy_score: number | null
           id: string
+          motivation_score: number | null
           notes: string | null
           performance_unit: string | null
           programme_id: string
@@ -359,9 +452,11 @@ export type Database = {
           athlete_id: string
           best_performance?: number | null
           best_throw?: number | null
+          body_weight?: number | null
           created_at?: string
           energy_score?: number | null
           id?: string
+          motivation_score?: number | null
           notes?: string | null
           performance_unit?: string | null
           programme_id: string
@@ -375,9 +470,11 @@ export type Database = {
           athlete_id?: string
           best_performance?: number | null
           best_throw?: number | null
+          body_weight?: number | null
           created_at?: string
           energy_score?: number | null
           id?: string
+          motivation_score?: number | null
           notes?: string | null
           performance_unit?: string | null
           programme_id?: string
@@ -406,8 +503,8 @@ export type Database = {
       }
       workouts: {
         Row: {
+          blocks: Json
           created_at: string
-          exercises: Json
           id: string
           intensity_pct: number | null
           programme_id: string
@@ -415,8 +512,8 @@ export type Database = {
           week_number: number
         }
         Insert: {
+          blocks?: Json
           created_at?: string
-          exercises?: Json
           id?: string
           intensity_pct?: number | null
           programme_id: string
@@ -424,8 +521,8 @@ export type Database = {
           week_number: number
         }
         Update: {
+          blocks?: Json
           created_at?: string
-          exercises?: Json
           id?: string
           intensity_pct?: number | null
           programme_id?: string
@@ -444,7 +541,73 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      meet_entries_athlete_view: {
+        Row: {
+          athlete_id: string | null
+          attempts: Json | null
+          bib_number: string | null
+          created_at: string | null
+          event: string | null
+          final_mark: number | null
+          id: string | null
+          meet_id: string | null
+          place: number | null
+          programme_id: string | null
+          qualified: boolean | null
+          seed_mark: number | null
+        }
+        Insert: {
+          athlete_id?: string | null
+          attempts?: Json | null
+          bib_number?: string | null
+          created_at?: string | null
+          event?: string | null
+          final_mark?: number | null
+          id?: string | null
+          meet_id?: string | null
+          place?: number | null
+          programme_id?: string | null
+          qualified?: boolean | null
+          seed_mark?: number | null
+        }
+        Update: {
+          athlete_id?: string | null
+          attempts?: Json | null
+          bib_number?: string | null
+          created_at?: string | null
+          event?: string | null
+          final_mark?: number | null
+          id?: string | null
+          meet_id?: string | null
+          place?: number | null
+          programme_id?: string | null
+          qualified?: boolean | null
+          seed_mark?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meet_entries_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_entries_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_entries_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "programmes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       auth_programme_id: { Args: never; Returns: string }

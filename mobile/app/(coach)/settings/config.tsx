@@ -34,7 +34,17 @@ export default function ProgrammeConfigScreen() {
   }
 
   async function handleSave(value: EventConfigFormValue) {
-    await repository.saveProgrammeConfig({ eventGroups, ...value });
+    // Unchecking a group hides its card, so the form always reports null for
+    // it — preserve whatever was last saved for that group instead of wiping
+    // it, so re-enabling the group later restores the old settings.
+    const merged: EventConfigFormValue = {
+      ...value,
+      throws: eventGroups.includes('throws') ? value.throws : (config?.throws ?? null),
+      sprints: eventGroups.includes('sprints') ? value.sprints : (config?.sprints ?? null),
+      jumps: eventGroups.includes('jumps') ? value.jumps : (config?.jumps ?? null),
+    };
+    await repository.saveProgrammeConfig({ eventGroups, ...merged });
+    setConfig((prev) => (prev ? { ...prev, eventGroups, ...merged } : { eventGroups, ...merged }));
     setSaved(true);
   }
 
@@ -45,7 +55,7 @@ export default function ProgrammeConfigScreen() {
         <LoadingState />
       ) : (
         <Screen>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textMuted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 }}>
             Event groups
           </Text>
           <Card style={{ padding: 8, flexDirection: 'row', gap: 8 }}>
@@ -55,6 +65,9 @@ export default function ProgrammeConfigScreen() {
                 <Pressable
                   key={group}
                   onPress={() => toggleGroup(group)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={EVENT_GROUP_LABEL[group]}
                   style={{
                     flex: 1,
                     alignItems: 'center',
@@ -65,19 +78,23 @@ export default function ProgrammeConfigScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
                     {EVENT_GROUP_LABEL[group]}
                   </Text>
-                  <Text style={{ fontSize: 9, marginTop: 2, color: active ? colors.accentText : colors.textFaint, textAlign: 'center' }}>
+                  <Text style={{ fontSize: 11, marginTop: 2, color: active ? colors.accentText : colors.textFaint, textAlign: 'center' }}>
                     {EVENT_GROUP_EVENTS[group].slice(0, 2).join(', ')}…
                   </Text>
                 </Pressable>
               );
             })}
           </Card>
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 6 }}>
+            Unchecking a group hides it for now — its saved standards and settings aren&apos;t lost, and come back if you
+            re-enable it.
+          </Text>
 
           {eventGroups.length === 0 ? (
-            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 16 }}>
+            <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 16 }}>
               Select at least one event group to configure its standards and training setup.
             </Text>
           ) : (
@@ -89,7 +106,7 @@ export default function ProgrammeConfigScreen() {
                 onSave={handleSave}
                 saveLabel="Save changes"
               />
-              {saved && <Text style={{ fontSize: 12, color: colors.success, marginTop: 8, textAlign: 'center' }}>Saved</Text>}
+              {saved && <Text style={{ fontSize: 15, color: colors.success, marginTop: 8, textAlign: 'center' }}>Saved</Text>}
             </View>
           )}
         </Screen>

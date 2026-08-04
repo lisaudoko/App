@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -10,7 +11,7 @@ Notifications.setNotificationHandler({
 });
 
 /** Fires a local (on-device) notification — no push server involved. */
-export async function notifyPersonalBest(athleteName: string, mark: number, unit: string) {
+export async function notifyPersonalBest(athleteName: string, mark: number, unit: PerformanceUnit) {
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') {
     const { status: requested } = await Notifications.requestPermissionsAsync();
@@ -19,7 +20,7 @@ export async function notifyPersonalBest(athleteName: string, mark: number, unit
   await Notifications.scheduleNotificationAsync({
     content: {
       title: `New PB, ${athleteName}! 🎉`,
-      body: `${mark}${unit} — new season best.`,
+      body: `${formatPerformance(mark, unit)} — new season best.`,
     },
     trigger: null,
   });

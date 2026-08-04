@@ -12,7 +12,7 @@ export default function AthleteTabsLayout() {
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontSize: 10 },
+        tabBarLabelStyle: { fontSize: 12 },
       }}
     >
       <Tabs.Screen
@@ -22,6 +22,10 @@ export default function AthleteTabsLayout() {
       <Tabs.Screen
         name="progress"
         options={{ title: 'Progress', tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="strength"
+        options={{ title: 'Strength', tabBarIcon: ({ color, size }) => <Ionicons name="fitness" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="logger"

@@ -46,14 +46,44 @@ export interface LiftMaxes {
 
 export type WorkoutLift = 'squat' | 'clean' | 'bench' | 'deadlift';
 
-export interface WorkoutExercise {
+export type BlockType =
+  | 'warm_up'
+  | 'olympic_lifts'
+  | 'weightlifting'
+  | 'strength'
+  | 'plyometrics'
+  | 'core_glutes'
+  | 'med_ball_mobility'
+  | 'technical_drills'
+  | 'conditioning'
+  | 'speed_work'
+  | 'speed_endurance'
+  | 'tempo'
+  | 'jump_reps'
+  | 'cool_down';
+
+export interface BlockExercise {
+  id: string;
   name: string;
-  sets: number;
-  reps: number;
-  /** Which 1RM to scale intensity_pct against; null for accessory/bodyweight work. */
-  lift: WorkoutLift | null;
-  /** Coach-set fixed weight, used instead of the %1RM calculation when present. */
-  weightOverride: number | null;
+  category: string | null;
+  sets: number | null;
+  repsPattern: string | null;
+  pctOfMax: number | null;
+  weightLbs: number | null;
+  distanceMetres: number | null;
+  intensityPct: number | null;
+  restSeconds: number | null;
+  timeSeconds: number | null;
+  coachingCue: string | null;
+  notes: string | null;
+}
+
+export interface WorkoutBlock {
+  id: string;
+  type: BlockType;
+  label: string;
+  order: number;
+  exercises: BlockExercise[];
 }
 
 export interface Workout {
@@ -61,7 +91,7 @@ export interface Workout {
   intensityPct: number;
   /** Weight is rounded to the nearest multiple of this (e.g. 5, 2.5). */
   roundingIncrement: number;
-  exercises: WorkoutExercise[];
+  blocks: WorkoutBlock[];
 }
 
 export interface Athlete {
@@ -92,6 +122,8 @@ export interface WeeklyLog {
   sleep: number | null;
   soreness: number | null;
   energy: number | null;
+  motivation: number | null;
+  bodyWeight: number | null;
   isCompetition: boolean;
   meetName?: string;
   loggedAt: string | null;
@@ -106,11 +138,43 @@ export interface StrengthTest {
   deadlift: number;
 }
 
+export type MeetType = 'qualifier' | 'championship' | 'invitational' | 'dual_meet' | 'time_trial';
+
 export interface Meet {
   id: string;
   name: string;
   date: string;
   standards: Record<string, number>;
+  location: string | null;
+  meetType: MeetType | null;
+  conditions: string | null;
+  generalNotes: string | null;
+}
+
+export interface MeetAttempt {
+  attempt: number;
+  mark: number | null;
+  wind: string | null;
+  foul: boolean;
+  notes: string;
+}
+
+export interface MeetEntry {
+  id: string;
+  meetId: string;
+  athleteId: string;
+  event: string;
+  bibNumber: string | null;
+  seedMark: number | null;
+  attempts: MeetAttempt[];
+  finalMark: number | null;
+  place: number | null;
+  qualified: boolean;
+  /** null for athletes — these three columns are coach-private and excluded from the athlete-facing view. */
+  coachNotes: string | null;
+  technicalCues: string | null;
+  nextSteps: string | null;
+  createdAt: string;
 }
 
 export type NotificationSeverity = 'info' | 'success' | 'warning' | 'danger';

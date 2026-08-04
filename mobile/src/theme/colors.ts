@@ -1,7 +1,14 @@
+export interface StatusColorPair {
+  bg: string;
+  text: string;
+}
+
 export interface ThemeColors {
   background: string;
   surface: string;
   surfaceAlt: string;
+  navBar: string;
+  navText: string;
   border: string;
   text: string;
   textMuted: string;
@@ -15,42 +22,87 @@ export interface ThemeColors {
   danger: string;
   dangerBg: string;
   overlay: string;
+  statusColors: {
+    onTrack: StatusColorPair;
+    borderline: StatusColorPair;
+    alert: StatusColorPair;
+    noLog: StatusColorPair;
+  };
 }
 
 export const lightColors: ThemeColors = {
-  background: '#f5f5f5',
-  surface: '#ffffff',
-  surfaceAlt: '#f9f9f9',
-  border: '#e8e8e8',
-  text: '#111111',
-  textMuted: '#888888',
-  textFaint: '#aaaaaa',
-  accent: '#111111',
-  accentText: '#ffffff',
-  success: '#166534',
-  successBg: '#dcfce7',
-  warning: '#854d0e',
-  warningBg: '#fef9c3',
-  danger: '#991b1b',
-  dangerBg: '#fee2e2',
+  background: '#F5F5F0',
+  surface: '#FFFFFF',
+  surfaceAlt: '#FFFFFF',
+  navBar: '#1A1A18',
+  navText: '#FFFFFF',
+  border: '#D3D1C7',
+  text: '#1A1A18',
+  textMuted: '#888780',
+  textFaint: '#ADAB9F',
+  accent: '#1D9E75',
+  accentText: '#FFFFFF',
+  success: '#085041',
+  successBg: '#E1F5EE',
+  warning: '#BA7517',
+  warningBg: '#FAEEDA',
+  danger: '#A32D2D',
+  dangerBg: '#FCEBEB',
   overlay: 'rgba(0,0,0,0.4)',
+  statusColors: {
+    onTrack: { bg: '#E1F5EE', text: '#085041' },
+    borderline: { bg: '#FAEEDA', text: '#633806' },
+    alert: { bg: '#FCEBEB', text: '#501313' },
+    noLog: { bg: '#F1EFE8', text: '#444441' },
+  },
 };
 
 export const darkColors: ThemeColors = {
-  background: '#0b0b0c',
-  surface: '#18181a',
-  surfaceAlt: '#1f1f22',
-  border: '#2b2b2e',
-  text: '#f5f5f5',
-  textMuted: '#9a9a9e',
-  textFaint: '#6b6b6f',
-  accent: '#f5f5f5',
-  accentText: '#111111',
-  success: '#4ade80',
-  successBg: '#14321f',
-  warning: '#facc15',
-  warningBg: '#3a2f0c',
-  danger: '#f87171',
-  dangerBg: '#3a1414',
+  background: '#111110',
+  surface: '#2C2C2A',
+  surfaceAlt: '#2C2C2A',
+  navBar: '#2C2C2A',
+  navText: '#FFFFFF',
+  border: '#3A3A38',
+  text: '#D3D1C7',
+  textMuted: '#5F5E5A',
+  textFaint: '#4A4946',
+  accent: '#0F6E56',
+  accentText: '#FFFFFF',
+  success: '#9FE1CB',
+  successBg: '#04342C',
+  warning: '#EF9F27',
+  warningBg: '#412402',
+  danger: '#F09595',
+  dangerBg: '#501313',
   overlay: 'rgba(0,0,0,0.6)',
+  statusColors: {
+    onTrack: { bg: '#04342C', text: '#9FE1CB' },
+    borderline: { bg: '#412402', text: '#EF9F27' },
+    alert: { bg: '#501313', text: '#F09595' },
+    noLog: { bg: '#3A3A38', text: '#888780' },
+  },
 };
+
+/**
+ * Workout block-type category colors (Prompt 5/6). Fixed semantic category
+ * colors, not light/dark-adaptive UI chrome — they stay constant across
+ * themes so a block type is visually identifiable either way.
+ */
+export interface BlockColorPair {
+  bg: string;
+  text: string;
+}
+
+export const blockColors = {
+  warmUp: { bg: '#E6F1FB', text: '#0C447C' },
+  olympic: { bg: '#1A1A18', text: '#FFFFFF' },
+  weights: { bg: '#2C2C2A', text: '#D3D1C7' },
+  plyo: { bg: '#FAEEDA', text: '#633806' },
+  technical: { bg: '#EEEDFE', text: '#3C3489' },
+  throws: { bg: '#E1F5EE', text: '#085041' },
+  sprints: { bg: '#FCEBEB', text: '#501313' },
+  core: { bg: '#E1F5EE', text: '#085041' },
+  medBall: { bg: '#F1EFE8', text: '#444441' },
+  coolDown: { bg: '#F1EFE8', text: '#888780' },
+} as const satisfies Record<string, BlockColorPair>;

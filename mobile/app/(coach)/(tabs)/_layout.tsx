@@ -21,7 +21,7 @@ export default function CoachTabsLayout() {
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontSize: 10 },
+        tabBarLabelStyle: { fontSize: 12 },
       }}
     >
       <Tabs.Screen
@@ -29,8 +29,8 @@ export default function CoachTabsLayout() {
         options={{ title: 'Squad', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
       />
       <Tabs.Screen
-        name="heatmap"
-        options={{ title: 'Heatmap', tabBarIcon: ({ color, size }) => <Ionicons name="grid" color={color} size={size} /> }}
+        name="workouts"
+        options={{ title: 'Workouts', tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="standards"
@@ -39,6 +39,10 @@ export default function CoachTabsLayout() {
       <Tabs.Screen
         name="ai"
         options={{ title: 'AI', tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="meets"
+        options={{ title: 'Meets', tabBarIcon: ({ color, size }) => <Ionicons name="ribbon" color={color} size={size} /> }}
       />
     </Tabs>
   );

@@ -19,6 +19,6 @@ export function StatRow({ stats }: { stats: { label: string; value: string; colo
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 6, marginBottom: 12 },
   stat: { flex: 1, borderRadius: 10, borderWidth: 1, paddingVertical: 10, alignItems: 'center' },
-  value: { fontSize: 17, fontWeight: '600' },
-  label: { fontSize: 10, marginTop: 2 },
+  value: { fontSize: 21, fontWeight: '600' },
+  label: { fontSize: 12, marginTop: 2 },
 });

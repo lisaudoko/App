@@ -8,6 +8,8 @@ export function TrialBanner({ daysLeft }: { daysLeft: number | null }) {
   return (
     <Pressable
       onPress={() => router.push('/(coach)/paywall')}
+      accessibilityRole="button"
+      accessibilityLabel={`Free trial, ${daysLeft ?? 0} day${daysLeft === 1 ? '' : 's'} remaining. Upgrade.`}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -17,10 +19,10 @@ export function TrialBanner({ daysLeft }: { daysLeft: number | null }) {
         paddingVertical: 10,
       }}
     >
-      <Text style={{ fontSize: 12, color: colors.accentText, flex: 1 }}>
+      <Text style={{ fontSize: 15, color: colors.accentText, flex: 1 }}>
         Free trial — {daysLeft ?? 0} day{daysLeft === 1 ? '' : 's'} remaining
       </Text>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.accentText }}>Upgrade →</Text>
+      <Text style={{ fontSize: 15, fontWeight: '700', color: colors.accentText }}>Upgrade →</Text>
     </Pressable>
   );
 }

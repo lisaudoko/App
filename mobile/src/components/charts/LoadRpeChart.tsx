@@ -33,7 +33,7 @@ export function LoadRpeChart({ logs }: Props) {
   if (logged.length < 3) {
     return (
       <View style={{ height: H, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 11, color: colors.textFaint }}>Not enough data yet</Text>
+        <Text style={{ fontSize: 13, color: colors.textFaint }}>Not enough data yet</Text>
       </View>
     );
   }
@@ -61,7 +61,7 @@ export function LoadRpeChart({ logs }: Props) {
           </>
         )}
       </CartesianChart>
-      <Text style={{ fontSize: 9, color: colors.textFaint, marginTop: 2 }}>Grey bars = training load · Amber line = RPE · Red dashed = RPE 8</Text>
+      <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 2 }}>Grey bars = training load · Amber line = RPE · Red dashed = RPE 8</Text>
     </View>
   );
 }

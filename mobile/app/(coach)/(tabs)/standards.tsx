@@ -47,14 +47,14 @@ export default function StandardsScreen() {
         {data.meets.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 }}>
             <Ionicons name="trophy-outline" size={32} color={colors.textFaint} />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
               No meets yet
             </Text>
-            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+            <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
               Add your season's competitions and qualifying standards to see athletes tracked against them.
             </Text>
             <Pressable onPress={() => router.push('/(coach)/meets')} style={{ marginTop: 12 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Manage meets →</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>Manage meets →</Text>
             </Pressable>
           </View>
         ) : (
@@ -67,6 +67,9 @@ export default function StandardsScreen() {
                     <Pressable
                       key={m.id}
                       onPress={() => setSelectedMeetId(m.id)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={m.name}
                       style={{
                         paddingHorizontal: 12,
                         paddingVertical: 6,
@@ -76,7 +79,7 @@ export default function StandardsScreen() {
                         borderColor: colors.border,
                       }}
                     >
-                      <Text style={{ fontSize: 11, color: active ? colors.accentText : colors.textMuted }}>{m.name}</Text>
+                      <Text style={{ fontSize: 13, color: active ? colors.accentText : colors.textMuted }}>{m.name}</Text>
                     </Pressable>
                   );
                 })}
@@ -84,7 +87,7 @@ export default function StandardsScreen() {
             </ScrollView>
 
             {byEvent.length === 0 && (
-              <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 24 }}>
+              <Text style={{ fontSize: 15, color: colors.textMuted, textAlign: 'center', marginTop: 24 }}>
                 This meet has no standards matching your athletes' events yet.
               </Text>
             )}
@@ -93,7 +96,7 @@ export default function StandardsScreen() {
               const unit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
               return (
                 <View key={event} style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                     {event} · Standard {formatPerformance(standard, unit)}
                   </Text>
                   {athletes.map((athlete) => {
@@ -116,8 +119,8 @@ export default function StandardsScreen() {
                         <Card>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                             <View>
-                              <Text style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>{athlete.name}</Text>
-                              <Text style={{ fontSize: 10, color: colors.textMuted }}>
+                              <Text style={{ fontSize: 17, fontWeight: '500', color: colors.text }}>{athlete.name}</Text>
+                              <Text style={{ fontSize: 12, color: colors.textMuted }}>
                                 SB {formatPerformance(athlete.personalBest, unit)}
                                 {projection ? ` · Proj ${formatPerformance(projection.mark, unit)}` : ' · No data'}
                               </Text>

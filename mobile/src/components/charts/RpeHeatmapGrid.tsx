@@ -13,15 +13,16 @@ export function RpeHeatmapGrid({ rows }: { rows: Row[] }) {
   const { colors } = useAppTheme();
 
   function cellColors(status: WeekLoadInfo['status']) {
+    const sc = colors.statusColors;
     switch (status) {
       case 'high':
-        return { bg: colors.dangerBg, fg: colors.danger };
+        return { bg: sc.alert.bg, fg: sc.alert.text };
       case 'low':
-        return { bg: colors.successBg, fg: colors.success };
+        return { bg: sc.onTrack.bg, fg: sc.onTrack.text };
       case 'ok':
-        return { bg: colors.warningBg, fg: colors.warning };
+        return { bg: sc.borderline.bg, fg: sc.borderline.text };
       default:
-        return { bg: colors.border, fg: colors.textFaint };
+        return { bg: sc.noLog.bg, fg: sc.noLog.text };
     }
   }
 
@@ -33,21 +34,24 @@ export function RpeHeatmapGrid({ rows }: { rows: Row[] }) {
         <View style={{ flexDirection: 'row', marginBottom: 4 }}>
           <View style={{ width: 84 }} />
           {weekLabels.map((label) => (
-            <Text key={label} style={{ width: 34, fontSize: 10, color: colors.textFaint, textAlign: 'center' }}>
+            <Text key={label} style={{ width: 34, fontSize: 12, color: colors.textFaint, textAlign: 'center' }}>
               {label}
             </Text>
           ))}
         </View>
         {rows.map((row) => (
           <View key={row.athleteId} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <Text numberOfLines={1} style={{ width: 84, fontSize: 11, color: colors.text }}>
+            <Text numberOfLines={1} style={{ width: 84, fontSize: 13, color: colors.text }}>
               {row.name}
             </Text>
             {row.cells.map((cell) => {
               const { bg, fg } = cellColors(cell.status);
+              const statusWord = cell.status === 'high' ? 'high load' : cell.status === 'low' ? 'low load' : cell.status === 'ok' ? 'moderate load' : 'no data';
               return (
                 <View
                   key={cell.week}
+                  accessible
+                  accessibilityLabel={`${row.name}, ${cell.label}: ${cell.rpe != null ? `RPE ${cell.rpe}` : 'no log'}, ${statusWord}`}
                   style={{
                     width: 30,
                     height: 26,
@@ -58,7 +62,7 @@ export function RpeHeatmapGrid({ rows }: { rows: Row[] }) {
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: '500', color: fg }}>{cell.rpe ?? ''}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: fg }}>{cell.rpe ?? ''}</Text>
                 </View>
               );
             })}

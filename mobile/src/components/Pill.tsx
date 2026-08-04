@@ -1,22 +1,24 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { radius } from '@/theme/spacing';
 
 export type PillTone = 'success' | 'warning' | 'danger' | 'neutral';
 
 export function Pill({ label, tone }: { label: string; tone: PillTone }) {
   const { colors } = useAppTheme();
+  // Sourced from statusColors — never hand-picked hex values here.
   const toneStyles: Record<PillTone, { bg: string; fg: string }> = {
-    success: { bg: colors.successBg, fg: colors.success },
-    warning: { bg: colors.warningBg, fg: colors.warning },
-    danger: { bg: colors.dangerBg, fg: colors.danger },
-    neutral: { bg: colors.border, fg: colors.textMuted },
+    success: { bg: colors.statusColors.onTrack.bg, fg: colors.statusColors.onTrack.text },
+    warning: { bg: colors.statusColors.borderline.bg, fg: colors.statusColors.borderline.text },
+    danger: { bg: colors.statusColors.alert.bg, fg: colors.statusColors.alert.text },
+    neutral: { bg: colors.statusColors.noLog.bg, fg: colors.statusColors.noLog.text },
   };
   const { bg, fg } = toneStyles[tone];
 
   return (
-    <View style={{ backgroundColor: bg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
-      <Text style={{ fontSize: 10, fontWeight: '600', color: fg }}>{label}</Text>
+    <View style={{ backgroundColor: bg, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 }}>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: fg }}>{label}</Text>
     </View>
   );
 }

@@ -4,16 +4,20 @@ import { EVENT_GROUP_DIRECTION, isBetter, type EventGroup, type PerformanceUnit 
 import type {
   Athlete,
   AppNotification,
+  BlockExercise,
+  BlockType,
   JumpsConfig,
   Meet,
+  MeetAttempt,
+  MeetEntry,
+  MeetType,
   ProgrammeConfig,
   SprintsConfig,
   StrengthTest,
   ThrowsConfig,
   WeeklyLog,
   Workout,
-  WorkoutExercise,
-  WorkoutLift,
+  WorkoutBlock,
 } from './types';
 import type { Database } from '../../types/supabase';
 
@@ -23,47 +27,71 @@ type StrengthLogRow = Database['public']['Tables']['strength_logs']['Row'];
 type NotificationRow = Database['public']['Tables']['notifications_log']['Row'];
 type WorkoutRow = Database['public']['Tables']['workouts']['Row'];
 type MeetRow = Database['public']['Tables']['meets']['Row'];
+type MeetEntryRow = Database['public']['Tables']['meet_entries']['Row'];
+type MeetEntryAthleteViewRow = Database['public']['Views']['meet_entries_athlete_view']['Row'];
 
-const VALID_LIFTS: WorkoutLift[] = ['squat', 'clean', 'bench', 'deadlift'];
+function num(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+function str(v: unknown): string | null {
+  return typeof v === 'string' ? v : null;
+}
+
+function toBlockExercise(e: unknown): BlockExercise {
+  const ex = (e ?? {}) as Record<string, unknown>;
+  return {
+    id: str(ex.id) ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: str(ex.name) ?? '',
+    category: str(ex.category),
+    sets: num(ex.sets),
+    repsPattern: str(ex.repsPattern),
+    pctOfMax: num(ex.pctOfMax),
+    weightLbs: num(ex.weightLbs),
+    distanceMetres: num(ex.distanceMetres),
+    intensityPct: num(ex.intensityPct),
+    restSeconds: num(ex.restSeconds),
+    timeSeconds: num(ex.timeSeconds),
+    coachingCue: str(ex.coachingCue),
+    notes: str(ex.notes),
+  };
+}
+
+function toWorkoutBlock(b: unknown): WorkoutBlock {
+  const block = (b ?? {}) as Record<string, unknown>;
+  const rawExercises = Array.isArray(block.exercises) ? block.exercises : [];
+  return {
+    id: str(block.id) ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    type: (str(block.type) ?? 'weightlifting') as BlockType,
+    label: str(block.label) ?? '',
+    order: typeof block.order === 'number' ? block.order : 0,
+    exercises: rawExercises.map(toBlockExercise),
+  };
+}
 
 function toWorkout(row: WorkoutRow): Workout {
-  const raw = Array.isArray(row.exercises) ? row.exercises : [];
-  const exercises: WorkoutExercise[] = raw.map((e) => {
-    const ex = e as Record<string, unknown>;
-    const lift = typeof ex.lift === 'string' && (VALID_LIFTS as string[]).includes(ex.lift) ? (ex.lift as WorkoutLift) : null;
-    const weightOverride = typeof ex.weightOverride === 'number' ? ex.weightOverride : null;
-    return { name: String(ex.name ?? ''), sets: Number(ex.sets ?? 0), reps: Number(ex.reps ?? 0), lift, weightOverride };
-  });
+  const raw = Array.isArray(row.blocks) ? row.blocks : [];
+  const blocks = raw.map(toWorkoutBlock).sort((a, b) => a.order - b.order);
   return {
     weekNumber: row.week_number,
     intensityPct: row.intensity_pct ?? 0,
     roundingIncrement: row.rounding_increment ?? 5,
-    exercises,
+    blocks,
   };
 }
 
-function fromWorkout(workout: { intensityPct: number; roundingIncrement: number; exercises: WorkoutExercise[] }) {
+function fromWorkout(workout: { intensityPct: number; roundingIncrement: number; blocks: WorkoutBlock[] }) {
   return {
     intensity_pct: workout.intensityPct,
     rounding_increment: workout.roundingIncrement,
-    exercises: workout.exercises as unknown as Database['public']['Tables']['workouts']['Insert']['exercises'],
+    blocks: workout.blocks as unknown as Database['public']['Tables']['workouts']['Insert']['blocks'],
   };
 }
 
-/** Sensible starting point for a week with no saved workout yet — coaches edit from here. */
+/** Starting point for a week with no saved plan yet — an empty week, ready for the coach to add blocks to. */
 export function defaultWorkoutTemplate(weekNumber: number): Workout {
   const intensities = [0.75, 0.78, 0.8, 0.85, 0.7, 0.82, 0.85, 0.9];
   const intensityPct = intensities[(weekNumber - 1) % intensities.length];
-  const sets = 4;
-  const reps = 5;
-  const exercises: WorkoutExercise[] = [
-    { name: 'Back Squat', sets, reps, lift: 'squat', weightOverride: null },
-    { name: 'Power Clean', sets, reps: Math.max(2, reps - 1), lift: 'clean', weightOverride: null },
-    { name: 'Bench Press', sets, reps: reps + 1, lift: 'bench', weightOverride: null },
-    { name: 'Deadlift', sets: Math.max(3, sets - 1), reps, lift: 'deadlift', weightOverride: null },
-    { name: 'Med Ball Rotational Throws', sets: 4, reps: 8, lift: null, weightOverride: null },
-  ];
-  return { weekNumber, intensityPct, roundingIncrement: 5, exercises };
+  return { weekNumber, intensityPct, roundingIncrement: 5, blocks: [] };
 }
 
 function toMeet(row: MeetRow): Meet {
@@ -72,6 +100,44 @@ function toMeet(row: MeetRow): Meet {
     name: row.name,
     date: row.date,
     standards: (row.standards as Record<string, number> | null) ?? {},
+    location: row.location,
+    meetType: row.meet_type as MeetType | null,
+    conditions: row.conditions,
+    generalNotes: row.general_notes,
+  };
+}
+
+function toMeetAttempts(raw: unknown): MeetAttempt[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((a) => {
+    const r = (a ?? {}) as Record<string, unknown>;
+    return {
+      attempt: typeof r.attempt === 'number' ? r.attempt : 0,
+      mark: typeof r.mark === 'number' ? r.mark : null,
+      wind: typeof r.wind === 'string' ? r.wind : null,
+      foul: r.foul === true,
+      notes: typeof r.notes === 'string' ? r.notes : '',
+    };
+  });
+}
+
+function toMeetEntry(row: MeetEntryRow | MeetEntryAthleteViewRow): MeetEntry {
+  const priv = row as Partial<MeetEntryRow>;
+  return {
+    id: row.id as string,
+    meetId: row.meet_id as string,
+    athleteId: row.athlete_id as string,
+    event: row.event as string,
+    bibNumber: (row as MeetEntryRow).bib_number ?? null,
+    seedMark: row.seed_mark as number | null,
+    attempts: toMeetAttempts(row.attempts),
+    finalMark: row.final_mark as number | null,
+    place: row.place as number | null,
+    qualified: !!row.qualified,
+    coachNotes: priv.coach_notes ?? null,
+    technicalCues: priv.technical_cues ?? null,
+    nextSteps: priv.next_steps ?? null,
+    createdAt: row.created_at as string,
   };
 }
 
@@ -91,6 +157,8 @@ function toWeeklyLog(row: WeeklyLogRow): WeeklyLog {
     sleep: row.sleep_score,
     soreness: row.soreness_score,
     energy: row.energy_score,
+    motivation: row.motivation_score,
+    bodyWeight: row.body_weight,
     isCompetition: false,
     loggedAt: row.week_start,
   };
@@ -297,6 +365,8 @@ export const repository = {
       sleep: number | null;
       soreness: number | null;
       energy: number | null;
+      motivation?: number | null;
+      bodyWeight?: number | null;
       notes?: string | null;
     },
   ): Promise<{ log: WeeklyLog; isNewPersonalBest: boolean }> {
@@ -329,6 +399,8 @@ export const repository = {
         sleep_score: entry.sleep,
         soreness_score: entry.soreness,
         energy_score: entry.energy,
+        motivation_score: entry.motivation ?? null,
+        body_weight: entry.bodyWeight ?? null,
         notes: entry.notes ?? null,
       })
       .select()
@@ -350,6 +422,44 @@ export const repository = {
     return (data ?? []).map(toStrengthTest);
   },
 
+  async getMeetResultsForAthlete(athleteId: string): Promise<{ entry: MeetEntry; meet: Meet }[]> {
+    const { data: entryRows, error } = await supabase
+      .from('meet_entries')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .not('final_mark', 'is', null)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    const entries = (entryRows ?? []).map(toMeetEntry);
+    if (entries.length === 0) return [];
+    const meetIds = Array.from(new Set(entries.map((e) => e.meetId)));
+    const { data: meetRows } = await supabase.from('meets').select('*').in('id', meetIds);
+    const meetsById = new Map((meetRows ?? []).map((m) => [m.id, toMeet(m)]));
+    return entries.map((entry) => ({ entry, meet: meetsById.get(entry.meetId) })).filter((r): r is { entry: MeetEntry; meet: Meet } => !!r.meet);
+  },
+
+  async getMeet(id: string): Promise<Meet | null> {
+    const { data, error } = await supabase.from('meets').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data ? toMeet(data) : null;
+  },
+
+  async getMeetEntryByAthlete(meetId: string, athleteId: string): Promise<MeetEntry | null> {
+    const { data, error } = await supabase.from('meet_entries').select('*').eq('meet_id', meetId).eq('athlete_id', athleteId).maybeSingle();
+    if (error) throw error;
+    return data ? toMeetEntry(data) : null;
+  },
+
+  async getMeetEntryCountsByMeet(): Promise<Record<string, number>> {
+    const profile = await myProfile();
+    if (!profile.programme_id) return {};
+    const { data, error } = await supabase.from('meet_entries').select('meet_id').eq('programme_id', profile.programme_id);
+    if (error) throw error;
+    const counts: Record<string, number> = {};
+    for (const row of data ?? []) counts[row.meet_id] = (counts[row.meet_id] ?? 0) + 1;
+    return counts;
+  },
+
   async getMeets(): Promise<Meet[]> {
     const profile = await myProfile();
     if (!profile.programme_id) return [];
@@ -362,29 +472,137 @@ export const repository = {
     return (data ?? []).map(toMeet);
   },
 
-  async createMeet(input: { name: string; date: string; standards: Record<string, number> }): Promise<Meet> {
+  async createMeet(input: {
+    name: string;
+    date: string;
+    standards: Record<string, number>;
+    location?: string;
+    meetType?: MeetType;
+    conditions?: string;
+  }): Promise<Meet> {
     const profile = await myProfile();
     if (!profile.programme_id) throw new Error('No programme assigned');
     const { data, error } = await supabase
       .from('meets')
-      .insert({ programme_id: profile.programme_id, name: input.name, date: input.date, standards: input.standards })
+      .insert({
+        programme_id: profile.programme_id,
+        name: input.name,
+        date: input.date,
+        standards: input.standards,
+        location: input.location ?? null,
+        meet_type: input.meetType ?? null,
+        conditions: input.conditions ?? null,
+      })
       .select()
       .single();
     if (error || !data) throw error ?? new Error('Could not create meet');
     return toMeet(data);
   },
 
-  async updateMeet(id: string, input: { name: string; date: string; standards: Record<string, number> }): Promise<void> {
-    const { error } = await supabase
-      .from('meets')
-      .update({ name: input.name, date: input.date, standards: input.standards })
-      .eq('id', id);
+  async updateMeet(
+    id: string,
+    input: {
+      name: string;
+      date: string;
+      standards: Record<string, number>;
+      location?: string | null;
+      meetType?: MeetType | null;
+      conditions?: string | null;
+      generalNotes?: string | null;
+    },
+  ): Promise<void> {
+    const row: Database['public']['Tables']['meets']['Update'] = { name: input.name, date: input.date, standards: input.standards };
+    if (input.location !== undefined) row.location = input.location;
+    if (input.meetType !== undefined) row.meet_type = input.meetType;
+    if (input.conditions !== undefined) row.conditions = input.conditions;
+    if (input.generalNotes !== undefined) row.general_notes = input.generalNotes;
+    const { error } = await supabase.from('meets').update(row).eq('id', id);
     if (error) throw error;
   },
 
   async deleteMeet(id: string): Promise<void> {
     const { error } = await supabase.from('meets').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  async getMeetEntries(meetId: string): Promise<MeetEntry[]> {
+    const { data, error } = await supabase.from('meet_entries').select('*').eq('meet_id', meetId).order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(toMeetEntry);
+  },
+
+  async getMeetEntry(entryId: string): Promise<MeetEntry | null> {
+    const { data, error } = await supabase.from('meet_entries').select('*').eq('id', entryId).maybeSingle();
+    if (error) throw error;
+    return data ? toMeetEntry(data) : null;
+  },
+
+  async addMeetEntry(input: { meetId: string; athleteId: string; event: string; bibNumber?: string; seedMark?: number }): Promise<MeetEntry> {
+    const profile = await myProfile();
+    if (!profile.programme_id) throw new Error('No programme assigned');
+    const { data, error } = await supabase
+      .from('meet_entries')
+      .insert({
+        meet_id: input.meetId,
+        athlete_id: input.athleteId,
+        programme_id: profile.programme_id,
+        event: input.event,
+        bib_number: input.bibNumber ?? null,
+        seed_mark: input.seedMark ?? null,
+      })
+      .select()
+      .single();
+    if (error || !data) throw error ?? new Error('Could not add athlete to meet');
+    return toMeetEntry(data);
+  },
+
+  async updateMeetEntry(
+    id: string,
+    patch: Partial<{
+      attempts: MeetAttempt[];
+      finalMark: number | null;
+      place: number | null;
+      qualified: boolean;
+      coachNotes: string | null;
+      technicalCues: string | null;
+      nextSteps: string | null;
+      bibNumber: string | null;
+      seedMark: number | null;
+    }>,
+  ): Promise<void> {
+    const row: Database['public']['Tables']['meet_entries']['Update'] = {};
+    if (patch.attempts !== undefined) row.attempts = patch.attempts as unknown as Database['public']['Tables']['meet_entries']['Update']['attempts'];
+    if (patch.finalMark !== undefined) row.final_mark = patch.finalMark;
+    if (patch.place !== undefined) row.place = patch.place;
+    if (patch.qualified !== undefined) row.qualified = patch.qualified;
+    if (patch.coachNotes !== undefined) row.coach_notes = patch.coachNotes;
+    if (patch.technicalCues !== undefined) row.technical_cues = patch.technicalCues;
+    if (patch.nextSteps !== undefined) row.next_steps = patch.nextSteps;
+    if (patch.bibNumber !== undefined) row.bib_number = patch.bibNumber;
+    if (patch.seedMark !== undefined) row.seed_mark = patch.seedMark;
+    const { error } = await supabase.from('meet_entries').update(row).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteMeetEntry(id: string): Promise<void> {
+    const { error } = await supabase.from('meet_entries').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getMyMeetEntries(): Promise<{ entry: MeetEntry; meet: Meet }[]> {
+    const profile = await myProfile();
+    const { data: entryRows, error } = await supabase
+      .from('meet_entries_athlete_view')
+      .select('*')
+      .eq('athlete_id', profile.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    const entries = (entryRows ?? []).map(toMeetEntry);
+    if (entries.length === 0) return [];
+    const meetIds = Array.from(new Set(entries.map((e) => e.meetId)));
+    const { data: meetRows } = await supabase.from('meets').select('*').in('id', meetIds);
+    const meetsById = new Map((meetRows ?? []).map((m) => [m.id, toMeet(m)]));
+    return entries.map((entry) => ({ entry, meet: meetsById.get(entry.meetId) })).filter((r): r is { entry: MeetEntry; meet: Meet } => !!r.meet);
   },
 
   async getNotifications(): Promise<AppNotification[]> {

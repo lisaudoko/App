@@ -18,18 +18,18 @@ export function ScreenHeader({ title, subtitle, onBack, rightIcon, onRightPress,
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.text, paddingTop: insets.top + 10 }]}>
+    <View style={[styles.container, { backgroundColor: colors.navBar, paddingTop: insets.top + 10 }]}>
       {onBack && (
         <Pressable onPress={onBack} hitSlop={12} style={styles.side} accessibilityRole="button" accessibilityLabel="Go back">
-          <Ionicons name="chevron-back" size={22} color={colors.background} />
+          <Ionicons name="chevron-back" size={22} color={colors.navText} />
         </Pressable>
       )}
       <View style={styles.titleWrap}>
-        <Text style={[styles.title, { color: colors.background }]} numberOfLines={1}>
+        <Text style={[styles.title, { color: colors.navText }]} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (
-          <Text style={[styles.subtitle, { color: colors.background }]} numberOfLines={1}>
+          <Text style={[styles.subtitle, { color: colors.navText }]} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
@@ -42,7 +42,7 @@ export function ScreenHeader({ title, subtitle, onBack, rightIcon, onRightPress,
           accessibilityRole="button"
           accessibilityLabel={rightLabel ?? 'More options'}
         >
-          <Ionicons name={rightIcon} size={19} color={colors.background} />
+          <Ionicons name={rightIcon} size={19} color={colors.navText} />
         </Pressable>
       )}
     </View>
@@ -59,6 +59,6 @@ const styles = StyleSheet.create({
   },
   side: { width: 24 },
   titleWrap: { flex: 1 },
-  title: { fontSize: 16, fontWeight: '600' },
-  subtitle: { fontSize: 11, opacity: 0.6, marginTop: 1 },
+  title: { fontSize: 20, fontWeight: '600' },
+  subtitle: { fontSize: 13, opacity: 0.6, marginTop: 1 },
 });

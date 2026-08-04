@@ -127,7 +127,7 @@ export const useAuthStore = create<AuthState>()(
 
           const { data: programme, error: programmeError } = await supabase
             .from('programmes')
-            .insert({ name: input.programmeName })
+            .insert({ name: input.programmeName, created_by: signUpData.user.id })
             .select()
             .single();
           if (programmeError || !programme) throw programmeError ?? new Error('Could not create programme.');
@@ -207,10 +207,13 @@ export const useAuthStore = create<AuthState>()(
         const { session } = get();
         if (!session) return;
         set({ isBusy: true });
-        // Deletes the profile row (cascades weekly_logs/strength_logs/notifications_log).
-        // Fully removing the auth.users row requires the service-role admin API,
-        // which must run server-side — out of scope for the client.
-        await supabase.from('profiles').delete().eq('id', session.id);
+        // Runs server-side with the service role: deletes the auth user, which
+        // cascades to profiles/weekly_logs/strength_logs/notifications_log.
+        const { error } = await supabase.functions.invoke('delete-account');
+        if (error) {
+          set({ isBusy: false });
+          throw mapAuthError(error);
+        }
         await supabase.auth.signOut();
         set({ session: null, isBusy: false });
       },

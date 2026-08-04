@@ -59,3 +59,12 @@ export function computeGap(current: number, standard: number, direction: Directi
 export function isBetter(a: number, b: number, direction: Direction): boolean {
   return direction === 'higher_better' ? a > b : a < b;
 }
+
+/** Mirrors mobile/src/lib/formatPerformance.ts's formatPerformance(). */
+export function formatPerformance(value: number, unit: 'metres' | 'seconds'): string {
+  if (unit === 'metres') return `${value.toFixed(2)}m`;
+  if (value < 60) return `${value.toFixed(2)}s`;
+  const minutes = Math.floor(value / 60);
+  const seconds = value - minutes * 60;
+  return `${minutes}:${seconds.toFixed(2).padStart(5, '0')}`;
+}

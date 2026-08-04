@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { radius, spacing } from '@/theme/spacing';
 import { AnimatedPressable } from './AnimatedPressable';
 
 interface Props {
@@ -39,12 +40,12 @@ export function Button({ label, onPress, loading, disabled, variant = 'primary' 
 
 const styles = StyleSheet.create({
   btn: {
-    borderRadius: 10,
+    borderRadius: radius.md,
     paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
-  label: { fontSize: 14, fontWeight: '600' },
+  label: { fontSize: 18, fontWeight: '600' },
 });

@@ -95,14 +95,14 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
     <View>
       {eventGroups.includes('throws') && (
         <Card>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Throws</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Throws</Text>
           <TextField
             label="Qualifying event name"
             value={throwsConfig.qualifyingEventName}
             onChangeText={(t) => setThrowsConfig((c) => ({ ...c, qualifyingEventName: t }))}
             placeholder="e.g. ISSA Champs Throws Qualifier"
           />
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (m)</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (m)</Text>
           {EVENT_GROUP_EVENTS.throws.map((event) => (
             <TextField
               key={event}
@@ -112,13 +112,13 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
               onChangeText={(t) => setStandards((s) => ({ ...s, [event]: t }))}
             />
           ))}
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Strength lifts to track</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Strength lifts to track</Text>
           <ChipRow
             options={LIFT_OPTIONS}
             selected={throwsConfig.strengthLifts}
             onToggle={(v) => setThrowsConfig((c) => ({ ...c, strengthLifts: toggleLift(c.strengthLifts, v) }))}
           />
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, marginTop: 10 }}>Calculation method</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 10 }}>Calculation method</Text>
           <SegmentedRow
             options={[
               { value: 'percent_1rm', label: '% of 1RM' },
@@ -133,14 +133,14 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
 
       {eventGroups.includes('sprints') && (
         <Card>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Sprints</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Sprints</Text>
           <TextField
             label="Qualifying event name"
             value={sprintsConfig.qualifyingEventName}
             onChangeText={(t) => setSprintsConfig((c) => ({ ...c, qualifyingEventName: t }))}
             placeholder="e.g. ISSA Champs Sprints Qualifier"
           />
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (seconds)</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (seconds)</Text>
           {EVENT_GROUP_EVENTS.sprints.map((event) => (
             <TextField
               key={event}
@@ -151,7 +151,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
             />
           ))}
 
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Pace zones</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Pace zones</Text>
           {sprintsConfig.paceZones.map((zone, i) => (
             <View key={zone.name} style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 8 }}>
               <View style={{ flex: 1.2 }}>
@@ -178,7 +178,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
                   placeholder="min %"
                 />
               </View>
-              <Text style={{ fontSize: 11, color: colors.textFaint }}>–</Text>
+              <Text style={{ fontSize: 13, color: colors.textFaint }}>–</Text>
               <View style={{ flex: 1 }}>
                 <TextField
                   keyboardType="number-pad"
@@ -195,7 +195,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
             </View>
           ))}
 
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Common rep distances</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Common rep distances</Text>
           <ChipRow
             options={REP_DISTANCE_OPTIONS.map((d) => ({ value: d, label: `${d}m` }))}
             selected={sprintsConfig.repDistances}
@@ -207,7 +207,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
             }
           />
 
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, marginTop: 10 }}>Rest unit</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 10 }}>Rest unit</Text>
           <SegmentedRow
             options={[
               { value: 'seconds', label: 'Seconds' },
@@ -221,14 +221,14 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
 
       {eventGroups.includes('jumps') && (
         <Card>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Jumps</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Jumps</Text>
           <TextField
             label="Qualifying event name"
             value={jumpsConfig.qualifyingEventName}
             onChangeText={(t) => setJumpsConfig((c) => ({ ...c, qualifyingEventName: t }))}
             placeholder="e.g. ISSA Champs Jumps Qualifier"
           />
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (m)</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (m)</Text>
           {EVENT_GROUP_EVENTS.jumps.map((event) => (
             <TextField
               key={event}
@@ -250,7 +250,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
             onChange={(v) => setJumpsConfig((c) => ({ ...c, trackPlyoLoad: v }))}
           />
 
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, marginTop: 10 }}>Strength lifts to track</Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 10 }}>Strength lifts to track</Text>
           <ChipRow
             options={LIFT_OPTIONS}
             selected={jumpsConfig.strengthLifts}
@@ -260,7 +260,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
       )}
 
       <Card>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Competition</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Competition</Text>
         <TextField
           label="Competition date (YYYY-MM-DD)"
           value={competitionDate}
@@ -270,7 +270,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
         />
       </Card>
 
-      {error && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>}
+      {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
       <Button label={saveLabel} onPress={handleSave} loading={saving} />
     </View>
   );
@@ -294,6 +294,9 @@ function ChipRow<T extends string | number>({
           <Pressable
             key={String(opt.value)}
             onPress={() => onToggle(opt.value)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: active }}
+            accessibilityLabel={opt.label}
             style={{
               paddingHorizontal: 10,
               paddingVertical: 6,
@@ -303,7 +306,7 @@ function ChipRow<T extends string | number>({
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 10, color: active ? colors.accentText : colors.textMuted }}>{opt.label}</Text>
+            <Text style={{ fontSize: 12, color: active ? colors.accentText : colors.textMuted }}>{opt.label}</Text>
           </Pressable>
         );
       })}
@@ -329,6 +332,9 @@ function SegmentedRow({
           <Pressable
             key={opt.value}
             onPress={() => onChange(opt.value)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: active }}
+            accessibilityLabel={opt.label}
             style={{
               flex: 1,
               alignItems: 'center',
@@ -339,7 +345,7 @@ function SegmentedRow({
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 11, color: active ? colors.accentText : colors.textMuted }}>{opt.label}</Text>
+            <Text style={{ fontSize: 13, color: active ? colors.accentText : colors.textMuted }}>{opt.label}</Text>
           </Pressable>
         );
       })}
@@ -351,7 +357,7 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
   const { colors } = useAppTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-      <Text style={{ fontSize: 12, color: colors.text }}>{label}</Text>
+      <Text style={{ fontSize: 15, color: colors.text }}>{label}</Text>
       <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent, false: colors.border }} thumbColor={colors.surface} />
     </View>
   );

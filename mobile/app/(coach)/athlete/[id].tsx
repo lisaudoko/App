@@ -1,12 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
+import { repository } from '@/data/repository';
+import type { Meet, MeetEntry } from '@/data/types';
 import { buildTrajectory } from '@/engine/projections';
 import { acuteChronicRatio } from '@/engine/load';
 import { estimatePeakTiming } from '@/engine/peakTiming';
 import { pearsonCorrelation } from '@/engine/stats';
+import { estimateWeekForDate } from '@/engine/meetEntry';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -17,18 +20,46 @@ import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
 import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
-import { EVENT_GROUP_DIRECTION, formatGap, formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
 
 export default function CoachAthleteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useAppTheme();
   const { data, loading, refresh } = useProgrammeData();
+  const [meetResults, setMeetResults] = useState<{ entry: MeetEntry; meet: Meet }[]>([]);
 
   const athlete = data.athletes.find((a) => a.id === id);
   const logs = data.weeklyLogs[id ?? ''] ?? [];
   const tests = data.strengthTests[id ?? ''] ?? [];
   const direction = EVENT_GROUP_DIRECTION[athlete?.eventGroup ?? 'throws'];
   const perfUnit: PerformanceUnit = athlete?.unit === 's' ? 'seconds' : 'metres';
+
+  useEffect(() => {
+    if (!id) return;
+    repository.getMeetResultsForAthlete(id).then(setMeetResults);
+  }, [id]);
+
+  const meetPoints = useMemo(
+    () =>
+      meetResults
+        .filter((r) => r.entry.finalMark != null)
+        .map((r) => ({
+          week: estimateWeekForDate(logs, r.meet.date),
+          mark: r.entry.finalMark as number,
+          meetName: r.meet.name,
+          date: r.meet.date,
+        })),
+    [meetResults, logs],
+  );
+
+  const competitionBest = useMemo(() => {
+    let best: number | null = null;
+    for (const r of meetResults) {
+      if (r.entry.finalMark == null) continue;
+      if (best == null || isBetter(r.entry.finalMark, best, direction)) best = r.entry.finalMark;
+    }
+    return best;
+  }, [meetResults, direction]);
 
   const trajectory = useMemo(() => buildTrajectory(logs, 4, direction), [logs, direction]);
   const acRatio = useMemo(() => acuteChronicRatio(logs), [logs]);
@@ -70,7 +101,7 @@ export default function CoachAthleteDetailScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScreenHeader title="Athlete" onBack={() => router.back()} />
-        <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>
+        <Text style={{ fontSize: 15, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>
           This athlete couldn&apos;t be found.
         </Text>
       </View>
@@ -100,25 +131,30 @@ export default function CoachAthleteDetailScreen() {
         <StatRow
           stats={[
             { label: 'Season best', value: formatPerformance(athlete.personalBest, perfUnit) },
+            competitionBest != null
+              ? { label: 'Competition best', value: formatPerformance(competitionBest, perfUnit), color: colors.success }
+              : { label: 'Competition best', value: '—' },
             { label: 'vs baseline', value: `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(2)}${unitSuffix}`, color: vsBaseline >= 0 ? colors.success : colors.danger },
-            { label: 'Avg RPE', value: avgRpe ? avgRpe.toFixed(1) : '—' },
           ]}
         />
+        <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: -8, marginBottom: 12 }}>Avg RPE: {avgRpe ? avgRpe.toFixed(1) : '—'}</Text>
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>
             {groupNoun.charAt(0).toUpperCase() + groupNoun.slice(1)} trajectory + projection
           </Text>
-          <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>Solid = actual · Dotted = projected · Shaded = confidence band</Text>
-          <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={perfUnit} />
+          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>
+            Solid = actual · Dotted = projected · Shaded = confidence band · ■ = meet result
+          </Text>
+          <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={perfUnit} meetPoints={meetPoints} />
         </Card>
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Training load + RPE</Text>
-          <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>Bars = volume load · Line = RPE · Red dashed = RPE 8 threshold</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Training load + RPE</Text>
+          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Bars = volume load · Line = RPE · Red dashed = RPE 8 threshold</Text>
           <LoadRpeChart logs={logs} />
           {acRatio != null && (
-            <Text style={{ fontSize: 10, color: acRatio > 1.3 ? colors.danger : colors.textMuted, marginTop: 4 }}>
+            <Text style={{ fontSize: 12, color: acRatio > 1.3 ? colors.danger : colors.textMuted, marginTop: 4 }}>
               Acute:chronic ratio {acRatio.toFixed(1)}
               {acRatio > 1.3 ? ' — elevated, monitor this week' : ''}
             </Text>
@@ -127,8 +163,8 @@ export default function CoachAthleteDetailScreen() {
 
         {tests.length >= 2 && (
           <Card>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Strength progression — test weeks</Text>
-            <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season (lbs)</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression — test weeks</Text>
+            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season (lbs)</Text>
             <StrengthChart tests={tests} />
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <LegendDot color={colors.text} label="Squat" />
@@ -140,10 +176,10 @@ export default function CoachAthleteDetailScreen() {
 
         {correlation && (
           <Card>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
-            <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} mark · Each dot = test week</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
+            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} mark · Each dot = test week</Text>
             <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel="Squat (lbs)" />
-            <Text style={{ fontSize: 10, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
+            <Text style={{ fontSize: 12, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
               {Math.abs(correlation.r) >= 0.7
                 ? 'Strength gains are translating. Continue current approach.'
                 : `Strength and ${groupNoun}s are diverging — consider a technical focus.`}
@@ -153,12 +189,12 @@ export default function CoachAthleteDetailScreen() {
 
         <Card style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Peak timing indicator</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Peak timing indicator</Text>
             <Pill label={peak.headline} tone={peakTone} />
           </View>
           <View style={{ flex: 1.4 }}>
             {peak.detail.map((d) => (
-              <Text key={d} style={{ fontSize: 11, color: colors.textMuted, lineHeight: 17 }}>
+              <Text key={d} style={{ fontSize: 13, color: colors.textMuted, lineHeight: 17 }}>
                 {d}
               </Text>
             ))}
@@ -174,7 +210,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
       <View style={{ width: 14, height: 2, backgroundColor: color }} />
-      <Text style={{ fontSize: 10, color: colors.textMuted }}>{label}</Text>
+      <Text style={{ fontSize: 12, color: colors.textMuted }}>{label}</Text>
     </View>
   );
 }

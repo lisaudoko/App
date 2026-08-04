@@ -11,8 +11,9 @@ export default function CoachLayout() {
       <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="settings/config" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="add-athlete" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="workouts" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="meets" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="meets/[id]" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="meets/[id]/athlete/[athleteId]" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="meets/[id]/summary" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
     </Stack>
   );

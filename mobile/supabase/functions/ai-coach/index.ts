@@ -77,6 +77,19 @@ Deno.serve(async (req) => {
       logsByAthlete.set(log.athlete_id, list);
     }
 
+    const { data: allMeetEntries } = await supabase
+      .from('meet_entries')
+      .select('athlete_id, event, final_mark, place, qualified, meet_id, meets(name, date)')
+      .eq('programme_id', coach.programme_id)
+      .order('created_at', { ascending: false });
+
+    const meetEntriesByAthlete = new Map<string, typeof allMeetEntries>();
+    for (const entry of allMeetEntries ?? []) {
+      const list = meetEntriesByAthlete.get(entry.athlete_id) ?? [];
+      if (list.length < 5) list.push(entry);
+      meetEntriesByAthlete.set(entry.athlete_id, list);
+    }
+
     const squadContext = (athletes ?? []).map((athlete) => {
       const eventGroup = athlete.event_group ?? 'throws';
       const direction = EVENT_GROUP_DIRECTION[eventGroup] ?? 'higher_better';
@@ -107,6 +120,18 @@ Deno.serve(async (req) => {
           ? computeGap(projection.projected, athlete.qualifying_standard, direction)
           : null;
 
+      const recentMeets = (meetEntriesByAthlete.get(athlete.id) ?? []).map((e) => {
+        const meet = e.meets as unknown as { name: string; date: string } | null;
+        return {
+          meetName: meet?.name ?? 'Unknown meet',
+          date: meet?.date ?? null,
+          event: e.event,
+          mark: e.final_mark,
+          place: e.place,
+          qualified: e.qualified,
+        };
+      });
+
       return {
         name: athlete.full_name,
         event: athlete.event,
@@ -119,6 +144,8 @@ Deno.serve(async (req) => {
         qualifyingStandard: athlete.qualifying_standard,
         // Positive = still needs to close this much of a gap; negative = already ahead of standard.
         qualifyingGap: qualifyingGap != null ? Number(qualifyingGap.toFixed(2)) : null,
+        // Up to 5 most recent competition results, most recent first.
+        recentMeets,
       };
     });
 
@@ -137,7 +164,9 @@ numbers mean — sprints are times in seconds (lower is better), throws/jumps ar
 (higher is better). Always phrase performance and qualifying-gap language correctly for the athlete's event group:
 for sprints say things like "needs to drop 0.3s"; for throws/jumps say "needs to gain 0.4m". A positive qualifyingGap
 always means the athlete still needs to close that much of a gap, regardless of event group — never state it backwards.
-Flag qualifying risk, high RPE, and stalled progress when relevant. Do not invent data not present here.
+Flag qualifying risk, high RPE, and stalled progress when relevant. Each athlete also has recentMeets — their up to 5
+most recent competition results (meet name, date, event, mark, place, qualified). Reference these when asked about
+competition performance, qualifying progress, or how someone did at a specific meet. Do not invent data not present here.
 
 Squad data:
 ${JSON.stringify(squadContext, null, 2)}`;
