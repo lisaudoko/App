@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
@@ -7,21 +7,34 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
-import { generateWorkout } from '@/engine/workout';
 import { repository } from '@/data/repository';
+import type { Workout } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { StaleBanner } from '@/components/StaleBanner';
+
+function roundToNearest5(value: number): number {
+  return Math.round(value / 5) * 5;
+}
 
 export default function AthleteWorkoutScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { data, loading, refresh } = useAthleteSelf();
+  const { data, loading, isStale, refresh } = useAthleteSelf();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [workout, setWorkout] = useState<Workout | null>(null);
+  const [workoutLoading, setWorkoutLoading] = useState(true);
 
-  const workout = useMemo(() => (data.athlete ? generateWorkout(data.athlete, data.mesocycleWeek) : null), [data.athlete, data.mesocycleWeek]);
+  useEffect(() => {
+    setWorkoutLoading(true);
+    repository
+      .getWorkoutForWeek(data.mesocycleWeek)
+      .then(setWorkout)
+      .finally(() => setWorkoutLoading(false));
+  }, [data.mesocycleWeek]);
 
   React.useEffect(() => {
     if (!data.athlete) return;
@@ -30,6 +43,17 @@ export default function AthleteWorkoutScreen() {
       setHydrated(true);
     });
   }, [data.athlete, data.mesocycleWeek]);
+
+  const exercises = useMemo(() => {
+    if (!workout || !data.athlete) return [];
+    return workout.exercises.map((ex, i) => ({
+      id: `${data.mesocycleWeek}-${i}-${ex.name}`,
+      name: ex.name,
+      sets: ex.sets,
+      reps: ex.reps,
+      weight: ex.lift ? roundToNearest5(workout.intensityPct * data.athlete!.currentMaxes[ex.lift]) : null,
+    }));
+  }, [workout, data.athlete, data.mesocycleWeek]);
 
   async function toggleExercise(exerciseId: string) {
     if (!data.athlete) return;
@@ -40,8 +64,8 @@ export default function AthleteWorkoutScreen() {
     setCompletedIds(authoritative);
   }
 
-  if (loading) return <LoadingState />;
-  if (!data.athlete || !workout) {
+  if (loading || workoutLoading) return <LoadingState />;
+  if (!data.athlete) {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
@@ -50,7 +74,7 @@ export default function AthleteWorkoutScreen() {
   // "@ 0 lbs" for that exercise would be nonsensical, so treat it as not configured.
   const noMaxesYet = squat === 0 || clean === 0 || bench === 0;
 
-  if (noMaxesYet) {
+  if (!workout || noMaxesYet) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ backgroundColor: colors.text, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -62,7 +86,9 @@ export default function AthleteWorkoutScreen() {
             No workout yet
           </Text>
           <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
-            Your coach hasn&apos;t entered your 1RM maxes yet. Your personalized workout will appear here as soon as they do.
+            {noMaxesYet
+              ? "Your coach hasn't entered your 1RM maxes yet. Your personalized workout will appear here as soon as they do."
+              : "Your coach hasn't published a workout for this week yet."}
           </Text>
         </Screen>
       </View>
@@ -74,9 +100,11 @@ export default function AthleteWorkoutScreen() {
       <View style={{ backgroundColor: colors.text, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 12 }}>
         <Text style={{ fontSize: 16, fontWeight: '600', color: colors.background }}>Today&apos;s workout</Text>
         <Text style={{ fontSize: 11, color: colors.background, opacity: 0.6, marginTop: 1 }}>
-          Week {workout.mesocycleWeek} · {Math.round(workout.intensityPct * 100)}% intensity
+          Week {workout.weekNumber} · {Math.round(workout.intensityPct * 100)}% intensity
         </Text>
       </View>
+
+      {isStale && <StaleBanner />}
 
       <Screen onRefresh={refresh}>
         <Card style={{ marginBottom: 12 }}>
@@ -98,7 +126,7 @@ export default function AthleteWorkoutScreen() {
           Sets and weights calculated from your current maxes
         </Text>
 
-        {workout.exercises.map((ex, i) => {
+        {exercises.map((ex, i) => {
           const done = hydrated && completedIds.includes(ex.id);
           return (
             <MotiView
@@ -121,7 +149,8 @@ export default function AthleteWorkoutScreen() {
                 <View>
                   <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>{ex.name}</Text>
                   <Text style={{ fontSize: 11, color: colors.textMuted }}>
-                    {ex.sets} × {ex.reps} @ {ex.weight} lbs
+                    {ex.sets} × {ex.reps}
+                    {ex.weight != null ? ` @ ${ex.weight} lbs` : ''}
                   </Text>
                 </View>
                 <View

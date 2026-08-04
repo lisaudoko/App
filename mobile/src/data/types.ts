@@ -8,6 +8,23 @@ export interface LiftMaxes {
   squat: number;
   clean: number;
   bench: number;
+  deadlift: number;
+}
+
+export type WorkoutLift = 'squat' | 'clean' | 'bench' | 'deadlift';
+
+export interface WorkoutExercise {
+  name: string;
+  sets: number;
+  reps: number;
+  /** Which 1RM to scale intensity_pct against; null for accessory/bodyweight work. */
+  lift: WorkoutLift | null;
+}
+
+export interface Workout {
+  weekNumber: number;
+  intensityPct: number;
+  exercises: WorkoutExercise[];
 }
 
 export interface Athlete {
@@ -47,6 +64,7 @@ export interface StrengthTest {
   squat: number;
   clean: number;
   bench: number;
+  deadlift: number;
 }
 
 export interface Meet {

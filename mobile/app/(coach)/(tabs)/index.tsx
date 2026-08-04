@@ -11,9 +11,11 @@ import { useAuthStore } from '@/store/authStore';
 import { detectAnomalies } from '@/engine/anomalies';
 import { estimatePeakTiming } from '@/engine/peakTiming';
 import { projectAtWeek } from '@/engine/projections';
+import { currentWeekFromLogs } from '@/engine/load';
 import { Screen } from '@/components/Screen';
 import { Pill, type PillTone } from '@/components/Pill';
-import { PROGRAMME_JOIN_CODE } from '@/data/seed';
+import { StaleBanner } from '@/components/StaleBanner';
+import { repository } from '@/data/repository';
 import type { Athlete } from '@/data/types';
 
 interface Row {
@@ -28,8 +30,13 @@ interface Row {
 export default function SquadScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { data, loading, refresh } = useProgrammeData();
+  const { data, loading, isStale, refresh } = useProgrammeData();
   const programmeName = useAuthStore((s) => s.session?.programmeName) ?? 'Your programme';
+  const [joinCode, setJoinCode] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    repository.getMyProgrammeJoinCode().then(setJoinCode).catch(() => {});
+  }, []);
 
   // Refetch on focus so the notification badge clears after visiting Notifications
   // — tabs stay mounted across navigation, so nothing else would trigger a refetch.
@@ -47,22 +54,16 @@ export default function SquadScreen() {
     }, [refresh]),
   );
 
-  const currentWeekLabel = useMemo(() => {
-    let latest: { week: number; label: string } | null = null;
-    for (const logs of Object.values(data.weeklyLogs)) {
-      const last = logs[logs.length - 1];
-      if (last && (!latest || last.week > latest.week)) latest = last;
-    }
-    return latest ? latest.label : 'No results logged yet';
-  }, [data.weeklyLogs]);
+  const currentWeek = useMemo(() => currentWeekFromLogs(data.weeklyLogs), [data.weeklyLogs]);
+  const currentWeekLabel = currentWeek > 0 ? `W${currentWeek}` : 'No results logged yet';
 
   const rows: Row[] = useMemo(() => {
     return data.athletes.map((athlete) => {
       const logs = data.weeklyLogs[athlete.id] ?? [];
       const tests = data.strengthTests[athlete.id] ?? [];
       const lastLog = logs[logs.length - 1];
-      const loggedThisWeek = !!lastLog?.loggedAt;
-      const anomalies = detectAnomalies(athlete, logs, tests);
+      const loggedThisWeek = currentWeek > 0 && logs.some((l) => l.week === currentWeek);
+      const anomalies = detectAnomalies(athlete, logs, tests, currentWeek);
       const peak = estimatePeakTiming(logs);
       const projection = projectAtWeek(logs, 4);
 
@@ -106,7 +107,7 @@ export default function SquadScreen() {
 
       return { athlete, dotColor, pillLabel, pillTone, subtitle, loggedThisWeek };
     });
-  }, [data, colors]);
+  }, [data, colors, currentWeek]);
 
   const loggedCount = rows.filter((r) => r.loggedThisWeek).length;
   const missingCount = rows.length - loggedCount;
@@ -164,6 +165,8 @@ export default function SquadScreen() {
         </View>
       </View>
 
+      {isStale && <StaleBanner />}
+
       <Screen onRefresh={refresh} padded={false} style={{ paddingHorizontal: 16, paddingTop: 8 }}>
         {rows.map((row, i) => (
           <MotiView
@@ -200,7 +203,7 @@ export default function SquadScreen() {
             </Text>
             <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
               Share your programme join code with your athletes so they can sign up: {'\n'}
-              <Text style={{ fontWeight: '700', color: colors.text }}>{PROGRAMME_JOIN_CODE}</Text>
+              <Text style={{ fontWeight: '700', color: colors.text }}>{joinCode ?? '…'}</Text>
             </Text>
           </View>
         )}

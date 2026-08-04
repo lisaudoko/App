@@ -45,14 +45,18 @@ function disengagementRisk(athlete: Athlete, logs: WeeklyLog[]): Anomaly | null 
   return null;
 }
 
-function missingLogStreak(athlete: Athlete, logs: WeeklyLog[]): Anomaly | null {
-  const tail = logs.slice(-2);
-  if (tail.length === 2 && tail.every((l) => l.loggedAt == null)) {
+function missingLogStreak(athlete: Athlete, logs: WeeklyLog[], currentWeek: number): Anomaly | null {
+  // Rows simply don't exist for un-logged weeks (no null-placeholder rows are
+  // stored), so gaps must be detected against the programme's current week
+  // rather than by scanning trailing array entries.
+  if (currentWeek < 2) return null;
+  const loggedWeeks = new Set(logs.filter((l) => l.mark != null || l.rpe != null).map((l) => l.week));
+  if (!loggedWeeks.has(currentWeek) && !loggedWeeks.has(currentWeek - 1)) {
     return {
       athleteId: athlete.id,
       athleteName: athlete.name,
       severity: 'danger',
-      message: 'No log for 2 consecutive weeks — attendance risk.',
+      message: `No log for weeks ${currentWeek - 1}-${currentWeek} — attendance risk.`,
     };
   }
   return null;
@@ -73,11 +77,11 @@ function overreachRisk(athlete: Athlete, logs: WeeklyLog[]): Anomaly | null {
   return null;
 }
 
-export function detectAnomalies(athlete: Athlete, logs: WeeklyLog[], tests: StrengthTest[]): Anomaly[] {
+export function detectAnomalies(athlete: Athlete, logs: WeeklyLog[], tests: StrengthTest[], currentWeek: number): Anomaly[] {
   return [
     strengthVsThrowFlat(athlete, logs, tests),
     disengagementRisk(athlete, logs),
-    missingLogStreak(athlete, logs),
+    missingLogStreak(athlete, logs, currentWeek),
     overreachRisk(athlete, logs),
   ].filter((a): a is Anomaly => a !== null);
 }

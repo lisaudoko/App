@@ -33,14 +33,33 @@ export default function CoachAthleteDetailScreen() {
 
   const correlation = useMemo(() => {
     if (!athlete || tests.length < 2) return null;
-    const t = tests.map((_, i) => i / (tests.length - 1));
-    const marks = t.map((frac) => athlete.baselineMark + (athlete.personalBest - athlete.baselineMark) * frac);
+    const loggedWeeks = logs.filter((l) => l.mark != null && l.loggedAt);
+    if (loggedWeeks.length < 2) return null;
+
+    // Match each strength test to the closest-dated weekly throw.
+    const paired = tests
+      .map((test) => {
+        const testTime = new Date(test.date).getTime();
+        let closest: (typeof loggedWeeks)[number] | null = null;
+        let closestDiff = Infinity;
+        for (const log of loggedWeeks) {
+          const diff = Math.abs(new Date(log.loggedAt as string).getTime() - testTime);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closest = log;
+          }
+        }
+        return closest ? { squat: test.squat, mark: closest.mark as number } : null;
+      })
+      .filter((p): p is { squat: number; mark: number } => p != null);
+
+    if (paired.length < 2) return null;
     const r = pearsonCorrelation(
-      tests.map((tt) => tt.squat),
-      marks,
+      paired.map((p) => p.squat),
+      paired.map((p) => p.mark),
     );
-    return { squats: tests.map((tt) => tt.squat), marks, r };
-  }, [athlete, tests]);
+    return { squats: paired.map((p) => p.squat), marks: paired.map((p) => p.mark), r };
+  }, [athlete, tests, logs]);
 
   if (loading) return <LoadingState />;
 

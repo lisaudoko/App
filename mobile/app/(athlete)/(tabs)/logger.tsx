@@ -1,12 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { MotiView, AnimatePresence } from 'moti';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
-import { parseNaturalLanguageEntry } from '@/engine/nlLogger';
+import { parseLogText, type ParsedLogResult } from '@/lib/parseLog';
 import { repository } from '@/data/repository';
 import { notifyPersonalBest } from '@/notifications/localNotifications';
 import { Screen } from '@/components/Screen';
@@ -19,27 +19,58 @@ export default function LoggerScreen() {
   const { colors } = useAppTheme();
   const { data, refresh } = useAthleteSelf();
 
+  const [manualMode, setManualMode] = useState(false);
+
+  // Natural-language flow
   const [nlText, setNlText] = useState('');
+  const [parsing, setParsing] = useState(false);
+  const [parsed, setParsed] = useState<ParsedLogResult | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  // Manual flow
   const [manualMark, setManualMark] = useState('');
+  const [manualRpe, setManualRpe] = useState(6);
+
+  // Shared wellness inputs
   const [sleep, setSleep] = useState(7);
   const [soreness, setSoreness] = useState(4);
   const [energy, setEnergy] = useState(7);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [loggedMark, setLoggedMark] = useState<number | null>(null);
+  const [loggedRpe, setLoggedRpe] = useState<number | null>(null);
 
-  const parsed = useMemo(() => (nlText.trim() ? parseNaturalLanguageEntry(nlText) : null), [nlText]);
-  const manualValue = manualMark ? parseFloat(manualMark) : null;
-  const mark = parsed?.mark ?? (manualValue != null && Number.isFinite(manualValue) ? manualValue : null);
-  const rpe = parsed?.rpe ?? null;
+  async function handleParse() {
+    if (!nlText.trim()) return;
+    setParsing(true);
+    setParseError(null);
+    try {
+      const result = await parseLogText(nlText.trim());
+      setParsed(result);
+    } catch (err) {
+      setParseError(err instanceof Error ? err.message : 'Could not understand that — try again or enter manually.');
+    } finally {
+      setParsing(false);
+    }
+  }
 
-  async function handleSubmit() {
+  async function finishSubmit(mark: number | null, rpe: number | null, notes: string | null) {
     if (!data.athlete || mark == null) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSubmitting(true);
-    // Optimistic: show success state immediately, persist in the background.
+    setLoggedMark(mark);
+    setLoggedRpe(rpe);
     setSubmitted(true);
     try {
-      const { isNewPersonalBest } = await repository.submitWeeklyResult(data.athlete.id, { mark, rpe, sleep, soreness, energy });
+      const { isNewPersonalBest } = await repository.submitWeeklyResult(data.athlete.id, {
+        mark,
+        rpe,
+        sleep,
+        soreness,
+        energy,
+        notes,
+      });
       await refresh();
       if (isNewPersonalBest) {
         notifyPersonalBest(data.athlete.name, mark, data.athlete.unit).catch(() => {});
@@ -47,6 +78,14 @@ export default function LoggerScreen() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function resetForm() {
+    setSubmitted(false);
+    setNlText('');
+    setParsed(null);
+    setParseError(null);
+    setManualMark('');
   }
 
   if (submitted) {
@@ -58,19 +97,11 @@ export default function LoggerScreen() {
             <Text style={{ fontSize: 40, textAlign: 'center' }}>✅</Text>
             <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>Logged!</Text>
             <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center' }}>
-              {mark}
-              {data.athlete?.unit} · RPE {rpe ?? '—'}
+              {loggedMark}
+              {data.athlete?.unit} · RPE {loggedRpe ?? '—'}
             </Text>
             <Button label="Back to workout" onPress={() => router.push('/(athlete)/(tabs)')} />
-            <Button
-              label="Log another"
-              variant="outline"
-              onPress={() => {
-                setSubmitted(false);
-                setNlText('');
-                setManualMark('');
-              }}
-            />
+            <Button label="Log another" variant="outline" onPress={resetForm} />
           </MotiView>
         </Screen>
       </View>
@@ -81,53 +112,102 @@ export default function LoggerScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Log this week" onBack={() => router.back()} />
       <Screen>
-        <Card>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Natural language entry</Text>
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8 }}>Type it how you&apos;d say it — the app parses it</Text>
-          <TextField
-            value={nlText}
-            onChangeText={setNlText}
-            placeholder='e.g. "threw 16.1m, RPE 7, felt strong"'
-            multiline
-          />
-          <AnimatePresence>
-            {parsed && (parsed.mark != null || parsed.rpe != null) && (
-              <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Text style={{ fontSize: 10, color: colors.success }}>
-                  ✓ Parsed: {parsed.mark != null ? `${parsed.mark}m` : 'no mark'} · {parsed.rpe != null ? `RPE ${parsed.rpe}` : 'no RPE'}
-                </Text>
-              </MotiView>
-            )}
-          </AnimatePresence>
-        </Card>
+        {!manualMode ? (
+          <>
+            <Card>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Natural language entry</Text>
+              <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8 }}>Type it how you&apos;d say it — we&apos;ll parse it</Text>
+              <TextField
+                value={nlText}
+                onChangeText={(t) => {
+                  setNlText(t);
+                  setParsed(null);
+                  setParseError(null);
+                }}
+                placeholder='e.g. "threw 16.1m, RPE 7, felt strong"'
+                multiline
+              />
+              {parseError && <Text style={{ fontSize: 10, color: colors.danger, marginTop: 4 }}>{parseError}</Text>}
+              {!parsed && (
+                <Button label="Parse entry" onPress={handleParse} loading={parsing} disabled={!nlText.trim()} />
+              )}
+            </Card>
 
-        <Text style={{ textAlign: 'center', fontSize: 11, color: colors.textFaint, marginVertical: 6 }}>— or fill manually —</Text>
+            <AnimatePresence>
+              {parsed && (
+                <MotiView from={{ opacity: 0, translateY: 6 }} animate={{ opacity: 1, translateY: 0 }} exit={{ opacity: 0 }}>
+                  <Card>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 6 }}>We understood</Text>
+                    <Text style={{ fontSize: 14, color: colors.text }}>
+                      {parsed.distance != null ? `${parsed.distance}${data.athlete?.unit ?? 'm'}` : 'No distance'} ·{' '}
+                      {parsed.rpe != null ? `RPE ${parsed.rpe}` : 'No RPE'}
+                    </Text>
+                    {parsed.notes && <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>{parsed.notes}</Text>}
+                    {parsed.confidence === 'low' && (
+                      <Text style={{ fontSize: 10, color: colors.warning, marginTop: 4 }}>
+                        Not fully sure about this one — check it before confirming.
+                      </Text>
+                    )}
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Button label="Edit" variant="outline" onPress={() => setParsed(null)} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          label="Confirm"
+                          onPress={() => finishSubmit(parsed.distance, parsed.rpe, parsed.notes)}
+                          loading={submitting}
+                          disabled={parsed.distance == null}
+                        />
+                      </View>
+                    </View>
+                  </Card>
+                </MotiView>
+              )}
+            </AnimatePresence>
 
-        <TextField
-          label="Best throw this week"
-          value={manualMark}
-          onChangeText={setManualMark}
-          keyboardType="decimal-pad"
-          placeholder="e.g. 16.1"
-        />
-        {parsed?.mark != null && manualMark.length > 0 && (
-          <Text style={{ fontSize: 10, color: colors.textFaint, marginTop: -8, marginBottom: 12 }}>
-            Using {parsed.mark}m from the text above — clear it to use this field instead.
-          </Text>
+            <Text style={{ textAlign: 'center', fontSize: 11, color: colors.textFaint, marginVertical: 10 }}>— or —</Text>
+            <Pressable onPress={() => setManualMode(true)}>
+              <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600', textAlign: 'center' }}>Enter manually</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable onPress={() => setManualMode(false)} style={{ marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, color: colors.textMuted }}>← Back to natural language entry</Text>
+            </Pressable>
+
+            <TextField
+              label="Best throw this week"
+              value={manualMark}
+              onChangeText={setManualMark}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 16.1"
+            />
+
+            <SliderRow label="RPE" value={manualRpe} onChange={setManualRpe} max={10} />
+          </>
         )}
 
-        <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8 }}>Wellness check-in</Text>
-        <SliderRow label="Sleep" value={sleep} onChange={setSleep} />
-        <SliderRow label="Soreness" value={soreness} onChange={setSoreness} />
-        <SliderRow label="Energy" value={energy} onChange={setEnergy} />
+        <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8, marginTop: 4 }}>Wellness check-in</Text>
+        <SliderRow label="Sleep" value={sleep} onChange={setSleep} max={10} />
+        <SliderRow label="Soreness" value={soreness} onChange={setSoreness} max={10} />
+        <SliderRow label="Energy" value={energy} onChange={setEnergy} max={10} />
 
-        <Button label="Submit this week" onPress={handleSubmit} loading={submitting} disabled={mark == null} />
+        {manualMode && (
+          <Button
+            label="Save"
+            onPress={() => finishSubmit(manualMark ? parseFloat(manualMark) : null, manualRpe, null)}
+            loading={submitting}
+            disabled={!manualMark}
+          />
+        )}
       </Screen>
     </View>
   );
 }
 
-function SliderRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function SliderRow({ label, value, onChange, max }: { label: string; value: number; onChange: (v: number) => void; max: number }) {
   const { colors } = useAppTheme();
   return (
     <View style={{ marginBottom: 14 }}>
@@ -137,7 +217,7 @@ function SliderRow({ label, value, onChange }: { label: string; value: number; o
       </View>
       <Slider
         minimumValue={1}
-        maximumValue={10}
+        maximumValue={max}
         step={1}
         value={value}
         onValueChange={onChange}

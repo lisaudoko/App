@@ -22,16 +22,33 @@ export function acuteChronicRatio(logs: WeeklyLog[]): number | null {
   return acute / chronic;
 }
 
+/** The programme's current week: the highest week_number logged by anyone. */
+export function currentWeekFromLogs(weeklyLogsByAthlete: Record<string, WeeklyLog[]>): number {
+  let max = 0;
+  for (const logs of Object.values(weeklyLogsByAthlete)) {
+    for (const l of logs) if (l.week > max) max = l.week;
+  }
+  return max;
+}
+
 const RPE_THRESHOLD = 8;
 
-/** Squad RPE heatmap row data for the last N weeks, including gaps for un-logged weeks. */
-export function buildRpeRow(logs: WeeklyLog[], weeks: number): WeekLoadInfo[] {
-  const tail = logs.slice(-weeks);
-  return tail.map((l) => {
+/**
+ * Squad RPE heatmap row data for the trailing `weeks` weeks up to
+ * `currentWeek`, filling in "missing" cells for weeks with no logged row —
+ * un-logged weeks have no row at all, so gaps can't be found by slicing.
+ */
+export function buildRpeRow(logs: WeeklyLog[], weeks: number, currentWeek: number): WeekLoadInfo[] {
+  const byWeek = new Map(logs.map((l) => [l.week, l]));
+  const startWeek = Math.max(1, currentWeek - weeks + 1);
+  const out: WeekLoadInfo[] = [];
+  for (let week = startWeek; week <= currentWeek; week++) {
+    const log = byWeek.get(week);
     let status: LoadStatus = 'missing';
-    if (l.rpe != null) {
-      status = l.rpe >= RPE_THRESHOLD ? 'high' : l.rpe >= RPE_THRESHOLD - 2 ? 'ok' : 'low';
+    if (log?.rpe != null) {
+      status = log.rpe >= RPE_THRESHOLD ? 'high' : log.rpe >= RPE_THRESHOLD - 2 ? 'ok' : 'low';
     }
-    return { week: l.week, label: l.label, rpe: l.rpe, status };
-  });
+    out.push({ week, label: log?.label ?? `W${week}`, rpe: log?.rpe ?? null, status });
+  }
+  return out;
 }

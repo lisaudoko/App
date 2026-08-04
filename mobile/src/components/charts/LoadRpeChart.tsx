@@ -1,88 +1,67 @@
-import React from 'react';
-import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
+import React, { useMemo } from 'react';
+import { Text, View } from 'react-native';
+import { CartesianChart, Bar, Line, Scatter } from 'victory-native';
+import { DashPathEffect } from '@shopify/react-native-skia';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import type { WeeklyLog } from '@/data/types';
-import { makeLinearScale, niceDomain } from './scale';
 
 interface Props {
   logs: WeeklyLog[];
 }
 
-const W = 300;
-const H = 130;
-const PAD_L = 32;
-const PAD_R = 12;
-const PAD_T = 14;
-const PAD_B = 22;
+const H = 150;
 const RPE_THRESHOLD = 8;
+
+interface Row {
+  week: number;
+  volumeLoad: number | null;
+  rpe: number | null;
+  rpeThreshold: number;
+  [key: string]: unknown;
+}
 
 export function LoadRpeChart({ logs }: Props) {
   const { colors } = useAppTheme();
   const logged = logs.filter((l) => l.rpe != null && l.volumeLoad != null);
 
-  if (logged.length === 0) {
-    return null;
+  const rows: Row[] = useMemo(
+    () => logged.map((l) => ({ week: l.week, volumeLoad: l.volumeLoad, rpe: l.rpe, rpeThreshold: RPE_THRESHOLD })),
+    [logged],
+  );
+  const maxLoad = useMemo(() => Math.max(1, ...logged.map((l) => l.volumeLoad as number)), [logged]);
+
+  if (logged.length < 3) {
+    return (
+      <View style={{ height: H, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 11, color: colors.textFaint }}>Not enough data yet</Text>
+      </View>
+    );
   }
 
-  const x = makeLinearScale(
-    [logged[0].week, logged[logged.length - 1].week],
-    [PAD_L + 12, W - PAD_R - 12],
-  );
-  const yLoad = makeLinearScale(niceDomain(logged.map((l) => l.volumeLoad as number), 0.15), [H - PAD_B, PAD_T]);
-  const yRpe = makeLinearScale([0, 10], [H - PAD_B, PAD_T]);
-
-  const barWidth = Math.max(12, (W - PAD_L - PAD_R) / logged.length - 14);
-  const rpePoints = logged.map((l) => `${x(l.week)},${yRpe(l.rpe as number)}`).join(' ');
-
   return (
-    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
-      <Line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={H - PAD_B} stroke={colors.border} strokeWidth={0.75} />
-      <Line x1={PAD_L} y1={H - PAD_B} x2={W - PAD_R} y2={H - PAD_B} stroke={colors.border} strokeWidth={0.75} />
-      <Line
-        x1={PAD_L}
-        y1={yRpe(RPE_THRESHOLD)}
-        x2={W - PAD_R}
-        y2={yRpe(RPE_THRESHOLD)}
-        stroke={colors.danger}
-        strokeWidth={0.7}
-        strokeDasharray="3,3"
-        opacity={0.5}
-      />
-      <SvgText x={W - PAD_R + 2} y={yRpe(RPE_THRESHOLD) + 3} fontSize={7} fill={colors.danger}>
-        8
-      </SvgText>
-
-      {logged.map((l) => (
-        <Rect
-          key={l.week}
-          x={x(l.week) - barWidth / 2}
-          y={yLoad(l.volumeLoad as number)}
-          width={barWidth}
-          height={H - PAD_B - yLoad(l.volumeLoad as number)}
-          rx={2}
-          fill={colors.text}
-          opacity={0.18}
-        />
-      ))}
-
-      <Polyline points={rpePoints} fill="none" stroke={colors.warning} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-      {logged.map((l) => (
-        <Circle key={l.week} cx={x(l.week)} cy={yRpe(l.rpe as number)} r={2.5} fill={colors.warning} />
-      ))}
-
-      <SvgText x={x(logged[0].week)} y={H - PAD_B + 12} fontSize={7.5} fill={colors.textFaint} textAnchor="middle">
-        {logged[0].label}
-      </SvgText>
-      <SvgText
-        x={x(logged[logged.length - 1].week)}
-        y={H - PAD_B + 12}
-        fontSize={7.5}
-        fill={colors.text}
-        textAnchor="middle"
-        fontWeight="500"
+    <View style={{ height: H }}>
+      <CartesianChart
+        data={rows}
+        xKey="week"
+        yKeys={['volumeLoad', 'rpe', 'rpeThreshold']}
+        yAxis={[
+          { yKeys: ['volumeLoad'], domain: [0, maxLoad * 1.2] },
+          { yKeys: ['rpe', 'rpeThreshold'], domain: [0, 10] },
+        ]}
+        domainPadding={{ left: 16, right: 16, top: 16, bottom: 8 }}
       >
-        {logged[logged.length - 1].label}
-      </SvgText>
-    </Svg>
+        {({ points, chartBounds }) => (
+          <>
+            <Bar points={points.volumeLoad} chartBounds={chartBounds} color={colors.text} opacity={0.16} roundedCorners={{ topLeft: 3, topRight: 3 }} />
+            <Line points={points.rpeThreshold} color={colors.danger} strokeWidth={1} opacity={0.5}>
+              <DashPathEffect intervals={[3, 3]} />
+            </Line>
+            <Line points={points.rpe} color={colors.warning} strokeWidth={1.8} curveType="linear" />
+            <Scatter points={points.rpe} radius={2.5} color={colors.warning} />
+          </>
+        )}
+      </CartesianChart>
+      <Text style={{ fontSize: 9, color: colors.textFaint, marginTop: 2 }}>Grey bars = training load · Amber line = RPE · Red dashed = RPE 8</Text>
+    </View>
   );
 }

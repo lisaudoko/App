@@ -38,11 +38,24 @@ export default function NotificationsScreen() {
     if (athleteId) router.push(`/(coach)/athlete/${athleteId}`);
   }
 
+  function markAllRead() {
+    const unreadIds = data.notifications.filter((n) => !n.read && !readIds.has(n.id)).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+    setReadIds((prev) => new Set([...prev, ...unreadIds]));
+    Promise.all(unreadIds.map((id) => repository.markNotificationRead(id))).catch(() => {});
+  }
+
   if (loading) return <LoadingState />;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title="Notifications" onBack={() => router.back()} />
+      <ScreenHeader
+        title="Notifications"
+        onBack={() => router.back()}
+        rightIcon="checkmark-done-outline"
+        onRightPress={markAllRead}
+        rightLabel="Mark all read"
+      />
       <Screen onRefresh={refresh}>
         {data.notifications.map((n) => {
           const unread = !n.read && !readIds.has(n.id);

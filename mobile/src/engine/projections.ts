@@ -1,5 +1,5 @@
 import type { WeeklyLog } from '@/data/types';
-import { linearRegression } from './stats';
+import { projectToWeek, type ProjectionConfidence } from '@/lib/projections';
 
 export interface TrajectoryPoint {
   week: number;
@@ -19,11 +19,11 @@ export interface TrajectoryResult {
   slopePerWeek: number;
 }
 
-const REGRESSION_WINDOW = 6;
+const PROJECTION_HORIZON_WEEKS = 12;
 
 /**
- * Builds a rolling linear regression on an athlete's logged marks and extends
- * it forward as a projection with a +/-1 stddev confidence band.
+ * Builds a trajectory (actual + forward projection) for chart rendering,
+ * backed by the spec's simple-statistics regression in lib/projections.ts.
  */
 export function buildTrajectory(logs: WeeklyLog[], weeksAhead: number): TrajectoryResult {
   const logged = logs.filter((l) => l.mark != null) as (WeeklyLog & { mark: number })[];
@@ -33,37 +33,33 @@ export function buildTrajectory(logs: WeeklyLog[], weeksAhead: number): Trajecto
     return { actual, projected: [], slopePerWeek: 0 };
   }
 
-  const recent = logged.slice(-REGRESSION_WINDOW);
-  const xs = recent.map((l) => l.week);
-  const ys = recent.map((l) => l.mark);
-  const { slope, intercept, stdDev } = linearRegression(xs, ys);
-
+  const points = logged.map((l) => ({ week_number: l.week, best_throw: l.mark }));
   const lastWeek = logged[logged.length - 1].week;
+  const first = projectToWeek(points, lastWeek + 1);
+  if (!first) return { actual, projected: [], slopePerWeek: 0 };
+
   const projected: ProjectedPoint[] = [];
   for (let i = 1; i <= weeksAhead; i++) {
     const week = lastWeek + i;
-    const projectedMark = slope * week + intercept;
-    projected.push({
-      week,
-      mark: projectedMark,
-      low: projectedMark - stdDev,
-      high: projectedMark + stdDev,
-    });
+    const p = projectToWeek(points, week);
+    if (!p) continue;
+    projected.push({ week, mark: p.projected, low: p.lower, high: p.upper });
   }
 
-  return { actual, projected, slopePerWeek: slope };
+  return { actual, projected, slopePerWeek: first.slope };
 }
 
-/** Projected range at a specific number of weeks from the last logged result. */
-export function projectAtWeek(logs: WeeklyLog[], targetWeek: number): { low: number; high: number; mark: number } | null {
-  const logged = logs.filter((l) => l.mark != null) as (WeeklyLog & { mark: number })[];
-  if (logged.length < 2) return null;
-
-  const recent = logged.slice(-REGRESSION_WINDOW);
-  const xs = recent.map((l) => l.week);
-  const ys = recent.map((l) => l.mark);
-  const { slope, intercept, stdDev } = linearRegression(xs, ys);
-
-  const mark = slope * targetWeek + intercept;
-  return { mark, low: mark - stdDev, high: mark + stdDev };
+/** Projected range at a specific week number, e.g. a competition/deadline week. */
+export function projectAtWeek(
+  logs: WeeklyLog[],
+  targetWeek: number,
+): { low: number; high: number; mark: number; confidence: ProjectionConfidence } | null {
+  const points = logs
+    .filter((l) => l.mark != null)
+    .map((l) => ({ week_number: l.week, best_throw: l.mark as number }));
+  const p = projectToWeek(points, targetWeek);
+  if (!p) return null;
+  return { mark: p.projected, low: p.lower, high: p.upper, confidence: p.confidence };
 }
+
+export { PROJECTION_HORIZON_WEEKS };

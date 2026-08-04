@@ -1,0 +1,12 @@
+project_id = "tru-performance"
+
+[functions.ai-coach]
+verify_jwt = true
+
+[functions.parse-log]
+verify_jwt = true
+
+[functions.send-notifications]
+# Invoked by the Postgres trigger / pg_cron sweep using the service role key,
+# and never called directly from the client.
+verify_jwt = true

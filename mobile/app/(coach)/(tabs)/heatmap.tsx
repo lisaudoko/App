@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Pressable } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
-import { buildRpeRow } from '@/engine/load';
+import { buildRpeRow, currentWeekFromLogs } from '@/engine/load';
 import { detectAnomalies } from '@/engine/anomalies';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -22,19 +22,24 @@ export default function HeatmapScreen() {
   const { colors } = useAppTheme();
   const { data, loading, refresh } = useProgrammeData();
 
+  const currentWeek = useMemo(() => currentWeekFromLogs(data.weeklyLogs), [data.weeklyLogs]);
+
   const rows = useMemo(
     () =>
       data.athletes.map((a) => ({
         athleteId: a.id,
         name: a.name.split(' ')[0],
-        cells: buildRpeRow(data.weeklyLogs[a.id] ?? [], 8),
+        cells: buildRpeRow(data.weeklyLogs[a.id] ?? [], 8, currentWeek),
       })),
-    [data],
+    [data, currentWeek],
   );
 
   const flags = useMemo(
-    () => data.athletes.flatMap((a) => detectAnomalies(a, data.weeklyLogs[a.id] ?? [], data.strengthTests[a.id] ?? [])),
-    [data],
+    () =>
+      data.athletes.flatMap((a) =>
+        detectAnomalies(a, data.weeklyLogs[a.id] ?? [], data.strengthTests[a.id] ?? [], currentWeek),
+      ),
+    [data, currentWeek],
   );
 
   if (loading) return <LoadingState />;

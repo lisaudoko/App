@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -18,6 +19,19 @@ function RootNavigation() {
   useEffect(() => {
     if (hasHydrated) SplashScreen.hideAsync().catch(() => {});
   }, [hasHydrated]);
+
+  // Tapping a push notification routes straight to the relevant athlete —
+  // the coach's own athlete detail screen, or the athlete's own progress tab.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const athleteId = response.notification.request.content.data?.athleteId;
+      if (typeof athleteId !== 'string') return;
+      const role = useAuthStore.getState().session?.role;
+      if (role === 'coach') router.push(`/(coach)/athlete/${athleteId}`);
+      else if (role === 'athlete') router.push('/(athlete)/(tabs)/progress');
+    });
+    return () => sub.remove();
+  }, []);
 
   const navTheme = {
     ...(resolvedScheme === 'dark' ? DarkTheme : DefaultTheme),

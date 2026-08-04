@@ -91,9 +91,9 @@ export default function LoginScreen() {
                     label="Demo Coach"
                     variant="outline"
                     onPress={() => {
-                      setEmail('coach@tru.app');
-                      setPassword('password123');
-                      handleLogin('coach@tru.app', 'password123');
+                      setEmail('coach@tru-demo.app');
+                      setPassword('TruDemo!2026');
+                      handleLogin('coach@tru-demo.app', 'TruDemo!2026');
                     }}
                   />
                 </View>
@@ -102,9 +102,9 @@ export default function LoginScreen() {
                     label="Demo Athlete"
                     variant="outline"
                     onPress={() => {
-                      setEmail('marcus@tru.app');
-                      setPassword('password123');
-                      handleLogin('marcus@tru.app', 'password123');
+                      setEmail('athlete-a@tru-demo.app');
+                      setPassword('TruDemo!2026');
+                      handleLogin('athlete-a@tru-demo.app', 'TruDemo!2026');
                     }}
                   />
                 </View>

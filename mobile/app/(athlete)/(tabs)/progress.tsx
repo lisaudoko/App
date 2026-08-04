@@ -10,10 +10,11 @@ import { StatRow } from '@/components/StatCard';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
 import { LoadingState } from '@/components/LoadingState';
+import { StaleBanner } from '@/components/StaleBanner';
 
 export default function AthleteProgressScreen() {
   const { colors } = useAppTheme();
-  const { data, loading, refresh } = useAthleteSelf();
+  const { data, loading, isStale, refresh } = useAthleteSelf();
   const { athlete, logs } = data;
 
   const trajectory = useMemo(() => buildTrajectory(logs, 4), [logs]);
@@ -39,6 +40,7 @@ export default function AthleteProgressScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="My progress" subtitle={athlete.name} />
+      {isStale && <StaleBanner />}
       <Screen onRefresh={refresh}>
         <StatRow
           stats={[
