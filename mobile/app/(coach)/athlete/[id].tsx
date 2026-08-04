@@ -17,6 +17,7 @@ import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
 import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
+import { EVENT_GROUP_DIRECTION, formatGap, formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
 
 export default function CoachAthleteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,10 +27,12 @@ export default function CoachAthleteDetailScreen() {
   const athlete = data.athletes.find((a) => a.id === id);
   const logs = data.weeklyLogs[id ?? ''] ?? [];
   const tests = data.strengthTests[id ?? ''] ?? [];
+  const direction = EVENT_GROUP_DIRECTION[athlete?.eventGroup ?? 'throws'];
+  const perfUnit: PerformanceUnit = athlete?.unit === 's' ? 'seconds' : 'metres';
 
-  const trajectory = useMemo(() => buildTrajectory(logs, 4), [logs]);
+  const trajectory = useMemo(() => buildTrajectory(logs, 4, direction), [logs, direction]);
   const acRatio = useMemo(() => acuteChronicRatio(logs), [logs]);
-  const peak = useMemo(() => estimatePeakTiming(logs), [logs]);
+  const peak = useMemo(() => estimatePeakTiming(logs, direction), [logs, direction]);
 
   const correlation = useMemo(() => {
     if (!athlete || tests.length < 2) return null;
@@ -76,26 +79,38 @@ export default function CoachAthleteDetailScreen() {
 
   const lastLog = logs[logs.length - 1];
   const avgRpe = logs.filter((l) => l.rpe != null).reduce((sum, l, _i, arr) => sum + (l.rpe as number) / arr.length, 0);
-  const vsBaseline = (lastLog?.mark ?? athlete.personalBest) - athlete.baselineMark;
+  const latestMark = lastLog?.mark ?? athlete.personalBest;
+  const vsBaseline = direction === 'higher_better' ? latestMark - athlete.baselineMark : athlete.baselineMark - latestMark;
+  const unitSuffix = perfUnit === 'seconds' ? 's' : 'm';
 
   const peakTone = peak.status === 'green' ? 'success' : peak.status === 'yellow' ? 'warning' : 'danger';
+  const groupNoun = athlete.eventGroup === 'sprints' ? 'time' : athlete.eventGroup === 'jumps' ? 'jump' : 'throw';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title={athlete.name} subtitle={`${athlete.event} · Full report`} onBack={() => router.back()} />
+      <ScreenHeader
+        title={athlete.name}
+        subtitle={`${athlete.event} · Full report`}
+        onBack={() => router.back()}
+        rightIcon="create-outline"
+        onRightPress={() => router.push(`/(coach)/athlete/${athlete.id}/edit`)}
+        rightLabel="Edit athlete"
+      />
       <Screen onRefresh={refresh}>
         <StatRow
           stats={[
-            { label: 'Season best', value: `${athlete.personalBest}${athlete.unit}` },
-            { label: 'vs baseline', value: `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(1)}${athlete.unit}`, color: vsBaseline >= 0 ? colors.success : colors.danger },
+            { label: 'Season best', value: formatPerformance(athlete.personalBest, perfUnit) },
+            { label: 'vs baseline', value: `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(2)}${unitSuffix}`, color: vsBaseline >= 0 ? colors.success : colors.danger },
             { label: 'Avg RPE', value: avgRpe ? avgRpe.toFixed(1) : '—' },
           ]}
         />
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Throw trajectory + projection</Text>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>
+            {groupNoun.charAt(0).toUpperCase() + groupNoun.slice(1)} trajectory + projection
+          </Text>
           <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>Solid = actual · Dotted = projected · Shaded = confidence band</Text>
-          <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={athlete.unit} />
+          <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={perfUnit} />
         </Card>
 
         <Card>
@@ -125,13 +140,13 @@ export default function CoachAthleteDetailScreen() {
 
         {correlation && (
           <Card>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Strength ↔ throw correlation</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
             <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} mark · Each dot = test week</Text>
             <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel="Squat (lbs)" />
             <Text style={{ fontSize: 10, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
               {Math.abs(correlation.r) >= 0.7
                 ? 'Strength gains are translating. Continue current approach.'
-                : 'Strength and throws are diverging — consider a technical focus.'}
+                : `Strength and ${groupNoun}s are diverging — consider a technical focus.`}
             </Text>
           </Card>
         )}

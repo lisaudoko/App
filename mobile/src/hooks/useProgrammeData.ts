@@ -51,6 +51,15 @@ export function useProgrammeData() {
     repository.getMyProgrammeId().then((programmeId) => {
       if (cancelled || !programmeId) return;
       programmeIdRef.current = programmeId;
+
+      // supabase.channel() returns the *same* cached instance for a topic
+      // that's already subscribed (e.g. a prior Fast Refresh run whose
+      // cleanup hasn't finished) — calling .on() on an already-subscribed
+      // channel throws. Drop any stale instance for this topic first.
+      const topic = `realtime:programme-${programmeId}-weekly-logs`;
+      const stale = supabase.getChannels().find((c) => c.topic === topic);
+      if (stale) supabase.removeChannel(stale);
+
       channel = supabase
         .channel(`programme-${programmeId}-weekly-logs`)
         .on(

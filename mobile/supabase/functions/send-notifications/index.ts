@@ -5,13 +5,23 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { Expo } from 'npm:expo-server-sdk@3';
 import { corsHeaders } from '../_shared/cors.ts';
-import { projectToWeek } from '../_shared/projections.ts';
+import { projectToWeek, computeGap, isBetter, type Direction } from '../_shared/projections.ts';
 
 const HIGH_RPE_THRESHOLD = 8;
 const STRENGTH_INCREASE_THRESHOLD = 0.1; // 10%
-const FLAT_THROW_WEEKS = 3;
-const FLAT_THROW_RANGE_M = 0.3;
+const FLAT_PERFORMANCE_WEEKS = 3;
+const FLAT_PERFORMANCE_RANGE = 0.3; // metres, or seconds for sprints
 const QUALIFYING_HORIZON_WEEKS = 4;
+
+const EVENT_GROUP_DIRECTION: Record<string, Direction> = {
+  throws: 'higher_better',
+  jumps: 'higher_better',
+  sprints: 'lower_better',
+};
+
+function directionFor(eventGroup: string | null): Direction {
+  return EVENT_GROUP_DIRECTION[eventGroup ?? 'throws'] ?? 'higher_better';
+}
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const expo = new Expo();
@@ -23,7 +33,7 @@ interface WeeklyLogRow {
   athlete_id: string;
   programme_id: string;
   week_number: number;
-  best_throw: number | null;
+  best_performance: number | null;
   rpe: number | null;
 }
 
@@ -68,17 +78,26 @@ async function log(
   }
 }
 
-async function checkNewPB(row: WeeklyLogRow, athleteName: string) {
-  if (row.best_throw == null) return;
+async function checkNewPB(row: WeeklyLogRow, athleteName: string, eventGroup: string | null) {
+  if (row.best_performance == null) return;
+  const direction = directionFor(eventGroup);
+  const unit = eventGroup === 'sprints' ? 's' : 'm';
+
   const { data: priorLogs } = await supabase
     .from('weekly_logs')
-    .select('best_throw')
+    .select('best_performance')
     .eq('athlete_id', row.athlete_id)
     .lt('week_number', row.week_number)
-    .not('best_throw', 'is', null);
-  const priorMax = (priorLogs ?? []).reduce((max, l) => Math.max(max, l.best_throw as number), -Infinity);
-  if (priorLogs && priorLogs.length > 0 && row.best_throw > priorMax) {
-    const message = `New PB — ${athleteName}: ${row.best_throw}m (was ${priorMax}m)`;
+    .not('best_performance', 'is', null);
+  if (!priorLogs || priorLogs.length === 0) return;
+
+  let priorBest: number | null = null;
+  for (const l of priorLogs) {
+    const v = l.best_performance as number;
+    if (priorBest == null || isBetter(v, priorBest, direction)) priorBest = v;
+  }
+  if (priorBest != null && isBetter(row.best_performance, priorBest, direction)) {
+    const message = `New PB — ${athleteName}: ${row.best_performance}${unit} (was ${priorBest}${unit})`;
     await log(row.athlete_id, row.programme_id, 'pb', message, true, true, 'New PB! 🎉', `New PB — ${athleteName}`);
   }
 }
@@ -109,18 +128,20 @@ async function checkAnomaly(athleteId: string, programmeId: string, athleteName:
 
   const { data: recentLogs } = await supabase
     .from('weekly_logs')
-    .select('best_throw')
+    .select('best_performance')
     .eq('athlete_id', athleteId)
-    .not('best_throw', 'is', null)
+    .not('best_performance', 'is', null)
     .order('week_number', { ascending: false })
-    .limit(FLAT_THROW_WEEKS);
-  if (!recentLogs || recentLogs.length < FLAT_THROW_WEEKS) return;
+    .limit(FLAT_PERFORMANCE_WEEKS);
+  if (!recentLogs || recentLogs.length < FLAT_PERFORMANCE_WEEKS) return;
 
-  const marks = recentLogs.map((l) => l.best_throw as number);
+  // Flatness (small spread) is direction-agnostic, so this check applies the
+  // same way whether the metric trends up (throws/jumps) or down (sprints).
+  const marks = recentLogs.map((l) => l.best_performance as number);
   const range = Math.max(...marks) - Math.min(...marks);
-  if (range > FLAT_THROW_RANGE_M) return;
+  if (range > FLAT_PERFORMANCE_RANGE) return;
 
-  const message = `${athleteName}: strength up >10% but throws flat for ${FLAT_THROW_WEEKS}+ weeks — possible technique regression`;
+  const message = `${athleteName}: strength up >10% but performance flat for ${FLAT_PERFORMANCE_WEEKS}+ weeks — possible technique regression`;
   await log(athleteId, programmeId, 'anomaly', message, false, true, '', `Anomaly — ${athleteName}`);
 }
 
@@ -129,21 +150,26 @@ async function checkQualifyingRisk(
   programmeId: string,
   athleteName: string,
   qualifyingStandard: number | null,
+  eventGroup: string | null,
 ) {
   if (qualifyingStandard == null) return;
+  const direction = directionFor(eventGroup);
+  const unit = eventGroup === 'sprints' ? 's' : 'm';
+
   const { data: logs } = await supabase
     .from('weekly_logs')
-    .select('week_number, best_throw')
+    .select('week_number, performance:best_performance')
     .eq('athlete_id', athleteId)
     .order('week_number', { ascending: true });
   if (!logs || logs.length === 0) return;
 
   const lastWeek = logs[logs.length - 1].week_number;
-  const projection = projectToWeek(logs, lastWeek + QUALIFYING_HORIZON_WEEKS);
+  const projection = projectToWeek(logs, lastWeek + QUALIFYING_HORIZON_WEEKS, direction);
   if (!projection) return;
 
-  if (projection.projected < qualifyingStandard) {
-    const message = `${athleteName}: projected ${projection.projected.toFixed(2)}m vs standard ${qualifyingStandard}m — qualifying at risk`;
+  const gap = computeGap(projection.projected, qualifyingStandard, direction);
+  if (gap > 0) {
+    const message = `${athleteName}: projected ${projection.projected.toFixed(2)}${unit} vs standard ${qualifyingStandard}${unit} — qualifying at risk`;
     await log(athleteId, programmeId, 'qualifying_risk', message, false, true, '', `Qualifying risk — ${athleteName}`);
   }
 }
@@ -191,15 +217,21 @@ Deno.serve(async (req) => {
       const row = body.record as WeeklyLogRow;
       const { data: athlete } = await supabase
         .from('profiles')
-        .select('full_name, qualifying_standard')
+        .select('full_name, qualifying_standard, event_group')
         .eq('id', row.athlete_id)
         .single();
       const athleteName = athlete?.full_name ?? 'Athlete';
 
-      await checkNewPB(row, athleteName);
+      await checkNewPB(row, athleteName, athlete?.event_group ?? null);
       await checkHighRpe(row, athleteName);
       await checkAnomaly(row.athlete_id, row.programme_id, athleteName);
-      await checkQualifyingRisk(row.athlete_id, row.programme_id, athleteName, athlete?.qualifying_standard ?? null);
+      await checkQualifyingRisk(
+        row.athlete_id,
+        row.programme_id,
+        athleteName,
+        athlete?.qualifying_standard ?? null,
+        athlete?.event_group ?? null,
+      );
 
       return new Response(JSON.stringify({ ok: true, mode: 'insert' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -213,12 +245,12 @@ Deno.serve(async (req) => {
 
       const { data: athletes } = await supabase
         .from('profiles')
-        .select('id, full_name, qualifying_standard')
+        .select('id, full_name, qualifying_standard, event_group')
         .eq('programme_id', programme.id)
         .eq('role', 'athlete');
       for (const athlete of athletes ?? []) {
         await checkAnomaly(athlete.id, programme.id, athlete.full_name);
-        await checkQualifyingRisk(athlete.id, programme.id, athlete.full_name, athlete.qualifying_standard);
+        await checkQualifyingRisk(athlete.id, programme.id, athlete.full_name, athlete.qualifying_standard, athlete.event_group);
       }
     }
 

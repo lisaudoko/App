@@ -14,10 +14,8 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { StaleBanner } from '@/components/StaleBanner';
-
-function roundToNearest5(value: number): number {
-  return Math.round(value / 5) * 5;
-}
+import { computeExerciseWeight } from '@/engine/workoutWeight';
+import { shareWorkout } from '@/lib/shareWorkout';
 
 export default function AthleteWorkoutScreen() {
   const { colors } = useAppTheme();
@@ -51,7 +49,7 @@ export default function AthleteWorkoutScreen() {
       name: ex.name,
       sets: ex.sets,
       reps: ex.reps,
-      weight: ex.lift ? roundToNearest5(workout.intensityPct * data.athlete!.currentMaxes[ex.lift]) : null,
+      weight: computeExerciseWeight(ex, workout.intensityPct, workout.roundingIncrement, data.athlete!.currentMaxes),
     }));
   }, [workout, data.athlete, data.mesocycleWeek]);
 
@@ -98,10 +96,22 @@ export default function AthleteWorkoutScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ backgroundColor: colors.text, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 12 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', color: colors.background }}>Today&apos;s workout</Text>
-        <Text style={{ fontSize: 11, color: colors.background, opacity: 0.6, marginTop: 1 }}>
-          Week {workout.weekNumber} · {Math.round(workout.intensityPct * 100)}% intensity
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.background }}>Today&apos;s workout</Text>
+            <Text style={{ fontSize: 11, color: colors.background, opacity: 0.6, marginTop: 1 }}>
+              Week {workout.weekNumber} · {Math.round(workout.intensityPct * 100)}% intensity
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => shareWorkout(`${data.athlete?.name ?? 'My'} workout`, workout, exercises)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Export workout"
+          >
+            <Ionicons name="share-outline" size={19} color={colors.background} />
+          </Pressable>
+        </View>
       </View>
 
       {isStale && <StaleBanner />}

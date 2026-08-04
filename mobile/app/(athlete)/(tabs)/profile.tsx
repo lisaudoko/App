@@ -1,14 +1,16 @@
-import React, { useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
 import { useAuthStore } from '@/store/authStore';
+import { repository } from '@/data/repository';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { TextField } from '@/components/TextField';
 import { LoadingState } from '@/components/LoadingState';
 
 export default function AthleteProfileScreen() {
@@ -17,6 +19,41 @@ export default function AthleteProfileScreen() {
   const session = useAuthStore((s) => s.session);
   const logout = useAuthStore((s) => s.logout);
   const athlete = data.athlete;
+
+  const [editVisible, setEditVisible] = useState(false);
+  const [name, setName] = useState('');
+  const [event, setEvent] = useState('');
+  const [baselineMark, setBaselineMark] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function openEdit() {
+    if (!athlete) return;
+    setName(session?.name ?? '');
+    setEvent(athlete.event);
+    setBaselineMark(athlete.baselineMark ? String(athlete.baselineMark) : '');
+    setError(null);
+    setEditVisible(true);
+  }
+
+  async function handleSaveProfile() {
+    if (!athlete) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await repository.updateProfile(athlete.id, {
+        name,
+        event,
+        baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
+      });
+      await Promise.all([refresh(), useAuthStore.getState().restoreSession()]);
+      setEditVisible(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save changes');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const weeksLogged = data.logs.filter((l) => l.mark != null || l.rpe != null).length;
 
@@ -52,7 +89,7 @@ export default function AthleteProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title="Profile" />
+      <ScreenHeader title="Profile" rightIcon="create-outline" onRightPress={openEdit} rightLabel="Edit profile" />
       <Screen onRefresh={refresh}>
         <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
           <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
@@ -109,6 +146,19 @@ export default function AthleteProfileScreen() {
 
         <Button label="Log out" variant="outline" onPress={handleLogout} />
       </Screen>
+
+      <Modal visible={editVisible} animationType="slide" onRequestClose={() => setEditVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <ScreenHeader title="Edit profile" onBack={() => setEditVisible(false)} />
+          <Screen>
+            <TextField label="Name" value={name} onChangeText={setName} />
+            <TextField label="Event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
+            <TextField label="Baseline mark (m)" keyboardType="decimal-pad" value={baselineMark} onChangeText={setBaselineMark} />
+            {error && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>}
+            <Button label="Save" onPress={handleSaveProfile} loading={saving} />
+          </Screen>
+        </View>
+      </Modal>
     </View>
   );
 }

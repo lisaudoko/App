@@ -11,14 +11,17 @@ import { ProgressBar } from '@/components/ProgressBar';
 import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
 import { LoadingState } from '@/components/LoadingState';
 import { StaleBanner } from '@/components/StaleBanner';
+import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
 
 export default function AthleteProgressScreen() {
   const { colors } = useAppTheme();
   const { data, loading, isStale, refresh } = useAthleteSelf();
   const { athlete, logs } = data;
+  const direction = EVENT_GROUP_DIRECTION[athlete?.eventGroup ?? 'throws'];
+  const perfUnit: PerformanceUnit = athlete?.unit === 's' ? 'seconds' : 'metres';
 
-  const trajectory = useMemo(() => buildTrajectory(logs, 4), [logs]);
-  const qualifyProjection = useMemo(() => projectAtWeek(logs, 6), [logs]);
+  const trajectory = useMemo(() => buildTrajectory(logs, 4, direction), [logs, direction]);
+  const qualifyProjection = useMemo(() => projectAtWeek(logs, 6, direction), [logs, direction]);
 
   if (loading) return <LoadingState />;
   if (!athlete) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
@@ -28,8 +31,16 @@ export default function AthleteProgressScreen() {
   const hasMaxesSet = athlete.currentMaxes.squat > 0 && athlete.currentMaxes.clean > 0 && athlete.currentMaxes.bench > 0;
 
   const lastLog = logs[logs.length - 1];
-  const vsBaseline = (lastLog?.mark ?? athlete.personalBest) - athlete.baselineMark;
-  const gapToQualify = athlete.personalBest - athlete.qualifyingStandard;
+  const latestMark = lastLog?.mark ?? athlete.personalBest;
+  const vsBaseline = direction === 'higher_better' ? latestMark - athlete.baselineMark : athlete.baselineMark - latestMark;
+  const unitSuffix = perfUnit === 'seconds' ? 's' : 'm';
+  // Positive = still needs to close this much of a gap; negative/zero = already qualified.
+  const qualifyGap = computeGap(athlete.personalBest, athlete.qualifyingStandard, direction);
+  const hasQualified = qualifyGap <= 0;
+  const qualifyPct = direction === 'higher_better'
+    ? athlete.personalBest / athlete.qualifyingStandard
+    : athlete.qualifyingStandard / athlete.personalBest;
+  const groupNoun = athlete.eventGroup === 'sprints' ? 'time' : athlete.eventGroup === 'jumps' ? 'jump' : 'throw';
 
   const strengthRows = [
     { label: 'Back squat', current: athlete.currentMaxes.squat, target: athlete.targetMaxes.squat, color: colors.text },
@@ -44,28 +55,30 @@ export default function AthleteProgressScreen() {
       <Screen onRefresh={refresh}>
         <StatRow
           stats={[
-            { label: 'Season best', value: hasBaseline ? `${athlete.personalBest}${athlete.unit}` : '—' },
+            { label: 'Season best', value: hasBaseline ? formatPerformance(athlete.personalBest, perfUnit) : '—' },
             {
               label: 'vs baseline',
-              value: hasBaseline ? `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(1)}${athlete.unit}` : '—',
+              value: hasBaseline ? `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(2)}${unitSuffix}` : '—',
               color: hasBaseline ? (vsBaseline >= 0 ? colors.success : colors.danger) : undefined,
             },
             {
               label: 'to qualify',
-              value: hasBaseline && hasQualifyingStandard ? `${gapToQualify >= 0 ? '+' : ''}${gapToQualify.toFixed(1)}${athlete.unit}` : '—',
-              color: hasBaseline && hasQualifyingStandard ? (gapToQualify >= 0 ? colors.success : colors.warning) : undefined,
+              value: hasBaseline && hasQualifyingStandard ? `${hasQualified ? '+' : '−'}${Math.abs(qualifyGap).toFixed(2)}${unitSuffix}` : '—',
+              color: hasBaseline && hasQualifyingStandard ? (hasQualified ? colors.success : colors.warning) : undefined,
             },
           ]}
         />
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>My throw trajectory</Text>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>
+            My {groupNoun} trajectory
+          </Text>
           <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>{athlete.event} this season · Dotted = projection</Text>
           <TrajectoryChart
             actual={trajectory.actual}
             projected={trajectory.projected}
             standard={hasQualifyingStandard ? athlete.qualifyingStandard : undefined}
-            unit={athlete.unit}
+            unit={perfUnit}
           />
         </Card>
 
@@ -107,14 +120,16 @@ export default function AthleteProgressScreen() {
           <Card>
             <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Qualifying standard</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>Standard: {athlete.qualifyingStandard}{athlete.unit}</Text>
-              <Text style={{ fontSize: 12, fontWeight: '500', color: gapToQualify >= 0 ? colors.success : colors.warning }}>
-                {gapToQualify >= 0 ? 'Qualified' : `Need +${Math.abs(gapToQualify).toFixed(1)}${athlete.unit}`}
+              <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                Standard: {formatPerformance(athlete.qualifyingStandard, perfUnit)}
+              </Text>
+              <Text style={{ fontSize: 12, fontWeight: '500', color: hasQualified ? colors.success : colors.warning }}>
+                {hasQualified ? 'Qualified' : `Need ${Math.abs(qualifyGap).toFixed(2)}${unitSuffix} more`}
               </Text>
             </View>
-            <ProgressBar pct={athlete.personalBest / athlete.qualifyingStandard} color={gapToQualify >= 0 ? colors.success : colors.warning} />
+            <ProgressBar pct={qualifyPct} color={hasQualified ? colors.success : colors.warning} />
             <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 6 }}>
-              Projected: {qualifyProjection.mark.toFixed(1)}{athlete.unit} in 6 weeks
+              Projected: {formatPerformance(qualifyProjection.mark, perfUnit)} in 6 weeks
             </Text>
           </Card>
         )}

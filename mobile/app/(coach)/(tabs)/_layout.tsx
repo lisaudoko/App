@@ -1,9 +1,18 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { useCoachAccess } from '@/hooks/useCoachAccess';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { LoadingState } from '@/components/LoadingState';
 
 export default function CoachTabsLayout() {
   const { colors } = useAppTheme();
+  const { access, loading: accessLoading } = useCoachAccess();
+  const { needsOnboarding, loading: onboardingLoading } = useOnboardingStatus();
+
+  if (accessLoading || onboardingLoading) return <LoadingState />;
+  if (!access.hasAccess) return <Redirect href="/(coach)/paywall" />;
+  if (needsOnboarding) return <Redirect href="/(coach)/onboarding/events" />;
 
   return (
     <Tabs

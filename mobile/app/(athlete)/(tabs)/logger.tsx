@@ -9,6 +9,7 @@ import { useAthleteSelf } from '@/hooks/useAthleteSelf';
 import { parseLogText, type ParsedLogResult } from '@/lib/parseLog';
 import { repository } from '@/data/repository';
 import { notifyPersonalBest } from '@/notifications/localNotifications';
+import { formatPerformance, parseTimeToSeconds, type PerformanceUnit } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -18,6 +19,10 @@ import { Button } from '@/components/Button';
 export default function LoggerScreen() {
   const { colors } = useAppTheme();
   const { data, refresh } = useAthleteSelf();
+  const eventGroup = data.athlete?.eventGroup ?? 'throws';
+  const isTimed = eventGroup === 'sprints';
+  const perfUnit: PerformanceUnit = isTimed ? 'seconds' : 'metres';
+  const metricLabel = isTimed ? 'Best time this week' : eventGroup === 'jumps' ? 'Best jump this week' : 'Best throw this week';
 
   const [manualMode, setManualMode] = useState(false);
 
@@ -46,7 +51,7 @@ export default function LoggerScreen() {
     setParsing(true);
     setParseError(null);
     try {
-      const result = await parseLogText(nlText.trim());
+      const result = await parseLogText(nlText.trim(), eventGroup);
       setParsed(result);
     } catch (err) {
       setParseError(err instanceof Error ? err.message : 'Could not understand that — try again or enter manually.');
@@ -97,8 +102,7 @@ export default function LoggerScreen() {
             <Text style={{ fontSize: 40, textAlign: 'center' }}>✅</Text>
             <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>Logged!</Text>
             <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center' }}>
-              {loggedMark}
-              {data.athlete?.unit} · RPE {loggedRpe ?? '—'}
+              {loggedMark != null ? formatPerformance(loggedMark, perfUnit) : '—'} · RPE {loggedRpe ?? '—'}
             </Text>
             <Button label="Back to workout" onPress={() => router.push('/(athlete)/(tabs)')} />
             <Button label="Log another" variant="outline" onPress={resetForm} />
@@ -124,7 +128,9 @@ export default function LoggerScreen() {
                   setParsed(null);
                   setParseError(null);
                 }}
-                placeholder='e.g. "threw 16.1m, RPE 7, felt strong"'
+                placeholder={
+                  isTimed ? 'e.g. "ran 10.82s, RPE 7, felt strong"' : 'e.g. "threw 16.1m, RPE 7, felt strong"'
+                }
                 multiline
               />
               {parseError && <Text style={{ fontSize: 10, color: colors.danger, marginTop: 4 }}>{parseError}</Text>}
@@ -139,8 +145,8 @@ export default function LoggerScreen() {
                   <Card>
                     <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 6 }}>We understood</Text>
                     <Text style={{ fontSize: 14, color: colors.text }}>
-                      {parsed.distance != null ? `${parsed.distance}${data.athlete?.unit ?? 'm'}` : 'No distance'} ·{' '}
-                      {parsed.rpe != null ? `RPE ${parsed.rpe}` : 'No RPE'}
+                      {parsed.mark != null ? formatPerformance(parsed.mark, perfUnit) : `No ${isTimed ? 'time' : 'distance'}`}{' '}
+                      · {parsed.rpe != null ? `RPE ${parsed.rpe}` : 'No RPE'}
                     </Text>
                     {parsed.notes && <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>{parsed.notes}</Text>}
                     {parsed.confidence === 'low' && (
@@ -155,9 +161,9 @@ export default function LoggerScreen() {
                       <View style={{ flex: 1 }}>
                         <Button
                           label="Confirm"
-                          onPress={() => finishSubmit(parsed.distance, parsed.rpe, parsed.notes)}
+                          onPress={() => finishSubmit(parsed.mark, parsed.rpe, parsed.notes)}
                           loading={submitting}
-                          disabled={parsed.distance == null}
+                          disabled={parsed.mark == null}
                         />
                       </View>
                     </View>
@@ -178,11 +184,11 @@ export default function LoggerScreen() {
             </Pressable>
 
             <TextField
-              label="Best throw this week"
+              label={metricLabel}
               value={manualMark}
               onChangeText={setManualMark}
-              keyboardType="decimal-pad"
-              placeholder="e.g. 16.1"
+              keyboardType={isTimed ? 'numbers-and-punctuation' : 'decimal-pad'}
+              placeholder={isTimed ? 'e.g. 10.82 or 1:48.30' : 'e.g. 16.1'}
             />
 
             <SliderRow label="RPE" value={manualRpe} onChange={setManualRpe} max={10} />
@@ -197,7 +203,10 @@ export default function LoggerScreen() {
         {manualMode && (
           <Button
             label="Save"
-            onPress={() => finishSubmit(manualMark ? parseFloat(manualMark) : null, manualRpe, null)}
+            onPress={() => {
+              const mark = manualMark ? (isTimed ? parseTimeToSeconds(manualMark) : parseFloat(manualMark)) : null;
+              finishSubmit(mark, manualRpe, null);
+            }}
             loading={submitting}
             disabled={!manualMark}
           />

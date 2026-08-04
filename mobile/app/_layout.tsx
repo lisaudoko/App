@@ -9,8 +9,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { AppThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
 import { useAuthStore } from '@/store/authStore';
+import { initRevenueCat } from '@/lib/revenuecat';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+initRevenueCat();
 
 function RootNavigation() {
   const { resolvedScheme, colors } = useAppTheme();

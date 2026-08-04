@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { MotiView } from 'moti';
@@ -15,8 +15,11 @@ import { currentWeekFromLogs } from '@/engine/load';
 import { Screen } from '@/components/Screen';
 import { Pill, type PillTone } from '@/components/Pill';
 import { StaleBanner } from '@/components/StaleBanner';
+import { TrialBanner } from '@/components/TrialBanner';
+import { useCoachAccess } from '@/hooks/useCoachAccess';
 import { repository } from '@/data/repository';
 import type { Athlete } from '@/data/types';
+import { EVENT_GROUP_DIRECTION, EVENT_GROUP_LABEL, formatPerformance, type EventGroup } from '@/lib/formatPerformance';
 
 interface Row {
   athlete: Athlete;
@@ -31,8 +34,11 @@ export default function SquadScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { data, loading, isStale, refresh } = useProgrammeData();
+  const { access } = useCoachAccess();
   const programmeName = useAuthStore((s) => s.session?.programmeName) ?? 'Your programme';
   const [joinCode, setJoinCode] = React.useState<string | null>(null);
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [activeEventGroup, setActiveEventGroup] = useState<EventGroup | null>(null);
 
   React.useEffect(() => {
     repository.getMyProgrammeJoinCode().then(setJoinCode).catch(() => {});
@@ -64,8 +70,9 @@ export default function SquadScreen() {
       const lastLog = logs[logs.length - 1];
       const loggedThisWeek = currentWeek > 0 && logs.some((l) => l.week === currentWeek);
       const anomalies = detectAnomalies(athlete, logs, tests, currentWeek);
-      const peak = estimatePeakTiming(logs);
-      const projection = projectAtWeek(logs, 4);
+      const direction = EVENT_GROUP_DIRECTION[athlete.eventGroup ?? 'throws'];
+      const peak = estimatePeakTiming(logs, direction);
+      const projection = projectAtWeek(logs, 4, direction);
 
       let dotColor = colors.success;
       let pillLabel = 'On track';
@@ -100,14 +107,35 @@ export default function SquadScreen() {
         pillTone = 'danger';
       }
 
+      const perfUnit = athlete.unit === 's' ? 'seconds' : 'metres';
       const lastMark = lastLog?.mark;
-      const subtitle = `${athlete.event} · ${lastMark != null ? `${lastMark}${athlete.unit}` : 'no data'}${
-        projection ? ` · Proj ${projection.mark.toFixed(1)}${athlete.unit}` : ''
+      const subtitle = `${athlete.event} · ${lastMark != null ? formatPerformance(lastMark, perfUnit) : 'no data'}${
+        projection ? ` · Proj ${formatPerformance(projection.mark, perfUnit)}` : ''
       }`;
 
       return { athlete, dotColor, pillLabel, pillTone, subtitle, loggedThisWeek };
     });
   }, [data, colors, currentWeek]);
+
+  const eventGroups = useMemo(() => {
+    const set = new Set(data.athletes.map((a) => a.eventGroup).filter((g): g is EventGroup => !!g));
+    return Array.from(set).sort();
+  }, [data.athletes]);
+
+  const eventGroupFilteredRows = useMemo(
+    () => (activeEventGroup ? rows.filter((r) => r.athlete.eventGroup === activeEventGroup) : rows),
+    [rows, activeEventGroup],
+  );
+
+  const groups = useMemo(() => {
+    const set = new Set(eventGroupFilteredRows.map((r) => r.athlete.group).filter((g): g is string => !!g));
+    return Array.from(set).sort();
+  }, [eventGroupFilteredRows]);
+
+  const visibleRows = useMemo(
+    () => (activeGroup ? eventGroupFilteredRows.filter((r) => r.athlete.group === activeGroup) : eventGroupFilteredRows),
+    [eventGroupFilteredRows, activeGroup],
+  );
 
   const loggedCount = rows.filter((r) => r.loggedThisWeek).length;
   const missingCount = rows.length - loggedCount;
@@ -124,6 +152,15 @@ export default function SquadScreen() {
               {programmeName} · {currentWeekLabel}
             </Text>
           </View>
+          <Pressable
+            onPress={() => router.push('/(coach)/add-athlete')}
+            hitSlop={12}
+            style={{ marginRight: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel="Add athlete"
+          >
+            <Ionicons name="person-add-outline" size={19} color={colors.background} />
+          </Pressable>
           <Pressable
             onPress={() => router.push('/(coach)/notifications')}
             hitSlop={12}
@@ -165,10 +202,68 @@ export default function SquadScreen() {
         </View>
       </View>
 
+      {access.isTrialing && <TrialBanner daysLeft={access.daysLeft} />}
       {isStale && <StaleBanner />}
 
+      {eventGroups.length > 1 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
+            {[null, ...eventGroups].map((g) => {
+              const active = activeEventGroup === g;
+              return (
+                <Pressable
+                  key={g ?? 'all-events'}
+                  onPress={() => {
+                    setActiveEventGroup(g);
+                    setActiveGroup(null);
+                  }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: active ? colors.text : colors.surfaceAlt,
+                    borderWidth: 1,
+                    borderColor: active ? colors.text : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: active ? colors.background : colors.textMuted }}>
+                    {g ? EVENT_GROUP_LABEL[g] : 'All events'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      )}
+
+      {groups.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
+            {[null, ...groups].map((g) => {
+              const active = activeGroup === g;
+              return (
+                <Pressable
+                  key={g ?? 'all'}
+                  onPress={() => setActiveGroup(g)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: active ? colors.accent : 'transparent',
+                    borderWidth: active ? 0 : 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, color: active ? colors.accentText : colors.textMuted }}>{g ?? 'All'}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      )}
+
       <Screen onRefresh={refresh} padded={false} style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-        {rows.map((row, i) => (
+        {visibleRows.map((row, i) => (
           <MotiView
             key={row.athlete.id}
             from={{ opacity: 0, translateY: 8 }}
@@ -188,7 +283,14 @@ export default function SquadScreen() {
             >
               <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: row.dotColor }} />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>{row.athlete.name}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>{row.athlete.name}</Text>
+                  {!!row.athlete.group && (
+                    <Text style={{ fontSize: 9, color: colors.textFaint, backgroundColor: colors.surfaceAlt, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }}>
+                      {row.athlete.group}
+                    </Text>
+                  )}
+                </View>
                 <Text style={{ fontSize: 11, color: colors.textMuted }}>{row.subtitle}</Text>
               </View>
               <Pill label={row.pillLabel} tone={row.pillTone} />
@@ -202,10 +304,15 @@ export default function SquadScreen() {
               No athletes yet
             </Text>
             <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
-              Share your programme join code with your athletes so they can sign up: {'\n'}
+              Add them yourself from the + above, or share your programme join code so they can sign up: {'\n'}
               <Text style={{ fontWeight: '700', color: colors.text }}>{joinCode ?? '…'}</Text>
             </Text>
           </View>
+        )}
+        {!loading && rows.length > 0 && visibleRows.length === 0 && (
+          <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>
+            No athletes in &quot;{activeGroup}&quot;.
+          </Text>
         )}
       </Screen>
     </View>

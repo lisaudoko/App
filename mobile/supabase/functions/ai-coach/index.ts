@@ -3,11 +3,17 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.32';
 import { corsHeaders } from '../_shared/cors.ts';
-import { projectToWeek } from '../_shared/projections.ts';
+import { projectToWeek, computeGap, type Direction } from '../_shared/projections.ts';
 
 const HAIKU_MODEL = 'claude-haiku-4-5';
 const DEEP_ANALYSIS_MODEL = 'claude-sonnet-5';
 const COMPETITION_WEEKS_AHEAD = 4;
+
+const EVENT_GROUP_DIRECTION: Record<string, Direction> = {
+  throws: 'higher_better',
+  jumps: 'higher_better',
+  sprints: 'lower_better',
+};
 
 interface RequestBody {
   coachId?: string;
@@ -46,16 +52,20 @@ Deno.serve(async (req) => {
     const body: RequestBody = await req.json();
     if (!body.message) throw new Error('message is required');
 
-    const { data: athletes, error: athletesError } = await supabase
-      .from('profiles')
-      .select('id, full_name, event, baseline_distance, qualifying_standard, qualifying_event')
-      .eq('programme_id', coach.programme_id)
-      .eq('role', 'athlete');
+    const [{ data: athletes, error: athletesError }, { data: programme }, { data: config }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, event, event_group, baseline_distance, qualifying_standard, qualifying_event')
+        .eq('programme_id', coach.programme_id)
+        .eq('role', 'athlete'),
+      supabase.from('programmes').select('event_groups').eq('id', coach.programme_id).single(),
+      supabase.from('programme_config').select('*').eq('programme_id', coach.programme_id).maybeSingle(),
+    ]);
     if (athletesError) throw athletesError;
 
     const { data: allLogs, error: logsError } = await supabase
       .from('weekly_logs')
-      .select('athlete_id, week_number, best_throw, rpe')
+      .select('athlete_id, week_number, best_performance, rpe')
       .eq('programme_id', coach.programme_id)
       .order('week_number', { ascending: true });
     if (logsError) throw logsError;
@@ -68,9 +78,17 @@ Deno.serve(async (req) => {
     }
 
     const squadContext = (athletes ?? []).map((athlete) => {
+      const eventGroup = athlete.event_group ?? 'throws';
+      const direction = EVENT_GROUP_DIRECTION[eventGroup] ?? 'higher_better';
+      const metricLabel = eventGroup === 'sprints' ? 'best time (s)' : 'best distance (m)';
+
       const logs = logsByAthlete.get(athlete.id) ?? [];
-      const throws = logs.filter((l) => l.best_throw != null).map((l) => l.best_throw as number);
-      const seasonBest = throws.length ? Math.max(...throws) : null;
+      const performances = logs.filter((l) => l.best_performance != null).map((l) => l.best_performance as number);
+      const seasonBest = performances.length
+        ? direction === 'higher_better'
+          ? Math.max(...performances)
+          : Math.min(...performances)
+        : null;
 
       const last4Rpe = logs
         .slice(-4)
@@ -80,26 +98,45 @@ Deno.serve(async (req) => {
 
       const lastWeek = logs.length ? logs[logs.length - 1].week_number : 0;
       const projection = projectToWeek(
-        logs.map((l) => ({ week_number: l.week_number, best_throw: l.best_throw })),
+        logs.map((l) => ({ week_number: l.week_number, performance: l.best_performance })),
         lastWeek + COMPETITION_WEEKS_AHEAD,
+        direction,
       );
       const qualifyingGap =
-        projection && athlete.qualifying_standard != null ? projection.projected - athlete.qualifying_standard : null;
+        projection && athlete.qualifying_standard != null
+          ? computeGap(projection.projected, athlete.qualifying_standard, direction)
+          : null;
 
       return {
         name: athlete.full_name,
         event: athlete.event,
+        eventGroup,
+        metricLabel,
         seasonBest,
         avgRpeLast4Weeks: avgRpe != null ? Number(avgRpe.toFixed(1)) : null,
-        projectedMark: projection ? Number(projection.projected.toFixed(2)) : null,
+        projectedPerformance: projection ? Number(projection.projected.toFixed(2)) : null,
         projectionConfidence: projection?.confidence ?? null,
         qualifyingStandard: athlete.qualifying_standard,
+        // Positive = still needs to close this much of a gap; negative = already ahead of standard.
         qualifyingGap: qualifyingGap != null ? Number(qualifyingGap.toFixed(2)) : null,
       };
     });
 
-    const systemPrompt = `You are the AI assistant for ${coach.full_name}, a track & field throws coach on TRU Performance.
-Answer questions about their squad using this current data (JSON). Be concise, direct, and coach-to-coach in tone.
+    const eventGroups: string[] = (programme?.event_groups as string[] | null) ?? ['throws'];
+    const configSummary: Record<string, unknown> = {};
+    if (eventGroups.includes('throws') && config?.throws_config) configSummary.throws = config.throws_config;
+    if (eventGroups.includes('sprints') && config?.sprints_config) configSummary.sprints = config.sprints_config;
+    if (eventGroups.includes('jumps') && config?.jumps_config) configSummary.jumps = config.jumps_config;
+
+    const systemPrompt = `You are the AI assistant for ${coach.full_name}, a track & field coach on TRU Performance.
+This programme covers: ${eventGroups.join(', ')}. Programme config (pace zones, tracked lifts, etc): ${JSON.stringify(configSummary)}.
+
+Answer questions about their squad using the current data (JSON) below. Be concise, direct, and coach-to-coach in tone.
+Each athlete has an eventGroup ('throws', 'sprints', or 'jumps') and a metricLabel telling you what their performance
+numbers mean — sprints are times in seconds (lower is better), throws/jumps are distances or heights in metres
+(higher is better). Always phrase performance and qualifying-gap language correctly for the athlete's event group:
+for sprints say things like "needs to drop 0.3s"; for throws/jumps say "needs to gain 0.4m". A positive qualifyingGap
+always means the athlete still needs to close that much of a gap, regardless of event group — never state it backwards.
 Flag qualifying risk, high RPE, and stalled progress when relevant. Do not invent data not present here.
 
 Squad data:

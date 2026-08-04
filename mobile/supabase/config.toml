@@ -6,7 +6,17 @@ verify_jwt = true
 [functions.parse-log]
 verify_jwt = true
 
+[functions.add-athlete]
+verify_jwt = true
+
 [functions.send-notifications]
 # Invoked by the Postgres trigger / pg_cron sweep using the service role key,
 # and never called directly from the client.
 verify_jwt = true
+
+[functions.revenuecat-webhook]
+# Called by RevenueCat's servers, not a Supabase-authenticated client — it
+# carries RevenueCat's own Authorization secret, not a Supabase JWT, so
+# platform-level JWT verification must be off. Auth is done inside the
+# function by comparing that header against REVENUECAT_WEBHOOK_SECRET.
+verify_jwt = false

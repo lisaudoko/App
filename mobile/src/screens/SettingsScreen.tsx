@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
-import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useThemeStore, type ThemeMode } from '@/theme/themeStore';
 import { useAuthStore } from '@/store/authStore';
@@ -84,6 +84,25 @@ export function SettingsScreen() {
           })}
         </Card>
 
+        {session?.role === 'coach' && (
+          <>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Manage programme
+            </Text>
+            <Card style={{ padding: 0 }}>
+              <SettingsLink icon="add-circle-outline" label="Add athlete" onPress={() => router.push('/(coach)/add-athlete')} />
+              <SettingsLink icon="barbell-outline" label="Workout plans" onPress={() => router.push('/(coach)/workouts')} />
+              <SettingsLink icon="trophy-outline" label="Meets & schedule" onPress={() => router.push('/(coach)/meets')} />
+              <SettingsLink
+                icon="options-outline"
+                label="Event groups & standards"
+                onPress={() => router.push('/(coach)/settings/config')}
+                last
+              />
+            </Card>
+          </>
+        )}
+
         <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
           Account
         </Text>
@@ -130,5 +149,37 @@ export function SettingsScreen() {
         </KeyboardAvoidingView>
       </Modal>
     </View>
+  );
+}
+
+function SettingsLink({
+  icon,
+  label,
+  onPress,
+  last,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  last?: boolean;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: colors.border,
+      }}
+    >
+      <Ionicons name={icon} size={16} color={colors.textMuted} />
+      <Text style={{ fontSize: 13, color: colors.text, flex: 1 }}>{label}</Text>
+      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+    </Pressable>
   );
 }

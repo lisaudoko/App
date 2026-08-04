@@ -4,12 +4,13 @@ import { CartesianChart, Line, Scatter, AreaRange } from 'victory-native';
 import { DashPathEffect } from '@shopify/react-native-skia';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import type { ProjectedPoint, TrajectoryPoint } from '@/engine/projections';
+import { formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
 
 interface Props {
   actual: TrajectoryPoint[];
   projected: ProjectedPoint[];
   standard?: number;
-  unit: string;
+  unit: PerformanceUnit;
 }
 
 const H = 170;
@@ -80,15 +81,9 @@ export function TrajectoryChart({ actual, projected, standard, unit }: Props) {
         )}
       </CartesianChart>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-        <Text style={{ fontSize: 9, color: colors.textFaint }}>
-          Now: {lastActual.mark.toFixed(1)}
-          {unit}
-        </Text>
+        <Text style={{ fontSize: 9, color: colors.textFaint }}>Now: {formatPerformance(lastActual.mark, unit)}</Text>
         {standard != null && (
-          <Text style={{ fontSize: 9, color: colors.danger }}>
-            Standard: {standard.toFixed(1)}
-            {unit}
-          </Text>
+          <Text style={{ fontSize: 9, color: colors.danger }}>Standard: {formatPerformance(standard, unit)}</Text>
         )}
       </View>
     </View>

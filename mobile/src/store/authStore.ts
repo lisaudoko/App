@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { supabase } from '@/lib/supabase';
 import { registerPushToken, clearPushToken } from '@/lib/notifications';
+import { identifyRevenueCatUser, signOutRevenueCat } from '@/lib/revenuecat';
+import { startTrialIfNeeded } from '@/lib/subscription';
 import type { UserAccount } from '@/data/types';
 
 export class AuthError extends Error {}
@@ -57,6 +59,12 @@ function mapAuthError(err: unknown): AuthError {
   return new AuthError(message);
 }
 
+function onSessionEstablished(account: UserAccount): void {
+  registerPushToken(account.id).catch(() => {});
+  identifyRevenueCatUser(account.id).catch(() => {});
+  if (account.role === 'coach') startTrialIfNeeded().catch(() => {});
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -76,7 +84,7 @@ export const useAuthStore = create<AuthState>()(
           }
           const account = await accountFromProfile(supabaseSession.user.id, supabaseSession.user.email ?? '');
           set({ session: account });
-          registerPushToken(account.id).catch(() => {});
+          onSessionEstablished(account);
         } catch {
           set({ session: null });
         } finally {
@@ -97,7 +105,7 @@ export const useAuthStore = create<AuthState>()(
           if (error || !data.user) throw error ?? new Error('Incorrect email or password.');
           const account = await accountFromProfile(data.user.id, data.user.email ?? email);
           set({ session: account, isBusy: false });
-          registerPushToken(account.id).catch(() => {});
+          onSessionEstablished(account);
         } catch (e) {
           const authError = mapAuthError(e);
           set({ isBusy: false, error: authError.message });
@@ -134,7 +142,7 @@ export const useAuthStore = create<AuthState>()(
 
           const account = await accountFromProfile(signUpData.user.id, input.email);
           set({ session: account, isBusy: false });
-          registerPushToken(account.id).catch(() => {});
+          onSessionEstablished(account);
         } catch (e) {
           const authError = mapAuthError(e);
           set({ isBusy: false, error: authError.message });
@@ -149,6 +157,14 @@ export const useAuthStore = create<AuthState>()(
             code: input.joinCode,
           });
           if (joinCodeError || !programmeId) throw new AuthError('Invalid programme join code.');
+
+          const [{ data: limit }, { data: count }] = await Promise.all([
+            supabase.rpc('programme_athlete_limit', { target_programme_id: programmeId }),
+            supabase.rpc('programme_athlete_count', { target_programme_id: programmeId }),
+          ]);
+          if (limit != null && count != null && count >= limit) {
+            throw new AuthError("This programme has reached its athlete limit. Ask your coach to upgrade their plan.");
+          }
 
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: input.email.trim(),
@@ -171,7 +187,7 @@ export const useAuthStore = create<AuthState>()(
 
           const account = await accountFromProfile(signUpData.user.id, input.email);
           set({ session: account, isBusy: false });
-          registerPushToken(account.id).catch(() => {});
+          onSessionEstablished(account);
         } catch (e) {
           const authError = mapAuthError(e);
           set({ isBusy: false, error: authError.message });
@@ -182,6 +198,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         const { session } = get();
         if (session) clearPushToken(session.id).catch(() => {});
+        await signOutRevenueCat();
         await supabase.auth.signOut();
         set({ session: null, error: null });
       },
