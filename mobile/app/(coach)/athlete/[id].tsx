@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
 import { repository } from '@/data/repository';
-import type { Meet, MeetEntry } from '@/data/types';
+import type { AthleteNote, Meet, MeetEntry } from '@/data/types';
 import { buildTrajectory } from '@/engine/projections';
 import { acuteChronicRatio } from '@/engine/load';
 import { estimatePeakTiming } from '@/engine/peakTiming';
@@ -27,6 +28,7 @@ export default function CoachAthleteDetailScreen() {
   const { colors } = useAppTheme();
   const { data, loading, refresh } = useProgrammeData();
   const [meetResults, setMeetResults] = useState<{ entry: MeetEntry; meet: Meet }[]>([]);
+  const [notes, setNotes] = useState<AthleteNote[]>([]);
 
   const athlete = data.athletes.find((a) => a.id === id);
   const logs = data.weeklyLogs[id ?? ''] ?? [];
@@ -37,6 +39,7 @@ export default function CoachAthleteDetailScreen() {
   useEffect(() => {
     if (!id) return;
     repository.getMeetResultsForAthlete(id).then(setMeetResults);
+    repository.getAthleteNotes({ athleteId: id }).then(setNotes);
   }, [id]);
 
   const meetPoints = useMemo(
@@ -146,7 +149,7 @@ export default function CoachAthleteDetailScreen() {
           <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>
             Solid = actual · Dotted = projected · Shaded = confidence band · ■ = meet result
           </Text>
-          <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={perfUnit} meetPoints={meetPoints} />
+          <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={perfUnit} meetPoints={meetPoints} direction={direction} />
         </Card>
 
         <Card>
@@ -165,11 +168,11 @@ export default function CoachAthleteDetailScreen() {
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression — test weeks</Text>
             <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season (lbs)</Text>
-            <StrengthChart tests={tests} />
+            <StrengthChart tests={tests} thirdLift={athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench'} />
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <LegendDot color={colors.text} label="Squat" />
               <LegendDot color={colors.textMuted} label="Clean" />
-              <LegendDot color={colors.textFaint} label="Bench" />
+              <LegendDot color={colors.textFaint} label={athlete.eventGroup === 'jumps' ? 'RDL' : 'Bench'} />
             </View>
           </Card>
         )}
@@ -199,6 +202,49 @@ export default function CoachAthleteDetailScreen() {
               </Text>
             ))}
           </View>
+        </Card>
+
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Notes</Text>
+            <Pressable
+              onPress={() => router.push(`/(coach)/(tabs)/notes?athleteId=${athlete.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel="See all notes"
+            >
+              <Text style={{ fontSize: 12, color: colors.accent, fontWeight: '600' }}>See all</Text>
+            </Pressable>
+          </View>
+          {notes.length === 0 && <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 10 }}>No notes yet for this athlete.</Text>}
+          {notes.slice(0, 3).map((note) => (
+            <View key={note.id} style={{ marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 12, color: colors.textFaint }}>
+                  {note.noteDate} · {note.noteType.charAt(0).toUpperCase() + note.noteType.slice(1)}
+                </Text>
+                {note.flagFollowup && <Text style={{ fontSize: 12 }}>🚩</Text>}
+              </View>
+              <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }} numberOfLines={2}>
+                {note.body}
+              </Text>
+            </View>
+          ))}
+          <Pressable
+            onPress={() => router.push(`/(coach)/(tabs)/notes?athleteId=${athlete.id}&new=1`)}
+            accessibilityRole="button"
+            accessibilityLabel="Add note"
+            style={({ pressed }) => [{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 4,
+              alignSelf: 'flex-start',
+              opacity: pressed ? 0.7 : 1,
+            }]}
+          >
+            <Ionicons name="add-circle-outline" size={16} color={colors.accent} />
+            <Text style={{ fontSize: 13, color: colors.accent, fontWeight: '600' }}>Add note</Text>
+          </Pressable>
         </Card>
       </Screen>
     </View>

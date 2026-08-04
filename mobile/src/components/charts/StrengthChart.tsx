@@ -7,6 +7,8 @@ import type { StrengthTest } from '@/data/types';
 
 interface Props {
   tests: StrengthTest[];
+  /** Jumps programmes track RDL instead of bench as the third lift — the app has no separate rdl column, so this reuses the deadlift field. */
+  thirdLift?: 'bench' | 'deadlift';
 }
 
 const H = 150;
@@ -15,15 +17,15 @@ interface Row {
   index: number;
   squat: number;
   clean: number;
-  bench: number;
+  third: number;
   [key: string]: unknown;
 }
 
-export function StrengthChart({ tests }: Props) {
+export function StrengthChart({ tests, thirdLift = 'bench' }: Props) {
   const { colors } = useAppTheme();
   const rows: Row[] = useMemo(
-    () => tests.map((t, i) => ({ index: i, squat: t.squat, clean: t.clean, bench: t.bench })),
-    [tests],
+    () => tests.map((t, i) => ({ index: i, squat: t.squat, clean: t.clean, third: t[thirdLift] })),
+    [tests, thirdLift],
   );
 
   if (tests.length < 3) {
@@ -35,19 +37,20 @@ export function StrengthChart({ tests }: Props) {
   }
 
   const last = tests[tests.length - 1];
+  const thirdLabel = thirdLift === 'deadlift' ? 'RDL' : 'Bench';
 
   return (
     <View>
       <View style={{ height: H }}>
-        <CartesianChart data={rows} xKey="index" yKeys={['squat', 'clean', 'bench']} domainPadding={{ left: 16, right: 16, top: 20, bottom: 8 }}>
+        <CartesianChart data={rows} xKey="index" yKeys={['squat', 'clean', 'third']} domainPadding={{ left: 16, right: 16, top: 20, bottom: 8 }}>
           {({ points }) => (
             <>
-              <Line points={points.bench} color={colors.textFaint} strokeWidth={1.5} curveType="linear">
+              <Line points={points.third} color={colors.textFaint} strokeWidth={1.5} curveType="linear">
                 <DashPathEffect intervals={[5, 3]} />
               </Line>
               <Line points={points.clean} color={colors.textMuted} strokeWidth={1.8} curveType="linear" />
               <Line points={points.squat} color={colors.text} strokeWidth={2.2} curveType="linear" />
-              <Scatter points={points.bench} radius={2.5} color={colors.textFaint} />
+              <Scatter points={points.third} radius={2.5} color={colors.textFaint} />
               <Scatter points={points.clean} radius={2.5} color={colors.textMuted} />
               <Scatter points={points.squat} radius={3} color={colors.text} />
             </>
@@ -57,7 +60,7 @@ export function StrengthChart({ tests }: Props) {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
         <Text style={{ fontSize: 11, color: colors.textFaint }}>{tests[0].label}</Text>
         <Text style={{ fontSize: 11, color: colors.text, fontWeight: '500' }}>
-          {last.label} · Squat {last.squat} · Clean {last.clean} · Bench {last.bench}
+          {last.label} · Squat {last.squat} · Clean {last.clean} · {thirdLabel} {last[thirdLift]}
         </Text>
       </View>
     </View>

@@ -4,7 +4,7 @@ import { CartesianChart, Line, Scatter, AreaRange } from 'victory-native';
 import { DashPathEffect } from '@shopify/react-native-skia';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import type { ProjectedPoint, TrajectoryPoint } from '@/engine/projections';
-import { formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
+import { formatPerformance, type Direction, type PerformanceUnit } from '@/lib/formatPerformance';
 
 export interface MeetTrajectoryPoint {
   week: number;
@@ -19,6 +19,8 @@ interface Props {
   standard?: number;
   unit: PerformanceUnit;
   meetPoints?: MeetTrajectoryPoint[];
+  /** Sprints are lower_better — the Y axis is flipped so "up" always reads as improvement, matching throws/jumps. */
+  direction?: Direction;
 }
 
 const H = 170;
@@ -34,7 +36,7 @@ interface Row {
   [key: string]: unknown;
 }
 
-export function TrajectoryChart({ actual, projected, standard, unit, meetPoints = [] }: Props) {
+export function TrajectoryChart({ actual, projected, standard, unit, meetPoints = [], direction = 'higher_better' }: Props) {
   const { colors } = useAppTheme();
 
   const rows: Row[] = useMemo(() => {
@@ -73,6 +75,18 @@ export function TrajectoryChart({ actual, projected, standard, unit, meetPoints 
 
   const lastActual = actual[actual.length - 1];
 
+  // For lower_better events, reverse the y-scale's domain so a downward-improving
+  // time trend still renders as an upward line, matching throws/jumps visually.
+  const yDomain = useMemo(() => {
+    if (direction !== 'lower_better') return undefined;
+    const values = rows.flatMap((r) => [r.actual, r.forecast, r.low, r.high, r.standardLine, r.meetMark]).filter((v): v is number => v != null);
+    if (values.length === 0) return undefined;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const pad = (max - min) * 0.1 || 1;
+    return [max + pad, min - pad] as [number, number];
+  }, [rows, direction]);
+
   return (
     <View style={{ height: H }}>
       <CartesianChart
@@ -80,6 +94,7 @@ export function TrajectoryChart({ actual, projected, standard, unit, meetPoints 
         xKey="week"
         yKeys={['actual', 'forecast', 'low', 'high', 'standardLine', 'meetMark']}
         domainPadding={{ left: 16, right: 16, top: 24, bottom: 12 }}
+        domain={yDomain ? { y: yDomain } : undefined}
       >
         {({ points }) => (
           <>

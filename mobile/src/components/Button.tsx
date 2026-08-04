@@ -18,8 +18,9 @@ export function Button({ label, onPress, loading, disabled, variant = 'primary' 
 
   const backgroundColor =
     variant === 'primary' ? colors.accent : variant === 'danger' ? colors.danger : 'transparent';
-  const textColor = variant === 'outline' ? colors.text : colors.accentText;
-  const borderColor = variant === 'outline' ? colors.border : backgroundColor;
+  // Secondary/ghost buttons are accent-bordered with an accent label — never bare text with no container.
+  const textColor = variant === 'outline' ? colors.accent : colors.accentText;
+  const borderColor = variant === 'outline' ? colors.accent : backgroundColor;
 
   return (
     <AnimatedPressable

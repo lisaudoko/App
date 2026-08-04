@@ -12,6 +12,7 @@ import { Pill } from '@/components/Pill';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { StandardsPanel } from '@/screens/StandardsPanel';
 
 const MEET_TYPE_LABEL: Record<MeetType, string> = {
   qualifier: 'Qualifier',
@@ -32,6 +33,7 @@ function todayIso() {
 
 export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
   const { colors } = useAppTheme();
+  const [tab, setTab] = useState<'schedule' | 'standards'>('schedule');
   const [meets, setMeets] = useState<Meet[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -94,21 +96,22 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
 
   function MeetCard({ meet }: { meet: Meet }) {
     return (
-      <Pressable onPress={() => router.push(`/(coach)/meets/${meet.id}`)}>
+      <Pressable onPress={() => router.push(`/(coach)/meets/${meet.id}`)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
         <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: 52 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 17, fontWeight: '600', color: colors.text }}>{meet.name}</Text>
               <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>
                 {meet.date}
                 {meet.location ? ` · ${meet.location}` : ''}
               </Text>
+              <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 6 }}>
+                {counts[meet.id] ?? 0} {counts[meet.id] === 1 ? 'athlete' : 'athletes'} entered
+              </Text>
             </View>
             {meet.meetType && <Pill label={MEET_TYPE_LABEL[meet.meetType]} tone="neutral" />}
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ marginLeft: 8, alignSelf: 'center' }} />
           </View>
-          <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 6 }}>
-            {counts[meet.id] ?? 0} {counts[meet.id] === 1 ? 'athlete' : 'athletes'} entered
-          </Text>
         </Card>
       </Pressable>
     );
@@ -117,8 +120,41 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Meets" onBack={onBack} rightIcon="add-circle-outline" onRightPress={openAdd} rightLabel="Add meet" />
+
+      <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 16, marginTop: 12 }}>
+        {(['schedule', 'standards'] as const).map((t) => {
+          const active = tab === t;
+          return (
+            <Pressable
+              key={t}
+              onPress={() => setTab(t)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={t === 'schedule' ? 'Schedule' : 'Standards'}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: active ? colors.accent : colors.surfaceAlt,
+                borderWidth: active ? 0 : 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                {t === 'schedule' ? 'Schedule' : 'Standards'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {loading ? (
         <LoadingState />
+      ) : tab === 'standards' ? (
+        <Screen onRefresh={async () => load()}>
+          <StandardsPanel />
+        </Screen>
       ) : (
         <Screen onRefresh={async () => load()}>
           {meets.length === 0 && (

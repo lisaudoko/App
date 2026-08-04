@@ -4,6 +4,7 @@ import { EVENT_GROUP_DIRECTION, isBetter, type EventGroup, type PerformanceUnit 
 import type {
   Athlete,
   AppNotification,
+  AthleteNote,
   BlockExercise,
   BlockType,
   JumpsConfig,
@@ -11,6 +12,7 @@ import type {
   MeetAttempt,
   MeetEntry,
   MeetType,
+  NoteType,
   ProgrammeConfig,
   SprintsConfig,
   StrengthTest,
@@ -29,6 +31,7 @@ type WorkoutRow = Database['public']['Tables']['workouts']['Row'];
 type MeetRow = Database['public']['Tables']['meets']['Row'];
 type MeetEntryRow = Database['public']['Tables']['meet_entries']['Row'];
 type MeetEntryAthleteViewRow = Database['public']['Views']['meet_entries_athlete_view']['Row'];
+type AthleteNoteRow = Database['public']['Tables']['athlete_notes']['Row'];
 
 function num(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
@@ -138,6 +141,20 @@ function toMeetEntry(row: MeetEntryRow | MeetEntryAthleteViewRow): MeetEntry {
     technicalCues: priv.technical_cues ?? null,
     nextSteps: priv.next_steps ?? null,
     createdAt: row.created_at as string,
+  };
+}
+
+function toAthleteNote(row: AthleteNoteRow): AthleteNote {
+  return {
+    id: row.id,
+    programmeId: row.programme_id,
+    athleteId: row.athlete_id,
+    coachId: row.coach_id,
+    noteDate: row.note_date,
+    noteType: row.note_type as NoteType,
+    body: row.body,
+    flagFollowup: row.flag_followup,
+    createdAt: row.created_at,
   };
 }
 
@@ -603,6 +620,69 @@ export const repository = {
     const { data: meetRows } = await supabase.from('meets').select('*').in('id', meetIds);
     const meetsById = new Map((meetRows ?? []).map((m) => [m.id, toMeet(m)]));
     return entries.map((entry) => ({ entry, meet: meetsById.get(entry.meetId) })).filter((r): r is { entry: MeetEntry; meet: Meet } => !!r.meet);
+  },
+
+  async getAthleteNotes(filter?: { athleteId?: string }): Promise<AthleteNote[]> {
+    const profile = await myProfile();
+    if (!profile.programme_id) return [];
+    let query = supabase
+      .from('athlete_notes')
+      .select('*')
+      .eq('programme_id', profile.programme_id)
+      .order('note_date', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (filter?.athleteId) query = query.eq('athlete_id', filter.athleteId);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []).map(toAthleteNote);
+  },
+
+  async createAthleteNote(input: { athleteId: string; noteDate: string; noteType: NoteType; body: string; flagFollowup: boolean }): Promise<AthleteNote> {
+    const profile = await myProfile();
+    if (!profile.programme_id) throw new Error('No programme assigned');
+    const { data, error } = await supabase
+      .from('athlete_notes')
+      .insert({
+        programme_id: profile.programme_id,
+        athlete_id: input.athleteId,
+        coach_id: profile.id,
+        note_date: input.noteDate,
+        note_type: input.noteType,
+        body: input.body,
+        flag_followup: input.flagFollowup,
+      })
+      .select()
+      .single();
+    if (error || !data) throw error ?? new Error('Could not save note');
+    return toAthleteNote(data);
+  },
+
+  async updateAthleteNote(
+    id: string,
+    patch: Partial<{ athleteId: string; noteDate: string; noteType: NoteType; body: string; flagFollowup: boolean }>,
+  ): Promise<void> {
+    const row: Database['public']['Tables']['athlete_notes']['Update'] = {};
+    if (patch.athleteId !== undefined) row.athlete_id = patch.athleteId;
+    if (patch.noteDate !== undefined) row.note_date = patch.noteDate;
+    if (patch.noteType !== undefined) row.note_type = patch.noteType;
+    if (patch.body !== undefined) row.body = patch.body;
+    if (patch.flagFollowup !== undefined) row.flag_followup = patch.flagFollowup;
+    const { error } = await supabase.from('athlete_notes').update(row).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteAthleteNote(id: string): Promise<void> {
+    const { error } = await supabase.from('athlete_notes').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  /** Sends a push + in-app notification to the whole squad, or to specific athletes if athleteIds is non-empty. */
+  async broadcastToSquad(message: string, athleteIds?: string[]): Promise<{ sent: number }> {
+    const { data, error } = await supabase.functions.invoke<{ sent: number }>('broadcast', {
+      body: { message, athleteIds },
+    });
+    if (error || !data) throw error ?? new Error('Could not send broadcast');
+    return data;
   },
 
   async getNotifications(): Promise<AppNotification[]> {

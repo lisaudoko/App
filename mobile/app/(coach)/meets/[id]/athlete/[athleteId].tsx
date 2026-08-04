@@ -11,6 +11,7 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { LoadingState } from '@/components/LoadingState';
+import { InlineNoteField } from '@/components/InlineNoteField';
 
 const ATTEMPT_COUNT = 6;
 
@@ -180,46 +181,40 @@ export default function AthleteMeetEntryScreen() {
 
         <Card>
           <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Technical observations</Text>
-          <TextInput
+          <InlineNoteField
             value={technicalCues}
             onChangeText={(t) => {
               setTechnicalCues(t);
               saveNotes({ technicalCues: t });
             }}
             multiline
-            placeholder="What did you see technically…"
-            placeholderTextColor={colors.textFaint}
-            style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, fontSize: 14, color: colors.text, minHeight: 60, textAlignVertical: 'top' }}
+            minHeight={60}
           />
         </Card>
 
         <Card>
           <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Coaching cues given</Text>
-          <TextInput
+          <InlineNoteField
             value={coachNotes}
             onChangeText={(t) => {
               setCoachNotes(t);
               saveNotes({ coachNotes: t });
             }}
             multiline
-            placeholder="Cues given between attempts…"
-            placeholderTextColor={colors.textFaint}
-            style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, fontSize: 14, color: colors.text, minHeight: 60, textAlignVertical: 'top' }}
+            minHeight={60}
           />
         </Card>
 
         <Card>
           <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Next steps / training focus</Text>
-          <TextInput
+          <InlineNoteField
             value={nextSteps}
             onChangeText={(t) => {
               setNextSteps(t);
               saveNotes({ nextSteps: t });
             }}
             multiline
-            placeholder="What to work on after this meet…"
-            placeholderTextColor={colors.textFaint}
-            style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, fontSize: 14, color: colors.text, minHeight: 60, textAlignVertical: 'top' }}
+            minHeight={60}
           />
         </Card>
 

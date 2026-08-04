@@ -177,6 +177,20 @@ export interface MeetEntry {
   createdAt: string;
 }
 
+export type NoteType = 'general' | 'injury' | 'technical' | 'mindset' | 'admin';
+
+export interface AthleteNote {
+  id: string;
+  programmeId: string;
+  athleteId: string;
+  coachId: string;
+  noteDate: string;
+  noteType: NoteType;
+  body: string;
+  flagFollowup: boolean;
+  createdAt: string;
+}
+
 export type NotificationSeverity = 'info' | 'success' | 'warning' | 'danger';
 
 export interface AppNotification {

@@ -90,6 +90,20 @@ Deno.serve(async (req) => {
       meetEntriesByAthlete.set(entry.athlete_id, list);
     }
 
+    const { data: allFlaggedNotes } = await supabase
+      .from('athlete_notes')
+      .select('athlete_id, note_date, note_type, body')
+      .eq('programme_id', coach.programme_id)
+      .eq('flag_followup', true)
+      .order('note_date', { ascending: false });
+
+    const flaggedNotesByAthlete = new Map<string, typeof allFlaggedNotes>();
+    for (const note of allFlaggedNotes ?? []) {
+      const list = flaggedNotesByAthlete.get(note.athlete_id) ?? [];
+      if (list.length < 5) list.push(note);
+      flaggedNotesByAthlete.set(note.athlete_id, list);
+    }
+
     const squadContext = (athletes ?? []).map((athlete) => {
       const eventGroup = athlete.event_group ?? 'throws';
       const direction = EVENT_GROUP_DIRECTION[eventGroup] ?? 'higher_better';
@@ -132,6 +146,12 @@ Deno.serve(async (req) => {
         };
       });
 
+      const flaggedNotes = (flaggedNotesByAthlete.get(athlete.id) ?? []).map((n) => ({
+        date: n.note_date,
+        type: n.note_type,
+        body: n.body,
+      }));
+
       return {
         name: athlete.full_name,
         event: athlete.event,
@@ -146,6 +166,8 @@ Deno.serve(async (req) => {
         qualifyingGap: qualifyingGap != null ? Number(qualifyingGap.toFixed(2)) : null,
         // Up to 5 most recent competition results, most recent first.
         recentMeets,
+        // Up to 5 most recent coaching-diary notes flagged for follow-up, most recent first.
+        flaggedNotes,
       };
     });
 
@@ -166,7 +188,10 @@ for sprints say things like "needs to drop 0.3s"; for throws/jumps say "needs to
 always means the athlete still needs to close that much of a gap, regardless of event group — never state it backwards.
 Flag qualifying risk, high RPE, and stalled progress when relevant. Each athlete also has recentMeets — their up to 5
 most recent competition results (meet name, date, event, mark, place, qualified). Reference these when asked about
-competition performance, qualifying progress, or how someone did at a specific meet. Do not invent data not present here.
+competition performance, qualifying progress, or how someone did at a specific meet. Each athlete also has
+flaggedNotes — up to 5 of the coach's own coaching-diary entries for that athlete that were flagged for follow-up
+(date, type: general/injury/technical/mindset/admin, and body text). Surface these when the coach asks about an
+athlete's status, history, or follow-ups, especially injury or mindset notes. Do not invent data not present here.
 
 Squad data:
 ${JSON.stringify(squadContext, null, 2)}`;

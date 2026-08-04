@@ -29,6 +29,64 @@ export type Database = {
         }
         Relationships: []
       }
+      athlete_notes: {
+        Row: {
+          athlete_id: string
+          body: string
+          coach_id: string
+          created_at: string
+          flag_followup: boolean
+          id: string
+          note_date: string
+          note_type: string
+          programme_id: string
+        }
+        Insert: {
+          athlete_id: string
+          body: string
+          coach_id: string
+          created_at?: string
+          flag_followup?: boolean
+          id?: string
+          note_date?: string
+          note_type: string
+          programme_id: string
+        }
+        Update: {
+          athlete_id?: string
+          body?: string
+          coach_id?: string
+          created_at?: string
+          flag_followup?: boolean
+          id?: string
+          note_date?: string
+          note_type?: string
+          programme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_notes_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_notes_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_notes_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "programmes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meet_entries: {
         Row: {
           athlete_id: string

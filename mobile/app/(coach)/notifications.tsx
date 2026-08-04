@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
 import { repository } from '@/data/repository';
@@ -60,14 +60,19 @@ export default function NotificationsScreen() {
         {data.notifications.map((n) => {
           const unread = !n.read && !readIds.has(n.id);
           return (
-            <Pressable key={n.id} onPress={() => handlePress(n.id, n.athleteId)}>
-              <Card style={{ flexDirection: 'row', gap: 9, opacity: unread ? 1 : 0.6 }}>
+            <Pressable
+              key={n.id}
+              onPress={() => handlePress(n.id, n.athleteId)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 52, opacity: unread ? 1 : 0.6 }}>
                 <View
                   style={{
                     width: 7,
                     height: 7,
                     borderRadius: 4,
                     marginTop: 4,
+                    alignSelf: 'flex-start',
                     backgroundColor: unread ? dotColor[n.severity] : colors.border,
                   }}
                 />
@@ -76,6 +81,7 @@ export default function NotificationsScreen() {
                   <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 1 }}>{n.body}</Text>
                   <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 3 }}>{timeAgo(n.createdAt)}</Text>
                 </View>
+                {n.athleteId && <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
               </Card>
             </Pressable>
           );

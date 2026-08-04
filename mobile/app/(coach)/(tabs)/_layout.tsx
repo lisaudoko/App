@@ -29,20 +29,20 @@ export default function CoachTabsLayout() {
         options={{ title: 'Squad', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
       />
       <Tabs.Screen
-        name="workouts"
-        options={{ title: 'Workouts', tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="standards"
-        options={{ title: 'Standards', tabBarIcon: ({ color, size }) => <Ionicons name="trophy" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="ai"
-        options={{ title: 'AI', tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses" color={color} size={size} /> }}
+        name="heatmap"
+        options={{ title: 'Heatmap', tabBarIcon: ({ color, size }) => <Ionicons name="grid" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="meets"
-        options={{ title: 'Meets', tabBarIcon: ({ color, size }) => <Ionicons name="ribbon" color={color} size={size} /> }}
+        options={{ title: 'Meets', tabBarIcon: ({ color, size }) => <Ionicons name="trophy" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="ai"
+        options={{ title: 'AI', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{ title: 'Notes', tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} /> }}
       />
     </Tabs>
   );

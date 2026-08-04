@@ -12,12 +12,10 @@ import { Card } from '@/components/Card';
 import { StatRow } from '@/components/StatCard';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
-import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
 import { LoadingState } from '@/components/LoadingState';
 import { StaleBanner } from '@/components/StaleBanner';
-import { acuteChronicRatio } from '@/engine/load';
 import { pearsonCorrelation } from '@/engine/stats';
 import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
 
@@ -57,7 +55,6 @@ export default function AthleteProgressScreen() {
 
   const trajectory = useMemo(() => buildTrajectory(logs, 4, direction), [logs, direction]);
   const qualifyProjection = useMemo(() => projectAtWeek(logs, 6, direction), [logs, direction]);
-  const acRatio = useMemo(() => acuteChronicRatio(logs), [logs]);
 
   const correlation = useMemo(() => {
     if (tests.length < 2) return null;
@@ -150,19 +147,8 @@ export default function AthleteProgressScreen() {
             standard={hasQualifyingStandard ? athlete.qualifyingStandard : undefined}
             unit={perfUnit}
             meetPoints={meetPoints}
+            direction={direction}
           />
-        </Card>
-
-        <Card>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Training load + RPE</Text>
-          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Bars = volume load · Line = RPE · Red dashed = RPE 8 threshold</Text>
-          <LoadRpeChart logs={logs} />
-          {acRatio != null && (
-            <Text style={{ fontSize: 12, color: acRatio > 1.3 ? colors.danger : colors.textMuted, marginTop: 4 }}>
-              Acute:chronic ratio {acRatio.toFixed(1)}
-              {acRatio > 1.3 ? ' — elevated, take it easy this week' : ''}
-            </Text>
-          )}
         </Card>
 
         <Card>

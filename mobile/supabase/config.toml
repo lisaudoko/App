@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.add-athlete]
 verify_jwt = true
 
+[functions.broadcast]
+verify_jwt = true
+
 [functions.send-notifications]
 # Invoked by the Postgres trigger / pg_cron sweep using the service role key,
 # and never called directly from the client.

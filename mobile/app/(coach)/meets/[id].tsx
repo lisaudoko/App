@@ -14,6 +14,7 @@ import { Pill } from '@/components/Pill';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { InlineNoteField } from '@/components/InlineNoteField';
 
 const MEET_TYPE_LABEL: Record<string, string> = {
   qualifier: 'Qualifier',
@@ -135,7 +136,7 @@ export default function MeetDetailScreen() {
 
         <Card>
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>General notes</Text>
-          <TextField value={notes} onChangeText={handleNotesChange} placeholder="Notes about this meet…" multiline />
+          <InlineNoteField value={notes} onChangeText={handleNotesChange} multiline minHeight={44} />
         </Card>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 8 }}>
