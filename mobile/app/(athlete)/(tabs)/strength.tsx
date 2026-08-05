@@ -10,12 +10,13 @@ import { StatRow } from '@/components/StatCard';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 import { StaleBanner } from '@/components/StaleBanner';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 
 export default function AthleteStrengthScreen() {
   const { colors } = useAppTheme();
-  const { data, loading, isStale, refresh } = useAthleteSelf();
+  const { data, loading, isStale, error: loadError, refresh } = useAthleteSelf();
 
   const [squat, setSquat] = useState('');
   const [bench, setBench] = useState('');
@@ -27,6 +28,7 @@ export default function AthleteStrengthScreen() {
   const [saved, setSaved] = useState(false);
 
   if (loading) return <LoadingState />;
+  if (loadError && !data.athlete) return <ErrorState onRetry={refresh} />;
   if (!data.athlete) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   const { squat: curSquat, clean: curClean, bench: curBench, deadlift: curDeadlift } = data.athlete.currentMaxes;

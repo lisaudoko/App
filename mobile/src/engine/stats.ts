@@ -57,3 +57,13 @@ export function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
+
+/** Projects one step past the end of a sequence via linear regression over its own index, clamped to non-negative. */
+export function projectNextValue(values: number[]): number {
+  if (values.length === 0) return 0;
+  const { slope, intercept } = linearRegression(
+    values.map((_, i) => i),
+    values,
+  );
+  return Math.max(0, slope * values.length + intercept);
+}

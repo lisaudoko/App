@@ -20,6 +20,9 @@ export function useAthleteSelf() {
   const [data, setData] = useState<AthleteSelfData>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [isStale, setIsStale] = useState(false);
+  // Only set when the load fails AND there's no cache to fall back on — distinct from a
+  // genuinely empty profile, so a cold-start network failure never reads as "no data yet".
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!athleteId) {
@@ -37,21 +40,26 @@ export function useAthleteSelf() {
       const fresh = { athlete: athlete ?? null, logs, tests, meets, mesocycleWeek };
       setData(fresh);
       setIsStale(false);
+      setError(null);
       AsyncStorage.setItem(CACHE_KEY, JSON.stringify(fresh)).catch(() => {});
     } catch (err) {
       const cached = await AsyncStorage.getItem(CACHE_KEY);
       if (cached) {
         setData(JSON.parse(cached));
         setIsStale(true);
+        setError(null);
       } else {
+        setError(err instanceof Error ? err.message : 'Could not load your data');
         throw err;
       }
     }
   }, [athleteId]);
 
   useEffect(() => {
-    load().finally(() => setLoading(false));
+    load()
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [load]);
 
-  return { data, loading, isStale, refresh: load };
+  return { data, loading, isStale, error, refresh: load };
 }

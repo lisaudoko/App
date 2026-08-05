@@ -29,8 +29,8 @@ export default function CoachTabsLayout() {
         options={{ title: 'Squad', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
       />
       <Tabs.Screen
-        name="heatmap"
-        options={{ title: 'Heatmap', tabBarIcon: ({ color, size }) => <Ionicons name="grid" color={color} size={size} /> }}
+        name="workouts"
+        options={{ title: 'Workouts', tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="meets"

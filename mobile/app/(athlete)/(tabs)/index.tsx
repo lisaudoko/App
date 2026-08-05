@@ -13,6 +13,7 @@ import { Screen } from '@/components/Screen';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 import { StaleBanner } from '@/components/StaleBanner';
 import { computeExerciseWeight } from '@/engine/workoutWeight';
 import { shareWorkout } from '@/lib/shareWorkout';
@@ -88,7 +89,7 @@ function exerciseLine(ex: BlockExercise, blockType: BlockType, weight: number | 
 export default function AthleteWorkoutScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { data, loading, isStale, refresh } = useAthleteSelf();
+  const { data, loading, isStale, error, refresh } = useAthleteSelf();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [workout, setWorkout] = useState<Workout | null>(null);
@@ -150,6 +151,7 @@ export default function AthleteWorkoutScreen() {
   }
 
   if (loading || workoutLoading) return <LoadingState />;
+  if (error && !data.athlete) return <ErrorState onRetry={refresh} />;
   if (!data.athlete) {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }

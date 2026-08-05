@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository, defaultWorkoutTemplate } from '@/data/repository';
@@ -13,6 +13,7 @@ import { Card } from '@/components/Card';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { Sheet } from '@/components/Sheet';
 
 function genId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -34,6 +35,18 @@ function emptyExercise(name: string): BlockExercise {
     coachingCue: null,
     notes: null,
   };
+}
+
+function blocksFromGenerated(
+  generated: { type: WorkoutBlock['type']; label: string; exercises: Omit<BlockExercise, 'id' | 'category' | 'weightLbs'>[] }[],
+): WorkoutBlock[] {
+  return generated.map((b, i) => ({
+    id: genId(),
+    type: b.type,
+    label: b.label,
+    order: i,
+    exercises: b.exercises.map((e) => ({ ...e, id: genId(), category: null, weightLbs: null })),
+  }));
 }
 
 function describeExercise(ex: BlockExercise, blockType: WorkoutBlock['type'], maxes: { squat: number; clean: number; bench: number; deadlift: number } | null): string {
@@ -85,6 +98,10 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
   const [pickerBlockId, setPickerBlockId] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [generateVisible, setGenerateVisible] = useState(false);
+  const [generateFocus, setGenerateFocus] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
     repository.getProgrammeConfig().then((c) => setEventGroups(c?.eventGroups ?? []));
@@ -186,6 +203,27 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
     }
   }
 
+  async function handleGenerate() {
+    if (!workout) return;
+    setGenerating(true);
+    setGenerateError(null);
+    try {
+      const { blocks } = await repository.generateWorkout({
+        eventGroup: primaryGroup,
+        weekNumber: week,
+        intensityPct: workout.intensityPct,
+        focus: generateFocus.trim() || undefined,
+      });
+      setWorkout((w) => (w ? { ...w, blocks: blocksFromGenerated(blocks) } : w));
+      setGenerateVisible(false);
+      setGenerateFocus('');
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Could not generate a workout');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function handleExport() {
     if (!workout) return;
     shareWorkout(`Week ${workout.weekNumber} plan`, workout, primaryGroup, null);
@@ -263,6 +301,15 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
               </View>
             </View>
           </Card>
+
+          <Button
+            label="Generate week with AI"
+            variant="outline"
+            onPress={() => {
+              setGenerateError(null);
+              setGenerateVisible(true);
+            }}
+          />
 
           {workout.blocks.map((block, i) => {
             const def = blockTypeDef(block.type, primaryGroup);
@@ -343,64 +390,77 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
         </Screen>
       )}
 
-      <Modal visible={addBlockVisible} animationType="slide" transparent onRequestClose={() => setAddBlockVisible(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={() => setAddBlockVisible(false)}>
-          <View style={{ marginTop: 'auto', backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '75%' }}>
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Add block</Text>
-            </View>
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              {blockChoices.map((choice) => (
-                <Pressable
-                  key={choice.key}
-                  onPress={() => addBlock(choice)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                >
-                  <View style={{ width: 14, height: 14, borderRadius: 4, backgroundColor: choice.color }} />
-                  <Text style={{ fontSize: 14, color: colors.text, flex: 1 }}>{choice.displayLabel}</Text>
-                  <Ionicons name="add-circle-outline" size={20} color={colors.textMuted} />
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
+      <Sheet visible={addBlockVisible} onClose={() => setAddBlockVisible(false)} maxHeightPct="75%">
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Add block</Text>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
+          {blockChoices.map((choice) => (
+            <Pressable
+              key={choice.key}
+              onPress={() => addBlock(choice)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
+              <View style={{ width: 14, height: 14, borderRadius: 4, backgroundColor: choice.color }} />
+              <Text style={{ fontSize: 14, color: colors.text, flex: 1 }}>{choice.displayLabel}</Text>
+              <Ionicons name="add-circle-outline" size={20} color={colors.textMuted} />
+            </Pressable>
+          ))}
+        </ScrollView>
+      </Sheet>
 
-      <Modal visible={!!pickerBlockId} animationType="slide" transparent onRequestClose={() => setPickerBlockId(null)}>
-        <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={() => setPickerBlockId(null)}>
-          <Pressable style={{ marginTop: 'auto', backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '75%' }}>
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Add exercise</Text>
-              <TextInput
-                value={pickerSearch}
-                onChangeText={setPickerSearch}
-                placeholder="Search exercises…"
-                placeholderTextColor={colors.textFaint}
-                style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, color: colors.text }}
-              />
-            </View>
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              {pickerResults.map((name) => (
-                <Pressable
-                  key={name}
-                  onPress={() => pickerBlockId && addExercise(pickerBlockId, name)}
-                  style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                >
-                  <Text style={{ fontSize: 14, color: colors.text }}>{name}</Text>
-                </Pressable>
-              ))}
-              {pickerSearch.trim() && !pickerResults.some((n) => n.toLowerCase() === pickerSearch.trim().toLowerCase()) && (
-                <Pressable
-                  onPress={() => pickerBlockId && addExercise(pickerBlockId, pickerSearch.trim())}
-                  style={{ paddingVertical: 12 }}
-                >
-                  <Text style={{ fontSize: 14, color: colors.text, fontStyle: 'italic' }}>Add &quot;{pickerSearch.trim()}&quot; as custom exercise</Text>
-                </Pressable>
-              )}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <Sheet visible={!!pickerBlockId} onClose={() => setPickerBlockId(null)} maxHeightPct="75%">
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Add exercise</Text>
+          <TextInput
+            value={pickerSearch}
+            onChangeText={setPickerSearch}
+            placeholder="Search exercises…"
+            placeholderTextColor={colors.textFaint}
+            style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, color: colors.text }}
+          />
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+          {pickerResults.map((name) => (
+            <Pressable
+              key={name}
+              onPress={() => pickerBlockId && addExercise(pickerBlockId, name)}
+              style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
+              <Text style={{ fontSize: 14, color: colors.text }}>{name}</Text>
+            </Pressable>
+          ))}
+          {pickerSearch.trim() && !pickerResults.some((n) => n.toLowerCase() === pickerSearch.trim().toLowerCase()) && (
+            <Pressable
+              onPress={() => pickerBlockId && addExercise(pickerBlockId, pickerSearch.trim())}
+              style={{ paddingVertical: 12 }}
+            >
+              <Text style={{ fontSize: 14, color: colors.text, fontStyle: 'italic' }}>Add &quot;{pickerSearch.trim()}&quot; as custom exercise</Text>
+            </Pressable>
+          )}
+        </ScrollView>
+      </Sheet>
+
+      <Sheet visible={generateVisible} onClose={() => setGenerateVisible(false)}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Generate week {week} with AI</Text>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 12, lineHeight: 17 }}>
+            Builds a full set of blocks for {primaryGroup} at {Math.round((workout?.intensityPct ?? 0.75) * 100)}% intensity,
+            using only exercises already in your library. You can edit anything before saving.
+            {workout && workout.blocks.length > 0 ? ` This replaces the ${workout.blocks.length} block${workout.blocks.length === 1 ? '' : 's'} already on this week.` : ''}
+          </Text>
+          <TextField
+            label="Focus (optional)"
+            value={generateFocus}
+            onChangeText={setGenerateFocus}
+            placeholder="e.g. deload week, extra plyo emphasis"
+          />
+          {generateError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{generateError}</Text>}
+          <Button label="Generate" onPress={handleGenerate} loading={generating} />
+        </ScrollView>
+      </Sheet>
     </View>
   );
 }

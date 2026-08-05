@@ -15,13 +15,14 @@ import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
 import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 import { StaleBanner } from '@/components/StaleBanner';
 import { pearsonCorrelation } from '@/engine/stats';
 import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
 
 export default function AthleteProgressScreen() {
   const { colors } = useAppTheme();
-  const { data, loading, isStale, refresh } = useAthleteSelf();
+  const { data, loading, isStale, error, refresh } = useAthleteSelf();
   const { athlete, logs, tests } = data;
   const direction = EVENT_GROUP_DIRECTION[athlete?.eventGroup ?? 'throws'];
   const perfUnit: PerformanceUnit = athlete?.unit === 's' ? 'seconds' : 'metres';
@@ -86,6 +87,7 @@ export default function AthleteProgressScreen() {
   }, [tests, logs]);
 
   if (loading) return <LoadingState />;
+  if (error && !athlete) return <ErrorState onRetry={refresh} />;
   if (!athlete) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   const hasBaseline = athlete.personalBest > 0;

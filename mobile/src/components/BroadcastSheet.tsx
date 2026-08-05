@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
 import type { Athlete } from '@/data/types';
 import { Button } from '@/components/Button';
 import { InlineNoteField } from '@/components/InlineNoteField';
+import { Sheet } from '@/components/Sheet';
 import { radius, spacing } from '@/theme/spacing';
 
 interface Props {
@@ -66,14 +67,12 @@ export function BroadcastSheet({ visible, onClose, athletes }: Props) {
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={handleClose}>
-        <Pressable style={{ marginTop: 'auto', backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%' }}>
-          <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Broadcast to squad</Text>
-          </View>
+    <Sheet visible={visible} onClose={handleClose}>
+      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Broadcast to squad</Text>
+      </View>
 
-          {sentCount != null ? (
+      {sentCount != null ? (
             <View style={{ padding: 24, alignItems: 'center' }}>
               <Text style={{ fontSize: 32, marginBottom: 8 }}>📣</Text>
               <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Sent</Text>
@@ -157,10 +156,8 @@ export function BroadcastSheet({ visible, onClose, athletes }: Props) {
                 loading={sending}
                 disabled={!message.trim()}
               />
-            </ScrollView>
-          )}
-        </Pressable>
-      </Pressable>
-    </Modal>
+        </ScrollView>
+      )}
+    </Sheet>
   );
 }

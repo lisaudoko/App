@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
@@ -147,6 +147,7 @@ export function SettingsScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1, justifyContent: 'flex-end' }}
         >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' }}>
             <MotiView
               from={{ translateY: 300 }}
@@ -175,6 +176,7 @@ export function SettingsScreen() {
               <Button label="Cancel" variant="outline" onPress={closeConfirm} />
             </MotiView>
           </View>
+          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Modal>
     </View>

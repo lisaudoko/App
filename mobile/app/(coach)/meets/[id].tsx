@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -15,6 +15,7 @@ import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { InlineNoteField } from '@/components/InlineNoteField';
+import { Sheet } from '@/components/Sheet';
 
 const MEET_TYPE_LABEL: Record<string, string> = {
   qualifier: 'Qualifier',
@@ -174,42 +175,38 @@ export default function MeetDetailScreen() {
         <Button label="Mark complete" onPress={() => id && router.push(`/(coach)/meets/${id}/summary`)} />
       </Screen>
 
-      <Modal visible={pickerVisible} animationType="slide" transparent onRequestClose={() => setPickerVisible(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={() => setPickerVisible(false)}>
-          <Pressable style={{ marginTop: 'auto', backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' }}>
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
-                {pickerAthleteId ? 'Entry details' : 'Add athlete'}
-              </Text>
-            </View>
-            {!pickerAthleteId ? (
-              <ScrollView contentContainerStyle={{ padding: 16 }}>
-                {availableAthletes.length === 0 && (
-                  <Text style={{ fontSize: 13, color: colors.textMuted }}>Everyone in your squad is already entered.</Text>
-                )}
-                {availableAthletes.map((a) => (
-                  <Pressable
-                    key={a.id}
-                    onPress={() => selectAthleteForEntry(a.id)}
-                    style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                  >
-                    <Text style={{ fontSize: 15, color: colors.text }}>{a.name}</Text>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>{a.event}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : (
-              <ScrollView contentContainerStyle={{ padding: 16 }}>
-                <TextField label="Event" value={entryEvent} onChangeText={setEntryEvent} placeholder="e.g. Shot Put" />
-                <TextField label="Seed mark (optional)" value={entrySeedMark} onChangeText={setEntrySeedMark} keyboardType="decimal-pad" />
-                {addError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{addError}</Text>}
-                <Button label="Add to meet" onPress={confirmAddEntry} loading={addBusy} disabled={!entryEvent.trim()} />
-                <Button label="Back" variant="outline" onPress={() => setPickerAthleteId(null)} />
-              </ScrollView>
+      <Sheet visible={pickerVisible} onClose={() => setPickerVisible(false)} maxHeightPct="80%">
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
+            {pickerAthleteId ? 'Entry details' : 'Add athlete'}
+          </Text>
+        </View>
+        {!pickerAthleteId ? (
+          <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+            {availableAthletes.length === 0 && (
+              <Text style={{ fontSize: 13, color: colors.textMuted }}>Everyone in your squad is already entered.</Text>
             )}
-          </Pressable>
-        </Pressable>
-      </Modal>
+            {availableAthletes.map((a) => (
+              <Pressable
+                key={a.id}
+                onPress={() => selectAthleteForEntry(a.id)}
+                style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+              >
+                <Text style={{ fontSize: 15, color: colors.text }}>{a.name}</Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted }}>{a.event}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : (
+          <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+            <TextField label="Event" value={entryEvent} onChangeText={setEntryEvent} placeholder="e.g. Shot Put" />
+            <TextField label="Seed mark (optional)" value={entrySeedMark} onChangeText={setEntrySeedMark} keyboardType="decimal-pad" />
+            {addError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{addError}</Text>}
+            <Button label="Add to meet" onPress={confirmAddEntry} loading={addBusy} disabled={!entryEvent.trim()} />
+            <Button label="Back" variant="outline" onPress={() => setPickerAthleteId(null)} />
+          </ScrollView>
+        )}
+      </Sheet>
     </View>
   );
 }

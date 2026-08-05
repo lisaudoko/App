@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -12,6 +12,8 @@ import { Pill } from '@/components/Pill';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
+import { Sheet } from '@/components/Sheet';
 import { StandardsPanel } from '@/screens/StandardsPanel';
 
 const MEET_TYPE_LABEL: Record<MeetType, string> = {
@@ -42,13 +44,17 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const load = React.useCallback(() => {
     setLoading(true);
     Promise.all([repository.getMeets(), repository.getMeetEntryCountsByMeet()])
       .then(([m, c]) => {
         setMeets(m);
         setCounts(c);
+        setLoadError(null);
       })
+      .catch((err) => setLoadError(err instanceof Error ? err.message : 'Could not load meets'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -151,6 +157,8 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
 
       {loading ? (
         <LoadingState />
+      ) : loadError && meets.length === 0 ? (
+        <ErrorState onRetry={load} message={loadError} />
       ) : tab === 'standards' ? (
         <Screen onRefresh={async () => load()}>
           <StandardsPanel />
@@ -191,14 +199,12 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
         </Screen>
       )}
 
-      <Modal visible={addVisible} animationType="slide" transparent onRequestClose={() => setAddVisible(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={() => setAddVisible(false)}>
-          <Pressable style={{ marginTop: 'auto', backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%' }}>
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Add meet</Text>
-            </View>
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              <TextField label="Meet name" value={form.name} onChangeText={(t) => setForm((f) => ({ ...f, name: t }))} placeholder="e.g. Carifta Games" />
+      <Sheet visible={addVisible} onClose={() => setAddVisible(false)}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Add meet</Text>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+          <TextField label="Meet name" value={form.name} onChangeText={(t) => setForm((f) => ({ ...f, name: t }))} placeholder="e.g. Carifta Games" />
               <TextField
                 label="Date (YYYY-MM-DD)"
                 value={form.date}
@@ -241,12 +247,10 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
                 placeholder="e.g. Windy, 28°C"
               />
 
-              {error && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{error}</Text>}
-              <Button label="Add meet" onPress={handleSave} loading={saving} />
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          {error && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{error}</Text>}
+          <Button label="Add meet" onPress={handleSave} loading={saving} />
+        </ScrollView>
+      </Sheet>
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
@@ -57,8 +57,7 @@ export default function SignupScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <Screen>
+      <Screen>
           <Text style={{ fontSize: 25, fontWeight: '600', color: colors.text, marginTop: 12, marginBottom: 4 }}>
             Create your account
           </Text>
@@ -103,7 +102,10 @@ export default function SignupScreen() {
             ref={emailRef}
             label="Email"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(t) => {
+              setEmail(t);
+              if (error) clearError();
+            }}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
@@ -198,8 +200,7 @@ export default function SignupScreen() {
               </Link>
             </Text>
           </View>
-        </Screen>
-      </KeyboardAvoidingView>
+      </Screen>
     </SafeAreaView>
   );
 }

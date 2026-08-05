@@ -20,6 +20,9 @@ export function useProgrammeData() {
   const [data, setData] = useState<ProgrammeData>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [isStale, setIsStale] = useState(false);
+  // Only set when the load fails AND there's no cache to fall back on — distinct from a
+  // genuinely empty account, so a cold-start network failure never reads as "no athletes yet".
+  const [error, setError] = useState<string | null>(null);
   const programmeIdRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
@@ -28,20 +31,25 @@ export function useProgrammeData() {
       const fresh = { ...ctx, notifications };
       setData(fresh);
       setIsStale(false);
+      setError(null);
       AsyncStorage.setItem(CACHE_KEY, JSON.stringify(fresh)).catch(() => {});
     } catch (err) {
       const cached = await AsyncStorage.getItem(CACHE_KEY);
       if (cached) {
         setData(JSON.parse(cached));
         setIsStale(true);
+        setError(null);
       } else {
+        setError(err instanceof Error ? err.message : 'Could not load your squad');
         throw err;
       }
     }
   }, []);
 
   useEffect(() => {
-    load().finally(() => setLoading(false));
+    load()
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [load]);
 
   useEffect(() => {
@@ -76,5 +84,5 @@ export function useProgrammeData() {
     };
   }, [load]);
 
-  return { data, loading, isStale, refresh: load };
+  return { data, loading, isStale, error, refresh: load };
 }

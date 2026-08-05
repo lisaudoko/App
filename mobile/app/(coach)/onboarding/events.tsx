@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { useAuthStore } from '@/store/authStore';
 import { EVENT_GROUP_EVENTS, EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -78,6 +79,16 @@ export default function OnboardingEventsScreen() {
           disabled={selected.length === 0}
           onPress={() => router.push({ pathname: '/(coach)/onboarding/config', params: { groups: selected.join(',') } })}
         />
+
+        <Pressable
+          onPress={async () => {
+            await useAuthStore.getState().logout();
+            router.replace('/login');
+          }}
+          style={{ marginTop: 16, alignItems: 'center' }}
+        >
+          <Text style={{ fontSize: 15, color: colors.textFaint }}>Log out</Text>
+        </Pressable>
       </Screen>
     </View>
   );

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -12,6 +12,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { InlineNoteField } from '@/components/InlineNoteField';
 
 export default function MeetSummaryScreen() {
   const { colors } = useAppTheme();
@@ -162,14 +163,7 @@ export default function MeetSummaryScreen() {
 
         <Card>
           <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Notes</Text>
-          <TextInput
-            value={notes}
-            onChangeText={handleNotesChange}
-            multiline
-            placeholder="General notes about this meet…"
-            placeholderTextColor={colors.textFaint}
-            style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, fontSize: 14, color: colors.text, minHeight: 60, textAlignVertical: 'top' }}
-          />
+          <InlineNoteField value={notes} onChangeText={handleNotesChange} multiline minHeight={60} />
         </Card>
 
         <Button label={copied ? 'Copied!' : 'Share summary'} onPress={handleShare} />

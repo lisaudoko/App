@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 import { fetch as expoFetch } from 'expo/fetch';
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,7 +132,15 @@ export default function AiAssistantScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={insets.top}
       >
-        <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} bounces={false}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 16 }}
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
           {messages.length === 0 && (
             <View style={{ marginTop: 12 }}>
               <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 8 }}>
@@ -201,6 +209,7 @@ export default function AiAssistantScreen() {
             </View>
           )}
         </ScrollView>
+        </TouchableWithoutFeedback>
 
         <View
           style={{

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -13,7 +13,9 @@ import { Card } from '@/components/Card';
 import { Pill } from '@/components/Pill';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 import { InlineNoteField } from '@/components/InlineNoteField';
+import { Sheet } from '@/components/Sheet';
 import { radius, spacing } from '@/theme/spacing';
 
 const NOTE_TYPE_LABEL: Record<NoteType, string> = {
@@ -67,6 +69,8 @@ export function NotesScreen() {
   const [athleteSearch, setAthleteSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const athletesById = useMemo(() => new Map(squad.athletes.map((a) => [a.id, a])), [squad.athletes]);
 
@@ -74,7 +78,11 @@ export function NotesScreen() {
     setLoading(true);
     repository
       .getAthleteNotes()
-      .then(setNotes)
+      .then((n) => {
+        setNotes(n);
+        setLoadError(null);
+      })
+      .catch((err) => setLoadError(err instanceof Error ? err.message : 'Could not load notes'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -102,6 +110,7 @@ export function NotesScreen() {
     setAthleteSearch('');
     setAthleteSearchOpen(false);
     setError(null);
+    setConfirmDelete(false);
     setSheetVisible(true);
   }
 
@@ -117,6 +126,7 @@ export function NotesScreen() {
     setAthleteSearch('');
     setAthleteSearchOpen(false);
     setError(null);
+    setConfirmDelete(false);
     setSheetVisible(true);
   }
 
@@ -156,6 +166,12 @@ export function NotesScreen() {
 
   async function handleDelete() {
     if (!form.id) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
+    setConfirmDelete(false);
     setSaving(true);
     try {
       await repository.deleteAthleteNote(form.id);
@@ -236,6 +252,8 @@ export function NotesScreen() {
 
       {loading ? (
         <LoadingState />
+      ) : loadError && notes.length === 0 ? (
+        <ErrorState onRetry={load} message={loadError} />
       ) : (
         <Screen onRefresh={async () => load()}>
           {visibleNotes.length === 0 && (
@@ -300,13 +318,11 @@ export function NotesScreen() {
         <Ionicons name="add" size={26} color={colors.accentText} />
       </Pressable>
 
-      <Modal visible={sheetVisible} animationType="slide" transparent onRequestClose={() => setSheetVisible(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={() => setSheetVisible(false)}>
-          <Pressable style={{ marginTop: 'auto', backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%' }}>
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{form.id ? 'Edit note' : 'New note'}</Text>
-            </View>
-            <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+      <Sheet visible={sheetVisible} onClose={() => setSheetVisible(false)} maxHeightPct="88%">
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{form.id ? 'Edit note' : 'New note'}</Text>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
               <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Athlete</Text>
               <Pressable
                 onPress={() => setAthleteSearchOpen((v) => !v)}
@@ -414,13 +430,13 @@ export function NotesScreen() {
                 />
               </View>
 
-              {error && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{error}</Text>}
-              <Button label="Save" onPress={handleSave} loading={saving} />
-              {form.id && <Button label="Delete" variant="danger" onPress={handleDelete} loading={saving} />}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          {error && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{error}</Text>}
+          <Button label="Save" onPress={handleSave} loading={saving} />
+          {form.id && (
+            <Button label={confirmDelete ? 'Tap again to delete' : 'Delete'} variant="danger" onPress={handleDelete} loading={saving} />
+          )}
+        </ScrollView>
+      </Sheet>
     </View>
   );
 }

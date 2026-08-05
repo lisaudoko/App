@@ -790,6 +790,17 @@ export const repository = {
     return toWorkout(data);
   },
 
+  /** AI-generates a set of blocks for a week, constrained to the app's known exercise vocabulary. Not auto-saved — caller merges into the editable draft. */
+  async generateWorkout(input: { eventGroup: EventGroup; weekNumber: number; intensityPct?: number; focus?: string }): Promise<{
+    blocks: { type: BlockType; label: string; exercises: Omit<BlockExercise, 'id' | 'category' | 'weightLbs'>[] }[];
+  }> {
+    const { data, error } = await supabase.functions.invoke<{
+      blocks: { type: BlockType; label: string; exercises: Omit<BlockExercise, 'id' | 'category' | 'weightLbs'>[] }[];
+    }>('generate-workout', { body: input });
+    if (error || !data) throw error ?? new Error('Could not generate workout');
+    return data;
+  },
+
   async listWorkoutWeeks(): Promise<number[]> {
     const profile = await myProfile();
     if (!profile.programme_id) return [];

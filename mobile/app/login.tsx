@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { MotiView } from 'moti';
@@ -32,8 +32,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <Screen>
+      <Screen>
           <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 350 }}>
             <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 32 }}>
               <Text style={{ fontSize: 28, fontWeight: '600', color: colors.text }}>TRU Performance</Text>
@@ -43,7 +42,10 @@ export default function LoginScreen() {
             <TextField
               label="Email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => {
+                setEmail(t);
+                if (error) clearError();
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -58,7 +60,10 @@ export default function LoginScreen() {
               ref={passwordRef}
               label="Password"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(t) => {
+                setPassword(t);
+                if (error) clearError();
+              }}
               secureTextEntry
               revealable
               textContentType="password"
@@ -121,8 +126,7 @@ export default function LoginScreen() {
               </View>
             )}
           </MotiView>
-        </Screen>
-      </KeyboardAvoidingView>
+      </Screen>
     </SafeAreaView>
   );
 }

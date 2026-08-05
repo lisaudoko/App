@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, Share, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +30,7 @@ export default function AddAthleteScreen() {
   const [done, setDone] = useState(false);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     repository.getProgrammeConfig().then((config) => {
@@ -75,20 +77,40 @@ export default function AddAthleteScreen() {
     }
   }
 
+  function credentialsMessage() {
+    return `You've been added to TRU Performance.\n\nEmail: ${email.trim()}\nTemporary password: ${password}\n\nSign in with these at the app, then change your password from Settings.`;
+  }
+
+  async function handleCopyCredentials() {
+    await Clipboard.setStringAsync(credentialsMessage());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleShareCredentials() {
+    try {
+      await Share.share({ message: credentialsMessage() });
+    } catch {
+      // user dismissed the share sheet — nothing to do
+    }
+  }
+
   if (done) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScreenHeader title="Add athlete" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(coach)/(tabs)'))} />
-        <Screen scroll={false} style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <Screen style={{ alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
           <Text style={{ fontSize: 50, textAlign: 'center' }}>✅</Text>
           <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
             {name} added
           </Text>
           <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
-            Share these login details with them:{'\n'}
+            Send these login details to them:{'\n'}
             <Text style={{ fontWeight: '600', color: colors.text }}>{email}</Text> / {password}
           </Text>
-          <Button label="Back to squad" onPress={() => router.replace('/(coach)/(tabs)')} />
+          <Button label="Share with athlete" onPress={handleShareCredentials} />
+          <Button label={copied ? 'Copied!' : 'Copy login details'} variant="outline" onPress={handleCopyCredentials} />
+          <Button label="Back to squad" variant="outline" onPress={() => router.replace('/(coach)/(tabs)')} />
           <Button
             label="Add another"
             variant="outline"
