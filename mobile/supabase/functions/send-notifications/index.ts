@@ -24,7 +24,9 @@ function directionFor(eventGroup: string | null): Direction {
 }
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const expo = new Expo();
+// EXPO_ACCESS_TOKEN is optional but raises Expo's push rate limits and improves
+// receipt/error reporting — set it as a Supabase Edge Function secret in production.
+const expo = new Expo({ accessToken: Deno.env.get('EXPO_ACCESS_TOKEN') });
 
 type NotificationType = 'pb' | 'missing_log' | 'high_rpe' | 'anomaly' | 'qualifying_risk' | 'meet_pb' | 'meet_qualified';
 

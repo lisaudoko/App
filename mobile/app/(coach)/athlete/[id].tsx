@@ -38,8 +38,8 @@ export default function CoachAthleteDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    repository.getMeetResultsForAthlete(id).then(setMeetResults);
-    repository.getAthleteNotes({ athleteId: id }).then(setNotes);
+    repository.getMeetResultsForAthlete(id).then(setMeetResults).catch(() => {});
+    repository.getAthleteNotes({ athleteId: id }).then(setNotes).catch(() => {});
   }, [id]);
 
   const meetPoints = useMemo(

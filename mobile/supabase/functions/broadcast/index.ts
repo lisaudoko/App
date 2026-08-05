@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     if (insertError) throw insertError;
 
     const { data: tokenRows } = await adminClient.from('profiles').select('id, expo_push_token').in('id', targetIds);
-    const expo = new Expo();
+    const expo = new Expo({ accessToken: Deno.env.get('EXPO_ACCESS_TOKEN') });
     const title = `Message from ${coach.full_name ?? 'your coach'}`;
     const pushMessages = (tokenRows ?? [])
       .filter((r) => r.expo_push_token && Expo.isExpoPushToken(r.expo_push_token))

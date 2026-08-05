@@ -75,7 +75,7 @@ export default function AthleteProfileScreen() {
 
   const [meetResults, setMeetResults] = useState<{ entry: MeetEntry; meet: Meet }[]>([]);
   useEffect(() => {
-    repository.getMyMeetEntries().then(setMeetResults);
+    repository.getMyMeetEntries().then(setMeetResults).catch(() => {});
   }, []);
 
   const bestByEvent = useMemo(() => {

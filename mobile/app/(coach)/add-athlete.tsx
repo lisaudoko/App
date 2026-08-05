@@ -33,11 +33,14 @@ export default function AddAthleteScreen() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    repository.getProgrammeConfig().then((config) => {
-      const groups = config?.eventGroups ?? [];
-      setProgrammeEventGroups(groups);
-      if (groups.length === 1) setEventGroup(groups[0]);
-    });
+    repository
+      .getProgrammeConfig()
+      .then((config) => {
+        const groups = config?.eventGroups ?? [];
+        setProgrammeEventGroups(groups);
+        if (groups.length === 1) setEventGroup(groups[0]);
+      })
+      .catch(() => {});
   }, []);
 
   const canSubmit = !!name && !!email && password.length >= 6 && !!eventGroup && hasPermission;

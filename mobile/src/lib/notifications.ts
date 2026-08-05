@@ -38,10 +38,7 @@ export async function registerPushToken(userId: string): Promise<string | null> 
     }
 
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-    if (!projectId) {
-      console.warn('No EAS project id configured — skipping push token registration.');
-      return null;
-    }
+    if (!projectId) return null;
 
     const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
     const token = data;
@@ -50,8 +47,7 @@ export async function registerPushToken(userId: string): Promise<string | null> 
     if (error) throw error;
 
     return token;
-  } catch (err) {
-    console.warn('Push token registration failed:', err);
+  } catch {
     return null;
   }
 }

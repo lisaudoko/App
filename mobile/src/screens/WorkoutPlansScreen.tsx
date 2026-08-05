@@ -104,21 +104,31 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
   const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
-    repository.getProgrammeConfig().then((c) => setEventGroups(c?.eventGroups ?? []));
-    repository.listWorkoutWeeks().then((weeks) => {
-      setExistingWeeks(weeks);
-      setWeek(weeks.length ? weeks[weeks.length - 1] : 1);
-    });
+    repository.getProgrammeConfig().then((c) => setEventGroups(c?.eventGroups ?? [])).catch(() => {});
+    repository
+      .listWorkoutWeeks()
+      .then((weeks) => {
+        setExistingWeeks(weeks);
+        setWeek(weeks.length ? weeks[weeks.length - 1] : 1);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    repository.getWorkoutForWeek(week).then((w) => {
-      if (cancelled) return;
-      setWorkout(w ?? defaultWorkoutTemplate(week));
-      setLoading(false);
-    });
+    repository
+      .getWorkoutForWeek(week)
+      .then((w) => {
+        if (cancelled) return;
+        setWorkout(w ?? defaultWorkoutTemplate(week));
+      })
+      .catch(() => {
+        if (!cancelled) setWorkout(defaultWorkoutTemplate(week));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };

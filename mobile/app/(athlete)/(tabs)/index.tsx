@@ -104,15 +104,17 @@ export default function AthleteWorkoutScreen() {
         setWorkout(w);
         if (w && w.blocks.length > 0) setExpandedBlocks(new Set([w.blocks[0].id]));
       })
+      .catch(() => {})
       .finally(() => setWorkoutLoading(false));
   }, [data.mesocycleWeek]);
 
   React.useEffect(() => {
     if (!data.athlete) return;
-    repository.getWorkoutProgress(data.athlete.id, data.mesocycleWeek).then((ids) => {
-      setCompletedIds(ids);
-      setHydrated(true);
-    });
+    repository
+      .getWorkoutProgress(data.athlete.id, data.mesocycleWeek)
+      .then((ids) => setCompletedIds(ids))
+      .catch(() => {})
+      .finally(() => setHydrated(true));
   }, [data.athlete, data.mesocycleWeek]);
 
   const eventGroup = data.athlete?.eventGroup ?? 'throws';

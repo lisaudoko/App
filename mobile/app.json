@@ -10,14 +10,16 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nexgenoptimize.truperformance",
+      "bundleIdentifier": "com.truperformance.app",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Used to upload athlete profile photos",
+        "NSPhotoLibraryUsageDescription": "Used to upload athlete profile photos"
       }
     },
     "android": {
-      "package": "com.nexgenoptimize.truperformance",
+      "package": "com.truperformance.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

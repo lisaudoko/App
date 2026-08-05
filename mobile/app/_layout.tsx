@@ -10,6 +10,8 @@ import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } fro
 import { AppThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
 import { useAuthStore } from '@/store/authStore';
 import { initRevenueCat } from '@/lib/revenuecat';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 initRevenueCat();
@@ -62,6 +64,7 @@ function RootNavigation() {
         <Stack.Screen name="(coach)" />
         <Stack.Screen name="(athlete)" />
       </Stack>
+      <OfflineBanner />
     </NavigationThemeProvider>
   );
 }
@@ -71,7 +74,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AppThemeProvider>
-          <RootNavigation />
+          <ErrorBoundary>
+            <RootNavigation />
+          </ErrorBoundary>
         </AppThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

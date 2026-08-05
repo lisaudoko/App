@@ -37,17 +37,19 @@ export default function AthleteMeetEntryScreen() {
 
   useEffect(() => {
     if (!id || !athleteId) return;
-    Promise.all([repository.getMeetEntryByAthlete(id, athleteId), repository.getAthlete(athleteId)]).then(([e, a]) => {
-      setEntry(e);
-      setAthlete(a ?? null);
-      if (e) {
-        setAttempts(padAttempts(e.attempts));
-        setTechnicalCues(e.technicalCues ?? '');
-        setCoachNotes(e.coachNotes ?? '');
-        setNextSteps(e.nextSteps ?? '');
-      }
-      setLoading(false);
-    });
+    Promise.all([repository.getMeetEntryByAthlete(id, athleteId), repository.getAthlete(athleteId)])
+      .then(([e, a]) => {
+        setEntry(e);
+        setAthlete(a ?? null);
+        if (e) {
+          setAttempts(padAttempts(e.attempts));
+          setTechnicalCues(e.technicalCues ?? '');
+          setCoachNotes(e.coachNotes ?? '');
+          setNextSteps(e.nextSteps ?? '');
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [id, athleteId]);
 
   const eventGroup = athlete?.eventGroup ?? 'throws';

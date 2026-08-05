@@ -43,19 +43,21 @@ export default function EditAthleteScreen() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([repository.getAthlete(id), repository.getProgrammeConfig()]).then(([a, config]) => {
-      if (!a) return;
-      setAthlete(a);
-      setName(a.name);
-      setEvent(a.event);
-      setEventGroup(a.eventGroup ?? 'throws');
-      setGroup(a.group);
-      setQualifyingEvent(a.qualifyingEvent);
-      setQualifyingStandard(a.qualifyingStandard ? String(a.qualifyingStandard) : '');
-      setBaselineMark(a.baselineMark ? String(a.baselineMark) : '');
-      if (config?.eventGroups.length) setProgrammeEventGroups(config.eventGroups);
-      setLoading(false);
-    });
+    Promise.all([repository.getAthlete(id), repository.getProgrammeConfig()])
+      .then(([a, config]) => {
+        if (!a) return;
+        setAthlete(a);
+        setName(a.name);
+        setEvent(a.event);
+        setEventGroup(a.eventGroup ?? 'throws');
+        setGroup(a.group);
+        setQualifyingEvent(a.qualifyingEvent);
+        setQualifyingStandard(a.qualifyingStandard ? String(a.qualifyingStandard) : '');
+        setBaselineMark(a.baselineMark ? String(a.baselineMark) : '');
+        if (config?.eventGroups.length) setProgrammeEventGroups(config.eventGroups);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [id]);
 
   async function handleSaveProfile() {

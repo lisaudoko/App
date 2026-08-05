@@ -35,6 +35,7 @@ export default function MeetSummaryScreen() {
         setEntries(e);
         setNotes(m?.generalNotes ?? '');
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
 

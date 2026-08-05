@@ -21,11 +21,14 @@ export default function ProgrammeConfigScreen() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    repository.getProgrammeConfig().then((c) => {
-      setConfig(c);
-      setEventGroups(c?.eventGroups ?? []);
-      setLoading(false);
-    });
+    repository
+      .getProgrammeConfig()
+      .then((c) => {
+        setConfig(c);
+        setEventGroups(c?.eventGroups ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   function toggleGroup(group: EventGroup) {

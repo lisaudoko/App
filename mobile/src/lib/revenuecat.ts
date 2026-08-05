@@ -12,10 +12,7 @@ let configured = false;
 export function initRevenueCat(): void {
   if (configured) return;
   const apiKey = Platform.OS === 'ios' ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY : process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY;
-  if (!apiKey) {
-    console.warn('No RevenueCat API key configured for this platform — subscriptions will not work.');
-    return;
-  }
+  if (!apiKey) return;
   Purchases.configure({ apiKey });
   configured = true;
 }
@@ -25,8 +22,8 @@ export async function identifyRevenueCatUser(userId: string): Promise<void> {
   if (!configured) return;
   try {
     await Purchases.logIn(userId);
-  } catch (err) {
-    console.warn('RevenueCat logIn failed:', err);
+  } catch {
+    // non-fatal — RevenueCat will re-sync identity on next launch
   }
 }
 
@@ -35,8 +32,8 @@ export async function signOutRevenueCat(): Promise<void> {
   if (!configured) return;
   try {
     await Purchases.logOut();
-  } catch (err) {
-    console.warn('RevenueCat logOut failed:', err);
+  } catch {
+    // non-fatal — RevenueCat will re-sync identity on next launch
   }
 }
 
