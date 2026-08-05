@@ -53,6 +53,13 @@
           "color": "#111111"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9a60ed22-53a7-4444-8b79-ca96e2dd7a6a"
+      }
+    },
+    "owner": "lisaudoko"
   }
 }
