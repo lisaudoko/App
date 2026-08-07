@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -11,6 +11,7 @@ import { Card } from '@/components/Card';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 
 const ALL_GROUPS: EventGroup[] = ['throws', 'sprints', 'jumps'];
 
@@ -26,14 +27,13 @@ export default function EditAthleteScreen() {
   const [event, setEvent] = useState('');
   const [eventGroup, setEventGroup] = useState<EventGroup>('throws');
   const [group, setGroup] = useState('');
-  const [qualifyingEvent, setQualifyingEvent] = useState('');
-  const [qualifyingStandard, setQualifyingStandard] = useState('');
   const [baselineMark, setBaselineMark] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [classCategory, setClassCategory] = useState('');
   const [status, setStatus] = useState<AthleteStatus>('active');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [squat, setSquat] = useState('');
   const [bench, setBench] = useState('');
@@ -44,8 +44,10 @@ export default function EditAthleteScreen() {
   const [testError, setTestError] = useState<string | null>(null);
   const [testSaved, setTestSaved] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!id) return;
+    setLoading(true);
+    setLoadError(null);
     Promise.all([repository.getAthlete(id), repository.getProgrammeConfig()])
       .then(([a, config]) => {
         if (!a) return;
@@ -54,17 +56,19 @@ export default function EditAthleteScreen() {
         setEvent(a.event);
         setEventGroup(a.eventGroup ?? 'throws');
         setGroup(a.group);
-        setQualifyingEvent(a.qualifyingEvent);
-        setQualifyingStandard(a.qualifyingStandard ? String(a.qualifyingStandard) : '');
         setBaselineMark(a.baselineMark ? String(a.baselineMark) : '');
         setDateOfBirth(a.dateOfBirth ?? '');
         setClassCategory(a.classCategory ?? '');
         setStatus(a.status);
         if (config?.eventGroups.length) setProgrammeEventGroups(config.eventGroups);
       })
-      .catch(() => {})
+      .catch((err) => setLoadError(err instanceof Error ? err.message : 'Could not load athlete'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function handleSaveProfile() {
     if (!id) return;
@@ -76,8 +80,6 @@ export default function EditAthleteScreen() {
         event,
         eventGroup,
         group,
-        qualifyingEvent,
-        qualifyingStandard: qualifyingStandard ? parseFloat(qualifyingStandard) : undefined,
         baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
         dateOfBirth: dateOfBirth.trim() || null,
         classCategory: classCategory.trim() || null,
@@ -115,7 +117,8 @@ export default function EditAthleteScreen() {
     }
   }
 
-  if (loading || !athlete) return <LoadingState />;
+  if (loading) return <LoadingState />;
+  if (loadError || !athlete) return <ErrorState message={loadError ?? undefined} onRetry={load} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -206,13 +209,6 @@ export default function EditAthleteScreen() {
             })}
           </View>
 
-          <TextField label="Qualifying event" value={qualifyingEvent} onChangeText={setQualifyingEvent} />
-          <TextField
-            label={`Qualifying standard (${eventGroup === 'sprints' ? 'seconds' : 'm'})`}
-            keyboardType="decimal-pad"
-            value={qualifyingStandard}
-            onChangeText={setQualifyingStandard}
-          />
           <TextField
             label={`Baseline mark (${eventGroup === 'sprints' ? 'seconds' : 'm'})`}
             keyboardType="decimal-pad"

@@ -10,16 +10,16 @@ interface Props {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'danger' | 'outline';
+  variant?: 'primary' | 'danger' | 'outline' | 'muted';
 }
 
 export function Button({ label, onPress, loading, disabled, variant = 'primary' }: Props) {
   const { colors } = useAppTheme();
 
   const backgroundColor =
-    variant === 'primary' ? colors.accent : variant === 'danger' ? colors.danger : 'transparent';
+    variant === 'primary' ? colors.accent : variant === 'danger' ? colors.danger : variant === 'muted' ? colors.border : 'transparent';
   // Secondary/ghost buttons are accent-bordered with an accent label — never bare text with no container.
-  const textColor = variant === 'outline' ? colors.accent : colors.accentText;
+  const textColor = variant === 'outline' ? colors.accent : variant === 'muted' ? colors.textMuted : colors.accentText;
   const borderColor = variant === 'outline' ? colors.accent : backgroundColor;
 
   return (

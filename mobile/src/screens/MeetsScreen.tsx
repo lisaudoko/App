@@ -30,10 +30,6 @@ function emptyForm() {
   return { name: '', date: '', location: '', meetType: null as MeetType | null, conditions: '' };
 }
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
   const { colors } = useAppTheme();
   const [tab, setTab] = useState<'schedule' | 'standards'>('schedule');
@@ -63,11 +59,13 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
     load();
   }, [load]);
 
-  const { upcoming, past } = useMemo(() => {
-    const today = todayIso();
-    const up = meets.filter((m) => m.date >= today).sort((a, b) => a.date.localeCompare(b.date));
-    const past = meets.filter((m) => m.date < today).sort((a, b) => b.date.localeCompare(a.date));
-    return { upcoming: up, past };
+  // A meet stays in "Upcoming" until the coach explicitly marks it completed — not
+  // automatically once its date passes — so a just-finished meet doesn't silently fall
+  // out of view before results/notes are wrapped up.
+  const { upcoming, completed } = useMemo(() => {
+    const up = meets.filter((m) => !m.completed).sort((a, b) => a.date.localeCompare(b.date));
+    const done = meets.filter((m) => m.completed).sort((a, b) => b.date.localeCompare(a.date));
+    return { upcoming: up, completed: done };
   }, [meets]);
 
   function openAdd() {
@@ -188,12 +186,12 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
             </>
           )}
 
-          {past.length > 0 && (
+          {completed.length > 0 && (
             <>
               <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                Past
+                Completed
               </Text>
-              {past.map((meet) => (
+              {completed.map((meet) => (
                 <MeetCard key={meet.id} meet={meet} />
               ))}
             </>

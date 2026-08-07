@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
       qualifying_event: body.qualifyingEvent ?? body.event ?? null,
       date_of_birth: body.dateOfBirth ?? null,
       class_category: body.classCategory ?? null,
+      // The coach chose this password, not the athlete — force a change on first login.
+      must_change_password: true,
     });
     if (profileError) {
       // Roll back the orphaned auth user if the profile insert failed.

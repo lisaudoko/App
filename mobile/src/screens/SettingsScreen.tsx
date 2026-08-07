@@ -208,6 +208,9 @@ export function SettingsScreen() {
         <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
           Account
         </Text>
+        <Card style={{ padding: 0 }}>
+          <SettingsLink icon="key-outline" label="Change password" onPress={() => router.push('/change-password')} last />
+        </Card>
         <Button label="Log out" variant="outline" onPress={handleLogout} />
         <Button label="Delete account" variant="danger" onPress={() => setConfirmVisible(true)} />
 

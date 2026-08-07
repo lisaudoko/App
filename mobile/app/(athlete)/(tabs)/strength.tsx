@@ -100,6 +100,36 @@ export default function AthleteStrengthScreen() {
           )}
         </Card>
 
+        {tests.length > 0 && (
+          <>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Past tests
+            </Text>
+            <Card>
+              {[...tests].reverse().map((t, i) => (
+                <View
+                  key={`${t.date}-${i}`}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    borderBottomWidth: i === tests.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, color: colors.textMuted }}>
+                    {new Date(t.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: colors.text }}>
+                    Sq {t.squat} · Bn {t.bench} · Cl {t.clean} · Dl {t.deadlift}
+                  </Text>
+                </View>
+              ))}
+            </Card>
+          </>
+        )}
+
         <Card>
           <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Log a strength test</Text>
           <TextField label="Date (YYYY-MM-DD)" value={testDate} onChangeText={setTestDate} keyboardType="numbers-and-punctuation" />

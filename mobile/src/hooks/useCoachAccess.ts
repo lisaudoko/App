@@ -9,19 +9,27 @@ export function useCoachAccess() {
   const coachId = useAuthStore((s) => (s.session?.role === 'coach' ? s.session.id : undefined));
   const [access, setAccess] = useState<CoachAccess>(DEFAULT_ACCESS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!coachId) {
       setAccess(DEFAULT_ACCESS);
       return;
     }
-    const result = await getCoachAccess(coachId);
-    setAccess(result);
+    try {
+      const result = await getCoachAccess(coachId);
+      setAccess(result);
+      setError(null);
+    } catch (err) {
+      // Leaves `access` at its last-known value — surfaced via `error` so a caller can
+      // retry rather than this failing silently and the gate never updating.
+      setError(err instanceof Error ? err.message : 'Could not check subscription access');
+    }
   }, [coachId]);
 
   useEffect(() => {
     refresh().finally(() => setLoading(false));
   }, [refresh]);
 
-  return { access, loading, refresh };
+  return { access, loading, error, refresh };
 }

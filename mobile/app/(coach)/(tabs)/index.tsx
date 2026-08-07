@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -66,6 +66,7 @@ export default function SquadScreen() {
   const [broadcastVisible, setBroadcastVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [statSheet, setStatSheet] = useState<'logged' | 'missing' | 'alerts' | null>(null);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     repository.getMyProgrammeJoinCode().then(setJoinCode).catch(() => {});
@@ -89,6 +90,26 @@ export default function SquadScreen() {
 
   const currentWeek = useMemo(() => currentWeekFromLogs(data.weeklyLogs), [data.weeklyLogs]);
   const currentWeekLabel = currentWeek > 0 ? `W${currentWeek}` : 'No results logged yet';
+
+  // Dismissals are scoped per week_number, so switching to a new week naturally starts
+  // with none dismissed — refetching here (rather than filtering a stale set) is what
+  // keeps that true without any explicit "reset" step.
+  useEffect(() => {
+    if (currentWeek === 0) {
+      setDismissedIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    repository
+      .getMissingLogDismissals(currentWeek)
+      .then((ids) => {
+        if (!cancelled) setDismissedIds(new Set(ids));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [currentWeek]);
 
   const rows: Row[] = useMemo(() => {
     return data.athletes.map((athlete) => {
@@ -210,13 +231,24 @@ export default function SquadScreen() {
   );
 
   const loggedRows = rows.filter((r) => r.loggedThisWeek);
-  const missingRows = rows.filter((r) => !r.loggedThisWeek);
+  const missingRows = rows.filter((r) => !r.loggedThisWeek && !dismissedIds.has(r.athlete.id));
   const alertRows = rows.filter((r) => r.pillTone !== 'success');
   const loggedCount = loggedRows.length;
   const missingCount = missingRows.length;
   const alertCount = alertRows.length;
   const statSheetRows = statSheet === 'logged' ? loggedRows : statSheet === 'missing' ? missingRows : statSheet === 'alerts' ? alertRows : [];
   const unreadNotifications = data.notifications.filter((n) => !n.read).length;
+
+  function handleDismissMissing(athleteId: string) {
+    setDismissedIds((prev) => new Set(prev).add(athleteId));
+    repository.dismissMissingLog(athleteId, currentWeek).catch(() => {
+      setDismissedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(athleteId);
+        return next;
+      });
+    });
+  }
 
   if (error && !loading && data.athletes.length === 0) return <ErrorState onRetry={refresh} />;
 
@@ -622,20 +654,35 @@ export default function SquadScreen() {
               detail = row.alertMessage ?? (row.loggedThisWeek ? row.pillLabel : 'No result logged this week');
             }
             return (
-              <Pressable
+              <View
                 key={row.athlete.id}
-                onPress={() => {
-                  setStatSheet(null);
-                  router.push(`/(coach)/athlete/${row.athlete.id}`);
-                }}
-                style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}
               >
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, color: colors.text }}>{row.athlete.name}</Text>
-                  <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{detail}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-              </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setStatSheet(null);
+                    router.push(`/(coach)/athlete/${row.athlete.id}`);
+                  }}
+                  style={({ pressed }) => [{ flex: 1, flexDirection: 'row', alignItems: 'center', opacity: pressed ? 0.7 : 1 }]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, color: colors.text }}>{row.athlete.name}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{detail}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+                </Pressable>
+                {statSheet === 'missing' && (
+                  <Pressable
+                    onPress={() => handleDismissMissing(row.athlete.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Dismiss ${row.athlete.name} from missing this week`}
+                    hitSlop={8}
+                    style={{ paddingLeft: 12 }}
+                  >
+                    <Ionicons name="close-circle" size={20} color={colors.textFaint} />
+                  </Pressable>
+                )}
+              </View>
             );
           })}
         </ScrollView>

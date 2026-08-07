@@ -28,7 +28,7 @@ const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPAB
 // receipt/error reporting — set it as a Supabase Edge Function secret in production.
 const expo = new Expo({ accessToken: Deno.env.get('EXPO_ACCESS_TOKEN') });
 
-type NotificationType = 'pb' | 'missing_log' | 'high_rpe' | 'anomaly' | 'qualifying_risk' | 'meet_pb' | 'meet_qualified';
+type NotificationType = 'pb' | 'missing_log' | 'high_rpe' | 'anomaly' | 'qualifying_risk' | 'meet_pb' | 'meet_qualified' | 'meet_added';
 
 interface WeeklyLogRow {
   id: string;
@@ -49,14 +49,19 @@ interface MeetEntryRow {
   qualified: boolean;
 }
 
-async function pushToUser(userId: string, title: string, body: string, athleteId: string) {
+interface MeetEntryCreatedRow {
+  id: string;
+  meet_id: string;
+  athlete_id: string;
+  programme_id: string;
+}
+
+async function pushToUser(userId: string, title: string, body: string, data: Record<string, unknown>) {
   const { data: profile } = await supabase.from('profiles').select('expo_push_token').eq('id', userId).single();
   const token = profile?.expo_push_token;
   if (!token || !Expo.isExpoPushToken(token)) return;
   try {
-    // athleteId lets the app deep-link straight to that athlete's detail
-    // screen when the notification is tapped.
-    await expo.sendPushNotificationsAsync([{ to: token, sound: 'default', title, body, data: { athleteId } }]);
+    await expo.sendPushNotificationsAsync([{ to: token, sound: 'default', title, body, data }]);
   } catch (err) {
     console.error('Push send failed', userId, err);
   }
@@ -71,13 +76,16 @@ async function log(
   notifyCoach: boolean,
   athleteTitle: string,
   coachTitle: string,
+  // athleteId always rides along so the app can deep-link straight to that athlete's detail
+  // screen (the original behavior) — extraData adds more without disturbing existing callers.
+  extraData: Record<string, unknown> = {},
 ) {
   const { error } = await supabase
     .from('notifications_log')
     .insert({ athlete_id: athleteId, programme_id: programmeId, type, message });
   if (error) console.error('notifications_log insert failed', error);
 
-  if (notifyAthlete) await pushToUser(athleteId, athleteTitle, message, athleteId);
+  if (notifyAthlete) await pushToUser(athleteId, athleteTitle, message, { athleteId, ...extraData });
   if (notifyCoach) {
     const { data: coaches } = await supabase
       .from('profiles')
@@ -85,9 +93,26 @@ async function log(
       .eq('programme_id', programmeId)
       .eq('role', 'coach');
     for (const coach of coaches ?? []) {
-      await pushToUser(coach.id, coachTitle, message, athleteId);
+      await pushToUser(coach.id, coachTitle, message, { athleteId, ...extraData });
     }
   }
+}
+
+/** Fires on every new meet_entries row (see 20260101000019_meet_added_notifications.sql) —
+ *  distinct from checkMeetEntryEvent below, which only fires once a mark/qualified value
+ *  exists. This is purely "you've been entered," athlete-only (no coach copy, matching the
+ *  independent notify-flags pattern used elsewhere in this file). */
+async function notifyMeetEntryCreated(record: MeetEntryCreatedRow) {
+  const [{ data: athlete }, { data: meet }] = await Promise.all([
+    supabase.from('profiles').select('full_name').eq('id', record.athlete_id).single(),
+    supabase.from('meets').select('name, date').eq('id', record.meet_id).maybeSingle(),
+  ]);
+  const meetName = meet?.name ?? 'a meet';
+  const message = `${athlete?.full_name ?? 'You'} ${meet?.date ? `were entered in ${meetName} on ${meet.date}` : `were entered in ${meetName}`} — add it to your calendar?`;
+  await log(record.athlete_id, record.programme_id, 'meet_added', message, true, false, 'Added to a meet', '', {
+    meetId: record.meet_id,
+    kind: 'meet_added',
+  });
 }
 
 async function checkMeetEntryEvent(record: MeetEntryRow, oldRecord: MeetEntryRow | null, athleteName: string, eventGroup: string | null) {
@@ -296,6 +321,14 @@ Deno.serve(async (req) => {
       await checkMeetEntryEvent(record, oldRecord, athlete?.full_name ?? 'Athlete', athlete?.event_group ?? null);
 
       return new Response(JSON.stringify({ ok: true, mode: 'meet_entry' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.trigger === 'meet_entry_created' && body.record) {
+      await notifyMeetEntryCreated(body.record as MeetEntryCreatedRow);
+
+      return new Response(JSON.stringify({ ok: true, mode: 'meet_entry_created' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

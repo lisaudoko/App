@@ -9,6 +9,7 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 import { EventConfigForm, type EventConfigFormValue } from '@/components/EventConfigForm';
 
 const ALL_GROUPS: EventGroup[] = ['throws', 'sprints', 'jumps'];
@@ -18,18 +19,25 @@ export default function ProgrammeConfigScreen() {
   const [config, setConfig] = useState<ProgrammeConfig | null>(null);
   const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
+  const load = React.useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
     repository
       .getProgrammeConfig()
       .then((c) => {
         setConfig(c);
         setEventGroups(c?.eventGroups ?? []);
       })
-      .catch(() => {})
+      .catch((err) => setLoadError(err instanceof Error ? err.message : 'Could not load your programme setup'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   function toggleGroup(group: EventGroup) {
     setSaved(false);
@@ -46,7 +54,10 @@ export default function ProgrammeConfigScreen() {
       sprints: eventGroups.includes('sprints') ? value.sprints : (config?.sprints ?? null),
       jumps: eventGroups.includes('jumps') ? value.jumps : (config?.jumps ?? null),
     };
-    await repository.saveProgrammeConfig({ eventGroups, ...merged });
+    await Promise.all([
+      repository.saveProgrammeConfig({ eventGroups, ...merged }),
+      repository.updateSeasonStartDate(merged.seasonStartDate || null),
+    ]);
     setConfig((prev) => (prev ? { ...prev, eventGroups, ...merged } : { eventGroups, ...merged }));
     setSaved(true);
   }
@@ -56,6 +67,8 @@ export default function ProgrammeConfigScreen() {
       <ScreenHeader title="Programme setup" onBack={() => router.back()} />
       {loading ? (
         <LoadingState />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={load} />
       ) : (
         <Screen>
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -92,13 +105,12 @@ export default function ProgrammeConfigScreen() {
             })}
           </Card>
           <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 6 }}>
-            Unchecking a group hides it for now — its saved standards and settings aren&apos;t lost, and come back if you
-            re-enable it.
+            Unchecking a group hides it for now — its saved settings aren&apos;t lost, and come back if you re-enable it.
           </Text>
 
           {eventGroups.length === 0 ? (
             <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 16 }}>
-              Select at least one event group to configure its standards and training setup.
+              Select at least one event group to configure its training setup.
             </Text>
           ) : (
             <View style={{ marginTop: 16 }}>

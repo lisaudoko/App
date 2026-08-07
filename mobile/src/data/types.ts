@@ -20,20 +20,17 @@ export type MarkUnit = 'm' | 's' | 'kg' | 'lbs';
 export type { EventGroup } from '@/lib/formatPerformance';
 
 export interface ThrowsConfig {
-  qualifyingEventName: string;
   strengthLifts: WorkoutLift[];
   calculationMethod: 'percent_1rm' | 'rpe_based' | 'manual';
 }
 
 export interface SprintsConfig {
-  qualifyingEventName: string;
   paceZones: { name: string; minPct: number; maxPct: number | null }[];
   repDistances: number[];
   restUnit: 'seconds' | 'minutes';
 }
 
 export interface JumpsConfig {
-  qualifyingEventName: string;
   trackApproachRuns: boolean;
   trackPlyoLoad: boolean;
   strengthLifts: WorkoutLift[];
@@ -44,8 +41,10 @@ export interface ProgrammeConfig {
   throws: ThrowsConfig | null;
   sprints: SprintsConfig | null;
   jumps: JumpsConfig | null;
-  qualifyingStandards: Record<string, number>;
   competitionDate: string | null;
+  /** Monday of training week 1 — anchors week_number to real calendar dates for the Calendar
+   *  screen. Null until the coach sets it (programmes that existed before this feature shipped). */
+  seasonStartDate: string | null;
 }
 
 export interface LiftMaxes {
@@ -173,6 +172,7 @@ export interface Meet {
   meetType: MeetType | null;
   conditions: string | null;
   generalNotes: string | null;
+  completed: boolean;
 }
 
 export interface MeetAttempt {
@@ -241,6 +241,9 @@ export interface UserAccount {
   role: Role;
   programmeName: string;
   athleteId?: string;
+  /** Set on coach-created athlete accounts (coach chooses the initial password) — forces a
+   *  change-password prompt on first login, cleared once the athlete sets their own. */
+  mustChangePassword: boolean;
 }
 
 export interface SessionCredentials {

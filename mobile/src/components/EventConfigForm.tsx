@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
-import { EVENT_GROUP_EVENTS, EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
+import { EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
+import { isMonday } from '@/lib/calendarDates';
 import type { JumpsConfig, ProgrammeConfig, SprintsConfig, ThrowsConfig, WorkoutLift } from '@/data/types';
 import { Card } from './Card';
 import { TextField } from './TextField';
@@ -16,11 +17,10 @@ const LIFT_OPTIONS: { value: WorkoutLift; label: string }[] = [
 ];
 
 function defaultThrows(): ThrowsConfig {
-  return { qualifyingEventName: '', strengthLifts: ['squat', 'bench', 'clean', 'deadlift'], calculationMethod: 'percent_1rm' };
+  return { strengthLifts: ['squat', 'bench', 'clean', 'deadlift'], calculationMethod: 'percent_1rm' };
 }
 function defaultSprints(): SprintsConfig {
   return {
-    qualifyingEventName: '',
     paceZones: [
       { name: 'Speed', minPct: 95, maxPct: null },
       { name: 'Speed Endurance', minPct: 85, maxPct: 94 },
@@ -32,15 +32,15 @@ function defaultSprints(): SprintsConfig {
   };
 }
 function defaultJumps(): JumpsConfig {
-  return { qualifyingEventName: '', trackApproachRuns: true, trackPlyoLoad: true, strengthLifts: ['squat', 'bench', 'clean', 'deadlift'] };
+  return { trackApproachRuns: true, trackPlyoLoad: true, strengthLifts: ['squat', 'bench', 'clean', 'deadlift'] };
 }
 
 export interface EventConfigFormValue {
   throws: ThrowsConfig | null;
   sprints: SprintsConfig | null;
   jumps: JumpsConfig | null;
-  qualifyingStandards: Record<string, number>;
   competitionDate: string;
+  seasonStartDate: string;
 }
 
 interface Props {
@@ -55,12 +55,8 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
   const [throwsConfig, setThrowsConfig] = useState<ThrowsConfig>(initial?.throws ?? defaultThrows());
   const [sprintsConfig, setSprintsConfig] = useState<SprintsConfig>(initial?.sprints ?? defaultSprints());
   const [jumpsConfig, setJumpsConfig] = useState<JumpsConfig>(initial?.jumps ?? defaultJumps());
-  const [standards, setStandards] = useState<Record<string, string>>(() => {
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(initial?.qualifyingStandards ?? {})) out[k] = String(v);
-    return out;
-  });
   const [competitionDate, setCompetitionDate] = useState(initial?.competitionDate ?? '');
+  const [seasonStartDate, setSeasonStartDate] = useState(initial?.seasonStartDate ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,17 +68,12 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
     setSaving(true);
     setError(null);
     try {
-      const qualifyingStandards: Record<string, number> = {};
-      for (const [k, v] of Object.entries(standards)) {
-        const n = parseFloat(v);
-        if (!Number.isNaN(n)) qualifyingStandards[k] = n;
-      }
       await onSave({
         throws: eventGroups.includes('throws') ? throwsConfig : null,
         sprints: eventGroups.includes('sprints') ? sprintsConfig : null,
         jumps: eventGroups.includes('jumps') ? jumpsConfig : null,
-        qualifyingStandards,
         competitionDate: competitionDate || null as unknown as string,
+        seasonStartDate,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save configuration');
@@ -96,22 +87,9 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
       {eventGroups.includes('throws') && (
         <Card>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Throws</Text>
-          <TextField
-            label="Qualifying event name"
-            value={throwsConfig.qualifyingEventName}
-            onChangeText={(t) => setThrowsConfig((c) => ({ ...c, qualifyingEventName: t }))}
-            placeholder="e.g. ISSA Champs Throws Qualifier"
-          />
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (m)</Text>
-          {EVENT_GROUP_EVENTS.throws.map((event) => (
-            <TextField
-              key={event}
-              label={event}
-              keyboardType="decimal-pad"
-              value={standards[event] ?? ''}
-              onChangeText={(t) => setStandards((s) => ({ ...s, [event]: t }))}
-            />
-          ))}
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 10, lineHeight: 15 }}>
+            Qualifying standards are managed per meet under Meets → Standards.
+          </Text>
           <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Strength lifts to track</Text>
           <ChipRow
             options={LIFT_OPTIONS}
@@ -134,22 +112,9 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
       {eventGroups.includes('sprints') && (
         <Card>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Sprints</Text>
-          <TextField
-            label="Qualifying event name"
-            value={sprintsConfig.qualifyingEventName}
-            onChangeText={(t) => setSprintsConfig((c) => ({ ...c, qualifyingEventName: t }))}
-            placeholder="e.g. ISSA Champs Sprints Qualifier"
-          />
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (seconds)</Text>
-          {EVENT_GROUP_EVENTS.sprints.map((event) => (
-            <TextField
-              key={event}
-              label={event}
-              keyboardType="decimal-pad"
-              value={standards[event] ?? ''}
-              onChangeText={(t) => setStandards((s) => ({ ...s, [event]: t }))}
-            />
-          ))}
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 10, lineHeight: 15 }}>
+            Qualifying standards are managed per meet under Meets → Standards.
+          </Text>
 
           <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6, marginTop: 4 }}>Pace zones</Text>
           {sprintsConfig.paceZones.map((zone, i) => (
@@ -222,22 +187,9 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
       {eventGroups.includes('jumps') && (
         <Card>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Jumps</Text>
-          <TextField
-            label="Qualifying event name"
-            value={jumpsConfig.qualifyingEventName}
-            onChangeText={(t) => setJumpsConfig((c) => ({ ...c, qualifyingEventName: t }))}
-            placeholder="e.g. ISSA Champs Jumps Qualifier"
-          />
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6 }}>Qualifying standards (m)</Text>
-          {EVENT_GROUP_EVENTS.jumps.map((event) => (
-            <TextField
-              key={event}
-              label={event}
-              keyboardType="decimal-pad"
-              value={standards[event] ?? ''}
-              onChangeText={(t) => setStandards((s) => ({ ...s, [event]: t }))}
-            />
-          ))}
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 10, lineHeight: 15 }}>
+            Qualifying standards are managed per meet under Meets → Standards.
+          </Text>
 
           <ToggleRow
             label="Track approach runs"
@@ -268,6 +220,21 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
           placeholder="2026-04-11"
           keyboardType="numbers-and-punctuation"
         />
+        <TextField
+          label="Season start date — Monday of week 1 (YYYY-MM-DD)"
+          value={seasonStartDate}
+          onChangeText={setSeasonStartDate}
+          placeholder="2026-01-05"
+          keyboardType="numbers-and-punctuation"
+        />
+        {seasonStartDate.length > 0 && !isMonday(seasonStartDate) && (
+          <Text style={{ fontSize: 12, color: colors.warning, marginTop: -4, marginBottom: 8 }}>
+            That date isn&apos;t a Monday — the Calendar screen assumes week 1 starts on a Monday.
+          </Text>
+        )}
+        <Text style={{ fontSize: 12, color: colors.textFaint, lineHeight: 15 }}>
+          Used to show real calendar dates on the Calendar tab. Change this any time — later weeks shift with it.
+        </Text>
       </Card>
 
       {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}

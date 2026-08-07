@@ -27,9 +27,17 @@ function RootNavigation() {
   // Tapping a push notification routes straight to the relevant athlete —
   // the coach's own athlete detail screen, or the athlete's own progress tab.
   function routeFromNotification(data: Record<string, unknown> | undefined) {
+    const role = useAuthStore.getState().session?.role;
+
+    // "You've been added to a meet" — every other payload shape has no `kind` field at all,
+    // so this never intercepts the existing athleteId-based routing below.
+    if (data?.kind === 'meet_added') {
+      if (role === 'athlete') router.push('/(athlete)/(tabs)/calendar');
+      return;
+    }
+
     const athleteId = data?.athleteId;
     if (typeof athleteId !== 'string') return;
-    const role = useAuthStore.getState().session?.role;
     if (role === 'coach') router.push(`/(coach)/athlete/${athleteId}`);
     else if (role === 'athlete') router.push('/(athlete)/(tabs)/progress');
   }
@@ -86,6 +94,7 @@ function RootNavigation() {
         <Stack.Screen name="signup" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="reset-password" />
+        <Stack.Screen name="change-password" />
         <Stack.Screen name="privacy-policy" />
         <Stack.Screen name="terms" />
         <Stack.Screen name="(coach)" />

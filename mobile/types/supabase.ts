@@ -165,6 +165,7 @@ export type Database = {
       }
       meets: {
         Row: {
+          completed: boolean
           conditions: string | null
           created_at: string
           date: string
@@ -177,6 +178,7 @@ export type Database = {
           standards: Json
         }
         Insert: {
+          completed?: boolean
           conditions?: string | null
           created_at?: string
           date: string
@@ -189,6 +191,7 @@ export type Database = {
           standards?: Json
         }
         Update: {
+          completed?: boolean
           conditions?: string | null
           created_at?: string
           date?: string
@@ -209,6 +212,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      missing_log_dismissals: {
+        Row: {
+          athlete_id: string
+          coach_id: string
+          dismissed_at: string
+          id: string
+          programme_id: string
+          week_number: number
+        }
+        Insert: {
+          athlete_id: string
+          coach_id: string
+          dismissed_at?: string
+          id?: string
+          programme_id: string
+          week_number: number
+        }
+        Update: {
+          athlete_id?: string
+          coach_id?: string
+          dismissed_at?: string
+          id?: string
+          programme_id?: string
+          week_number?: number
+        }
+        Relationships: []
       }
       notifications_log: {
         Row: {
@@ -267,6 +297,7 @@ export type Database = {
           full_name: string
           group_name: string | null
           id: string
+          must_change_password: boolean
           programme_id: string | null
           qualifying_event: string | null
           qualifying_standard: number | null
@@ -287,6 +318,7 @@ export type Database = {
           full_name: string
           group_name?: string | null
           id: string
+          must_change_password?: boolean
           programme_id?: string | null
           qualifying_event?: string | null
           qualifying_standard?: number | null
@@ -307,6 +339,7 @@ export type Database = {
           full_name?: string
           group_name?: string | null
           id?: string
+          must_change_password?: boolean
           programme_id?: string | null
           qualifying_event?: string | null
           qualifying_standard?: number | null
@@ -375,6 +408,7 @@ export type Database = {
           id: string
           join_code: string
           name: string
+          season_start_date: string | null
         }
         Insert: {
           created_at?: string
@@ -383,6 +417,7 @@ export type Database = {
           id?: string
           join_code?: string
           name: string
+          season_start_date?: string | null
         }
         Update: {
           created_at?: string
@@ -391,6 +426,7 @@ export type Database = {
           id?: string
           join_code?: string
           name?: string
+          season_start_date?: string | null
         }
         Relationships: []
       }

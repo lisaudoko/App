@@ -34,7 +34,7 @@ interface AuthState {
 async function accountFromProfile(userId: string, email: string): Promise<UserAccount> {
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, role, full_name, programme_id')
+    .select('id, role, full_name, programme_id, must_change_password')
     .eq('id', userId)
     .single();
   if (error || !profile) throw new AuthError('No profile found for this account.');
@@ -52,6 +52,7 @@ async function accountFromProfile(userId: string, email: string): Promise<UserAc
     role: profile.role as UserAccount['role'],
     programmeName,
     athleteId: profile.role === 'athlete' ? profile.id : undefined,
+    mustChangePassword: profile.must_change_password,
   };
 }
 

@@ -146,7 +146,7 @@ export default function AthleteProfileScreen() {
               }}
             >
               <Text style={{ fontSize: 15, color: colors.textMuted }}>
-                {new Date(pb.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                {new Date(pb.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
               </Text>
               <Text style={{ fontSize: 15, color: colors.text, fontWeight: '600' }}>
                 {formatPerformance(pb.mark, perfUnit)}

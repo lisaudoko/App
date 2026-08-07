@@ -51,17 +51,7 @@ export default function MeetSummaryScreen() {
     if (notesTimer.current) clearTimeout(notesTimer.current);
     notesTimer.current = setTimeout(() => {
       if (!meet) return;
-      repository
-        .updateMeet(meet.id, {
-          name: meet.name,
-          date: meet.date,
-          standards: meet.standards,
-          location: meet.location,
-          meetType: meet.meetType,
-          conditions: meet.conditions,
-          generalNotes: text,
-        })
-        .catch(() => {});
+      repository.updateMeet(meet.id, { generalNotes: text }).catch(() => {});
     }, 800);
   }
 

@@ -49,18 +49,6 @@ export function formatPerformance(value: number, unit: PerformanceUnit): string 
   return `${minutes}:${seconds.toFixed(2).padStart(5, '0')}`;
 }
 
-/**
- * Formats a pre-normalized gap (positive = still needs improvement, negative
- * = already ahead — see computeGap) as a signed, direction-agnostic label.
- * `direction` is accepted for API clarity/parity even though the sign
- * convention is the same in both directions once gap is normalized.
- */
-export function formatGap(gap: number, _direction: Direction, unit: PerformanceUnit): string {
-  const suffix = unit === 'metres' ? 'm' : 's';
-  const magnitude = Math.abs(gap).toFixed(2);
-  return gap > 0 ? `−${magnitude}${suffix} needed` : `+${magnitude}${suffix} ahead`;
-}
-
 /** Positive = athlete still needs to close this much distance/time to reach the standard. */
 export function computeGap(current: number, standard: number, direction: Direction): number {
   return direction === 'higher_better' ? standard - current : current - standard;

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { EVENT_GROUP_DIRECTION, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { edgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
+import { genId } from '@/lib/id';
 import type {
   Athlete,
   AppNotification,
@@ -111,6 +112,7 @@ function toMeet(row: MeetRow): Meet {
     meetType: row.meet_type as MeetType | null,
     conditions: row.conditions,
     generalNotes: row.general_notes,
+    completed: row.completed,
   };
 }
 
@@ -256,6 +258,7 @@ const NOTIFICATION_COPY: Record<string, { title: string; severity: AppNotificati
   meet_qualified: { title: 'Qualified', severity: 'success' },
   broadcast: { title: 'Message from your coach', severity: 'info' },
   workout_complete: { title: 'Workout completed', severity: 'success' },
+  meet_added: { title: 'Added to a meet', severity: 'info' },
 };
 // Any notification type not yet in the map above (e.g. a new one added on the
 // backend before the app is updated) falls back to this rather than crashing
@@ -297,6 +300,7 @@ export interface ProfileEditableFields {
   dateOfBirth?: string | null;
   classCategory?: string | null;
   status?: AthleteStatus;
+  mustChangePassword?: boolean;
 }
 
 function profileFieldsToRow(fields: ProfileEditableFields): Database['public']['Tables']['profiles']['Update'] {
@@ -311,29 +315,26 @@ function profileFieldsToRow(fields: ProfileEditableFields): Database['public']['
   if (fields.dateOfBirth !== undefined) row.date_of_birth = fields.dateOfBirth;
   if (fields.classCategory !== undefined) row.class_category = fields.classCategory;
   if (fields.status !== undefined) row.status = fields.status;
+  if (fields.mustChangePassword !== undefined) row.must_change_password = fields.mustChangePassword;
   return row;
 }
 
 function toProgrammeConfig(
   eventGroups: EventGroup[],
   config: Database['public']['Tables']['programme_config']['Row'] | null,
+  seasonStartDate: string | null,
 ): ProgrammeConfig {
   return {
     eventGroups,
     throws: (config?.throws_config as ThrowsConfig | null) ?? null,
     sprints: (config?.sprints_config as SprintsConfig | null) ?? null,
     jumps: (config?.jumps_config as JumpsConfig | null) ?? null,
-    qualifyingStandards: (config?.qualifying_standards as Record<string, number> | null) ?? {},
     competitionDate: config?.competition_date ?? null,
+    seasonStartDate,
   };
 }
 
 export const repository = {
-  async listAthletes(): Promise<Athlete[]> {
-    const { athletes } = await this.getFullContext();
-    return athletes;
-  },
-
   async getAthlete(athleteId: string): Promise<Athlete | undefined> {
     const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', athleteId).single();
     if (error || !profile) return undefined;
@@ -347,21 +348,28 @@ export const repository = {
     if (error) throw error;
   },
 
+  /** Upsert, not insert — strength_logs has a unique (athlete_id, logged_at) constraint, and
+   *  the log form always defaults its date field to today, so re-logging (or correcting) a
+   *  test on the same date is a common, legitimate action, not an error. A bare insert threw
+   *  a unique-violation on that second save; upserting on the same key updates it instead. */
   async addStrengthLog(
     athleteId: string,
     entry: { loggedAt: string; squat: number | null; bench: number | null; clean: number | null; deadlift: number | null },
   ): Promise<void> {
     const profile = await myProfile();
     if (!profile.programme_id) throw new Error('No programme assigned');
-    const { error } = await supabase.from('strength_logs').insert({
-      athlete_id: athleteId,
-      programme_id: profile.programme_id,
-      logged_at: entry.loggedAt,
-      squat_1rm: entry.squat,
-      bench_1rm: entry.bench,
-      clean_1rm: entry.clean,
-      deadlift_1rm: entry.deadlift,
-    });
+    const { error } = await supabase.from('strength_logs').upsert(
+      {
+        athlete_id: athleteId,
+        programme_id: profile.programme_id,
+        logged_at: entry.loggedAt,
+        squat_1rm: entry.squat,
+        bench_1rm: entry.bench,
+        clean_1rm: entry.clean,
+        deadlift_1rm: entry.deadlift,
+      },
+      { onConflict: 'athlete_id,logged_at' },
+    );
     if (error) throw error;
   },
 
@@ -563,17 +571,20 @@ export const repository = {
 
   async updateMeet(
     id: string,
-    input: {
+    input: Partial<{
       name: string;
       date: string;
       standards: Record<string, number>;
-      location?: string | null;
-      meetType?: MeetType | null;
-      conditions?: string | null;
-      generalNotes?: string | null;
-    },
+      location: string | null;
+      meetType: MeetType | null;
+      conditions: string | null;
+      generalNotes: string | null;
+    }>,
   ): Promise<void> {
-    const row: Database['public']['Tables']['meets']['Update'] = { name: input.name, date: input.date, standards: input.standards };
+    const row: Database['public']['Tables']['meets']['Update'] = {};
+    if (input.name !== undefined) row.name = input.name;
+    if (input.date !== undefined) row.date = input.date;
+    if (input.standards !== undefined) row.standards = input.standards;
     if (input.location !== undefined) row.location = input.location;
     if (input.meetType !== undefined) row.meet_type = input.meetType;
     if (input.conditions !== undefined) row.conditions = input.conditions;
@@ -582,8 +593,11 @@ export const repository = {
     if (error) throw error;
   },
 
-  async deleteMeet(id: string): Promise<void> {
-    const { error } = await supabase.from('meets').delete().eq('id', id);
+  /** Explicit "mark as completed"/"reopen" action on the Meets screen — kept as its own
+   *  small mutator (not folded into updateMeet's patch shape) since it's a one-tap toggle
+   *  with no form around it. */
+  async setMeetCompleted(id: string, completed: boolean): Promise<void> {
+    const { error } = await supabase.from('meets').update({ completed }).eq('id', id);
     if (error) throw error;
   },
 
@@ -591,12 +605,6 @@ export const repository = {
     const { data, error } = await supabase.from('meet_entries').select('*').eq('meet_id', meetId).order('created_at', { ascending: true });
     if (error) throw error;
     return (data ?? []).map(toMeetEntry);
-  },
-
-  async getMeetEntry(entryId: string): Promise<MeetEntry | null> {
-    const { data, error } = await supabase.from('meet_entries').select('*').eq('id', entryId).maybeSingle();
-    if (error) throw error;
-    return data ? toMeetEntry(data) : null;
   },
 
   async addMeetEntry(input: { meetId: string; athleteId: string; event: string; bibNumber?: string; seedMark?: number }): Promise<MeetEntry> {
@@ -643,11 +651,6 @@ export const repository = {
     if (patch.bibNumber !== undefined) row.bib_number = patch.bibNumber;
     if (patch.seedMark !== undefined) row.seed_mark = patch.seedMark;
     const { error } = await supabase.from('meet_entries').update(row).eq('id', id);
-    if (error) throw error;
-  },
-
-  async deleteMeetEntry(id: string): Promise<void> {
-    const { error } = await supabase.from('meet_entries').delete().eq('id', id);
     if (error) throw error;
   },
 
@@ -730,6 +733,30 @@ export const repository = {
     return data;
   },
 
+  /** Athlete ids this coach has dismissed from the "Missing this week" list for a given
+   *  week_number. Scoped per week by design — a new week has no dismissal rows at all,
+   *  so nothing is pre-dismissed there, rather than needing any explicit "reset" logic. */
+  async getMissingLogDismissals(weekNumber: number): Promise<string[]> {
+    const profile = await myProfile();
+    const { data, error } = await supabase
+      .from('missing_log_dismissals')
+      .select('athlete_id')
+      .eq('coach_id', profile.id)
+      .eq('week_number', weekNumber);
+    if (error) throw error;
+    return (data ?? []).map((d) => d.athlete_id);
+  },
+
+  async dismissMissingLog(athleteId: string, weekNumber: number): Promise<void> {
+    const profile = await myProfile();
+    if (!profile.programme_id) throw new Error('No programme assigned');
+    const { error } = await supabase.from('missing_log_dismissals').upsert(
+      { coach_id: profile.id, athlete_id: athleteId, programme_id: profile.programme_id, week_number: weekNumber },
+      { onConflict: 'coach_id,athlete_id,week_number' },
+    );
+    if (error) throw error;
+  },
+
   async getNotifications(): Promise<AppNotification[]> {
     const { data, error } = await supabase.from('notifications_log').select('*').order('sent_at', { ascending: false });
     if (error) throw error;
@@ -737,7 +764,8 @@ export const repository = {
   },
 
   async markNotificationRead(id: string): Promise<void> {
-    await supabase.from('notifications_log').update({ read_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('notifications_log').update({ read_at: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
   },
 
   async getMyProgrammeJoinCode(): Promise<string | null> {
@@ -756,18 +784,36 @@ export const repository = {
     const profile = await myProfile();
     if (!profile.programme_id) return null;
     const [{ data: programme }, { data: config }] = await Promise.all([
-      supabase.from('programmes').select('event_groups').eq('id', profile.programme_id).single(),
+      supabase.from('programmes').select('event_groups, season_start_date').eq('id', profile.programme_id).single(),
       supabase.from('programme_config').select('*').eq('programme_id', profile.programme_id).maybeSingle(),
     ]);
-    return toProgrammeConfig(((programme?.event_groups as EventGroup[] | undefined) ?? []), config ?? null);
+    return toProgrammeConfig(
+      ((programme?.event_groups as EventGroup[] | undefined) ?? []),
+      config ?? null,
+      programme?.season_start_date ?? null,
+    );
   },
 
+  /** Sets the Monday of training week 1 — the sole calendar-date anchor for the whole programme.
+   *  Kept separate from saveProgrammeConfig (which owns programme_config/event groups on a
+   *  different table) so a lightweight "set your season start" prompt on the Calendar screen
+   *  doesn't need a full EventConfigForm draft in scope just to write one date. */
+  async updateSeasonStartDate(date: string | null): Promise<void> {
+    const profile = await myProfile();
+    if (!profile.programme_id) throw new Error('No programme assigned');
+    const { error } = await supabase.from('programmes').update({ season_start_date: date }).eq('id', profile.programme_id);
+    if (error) throw error;
+  },
+
+  /** Only writes training configuration (lifts, zones, toggles, calculation method) and the
+   *  competition date. Qualifying standards live on this same DB row (`qualifying_standards`)
+   *  but are owned by the Meets → Standards tab now — deliberately never read or written here
+   *  so this screen can't clobber them. */
   async saveProgrammeConfig(input: {
     eventGroups: EventGroup[];
     throws?: ThrowsConfig | null;
     sprints?: SprintsConfig | null;
     jumps?: JumpsConfig | null;
-    qualifyingStandards: Record<string, number>;
     competitionDate: string | null;
   }): Promise<void> {
     const profile = await myProfile();
@@ -786,7 +832,6 @@ export const repository = {
         throws_config: (input.throws ?? null) as unknown as ConfigInsert['throws_config'],
         sprints_config: (input.sprints ?? null) as unknown as ConfigInsert['sprints_config'],
         jumps_config: (input.jumps ?? null) as unknown as ConfigInsert['jumps_config'],
-        qualifying_standards: input.qualifyingStandards as unknown as ConfigInsert['qualifying_standards'],
         competition_date: input.competitionDate,
         updated_at: new Date().toISOString(),
       },
@@ -836,6 +881,27 @@ export const repository = {
       .single();
     if (error || !data) throw error ?? new Error('Could not save workout');
     return toWorkout(data);
+  },
+
+  /** Calendar screen's long-press "copy session to another day" — deep-clones fromDay's blocks
+   *  (new ids, day reassigned, appended after toDay's existing blocks) and saves immediately, unlike
+   *  the Workout Builder's draft-then-"Save week" flow, since this is a one-shot action from a card.
+   *  General (day: null) blocks are never copied — they already apply to every day. */
+  async copyWorkoutDay(weekNumber: number, fromDay: number, toDay: number): Promise<Workout> {
+    const workout = await this.getWorkoutForWeek(weekNumber);
+    if (!workout) throw new Error('No workout found for that week');
+    const source = workout.blocks.filter((b) => b.day === fromDay);
+    if (source.length === 0) throw new Error('Nothing to copy on that day');
+    const existingOnTarget = workout.blocks.filter((b) => b.day === toDay);
+    const startOrder = existingOnTarget.length ? Math.max(...existingOnTarget.map((b) => b.order)) + 1 : 0;
+    const cloned = source.map((b, i) => ({
+      ...b,
+      id: genId(),
+      day: toDay,
+      order: startOrder + i,
+      exercises: b.exercises.map((e) => ({ ...e, id: genId() })),
+    }));
+    return this.saveWorkout({ ...workout, blocks: [...workout.blocks, ...cloned] });
   },
 
   /** AI-generates a set of blocks for a week, constrained to the app's known exercise vocabulary. Not auto-saved — caller merges into the editable draft. */

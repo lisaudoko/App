@@ -15,7 +15,9 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Used to upload athlete profile photos",
-        "NSPhotoLibraryUsageDescription": "Used to upload athlete profile photos"
+        "NSPhotoLibraryUsageDescription": "Used to upload athlete profile photos",
+        "NSCalendarsUsageDescription": "TRU Performance needs access to add training sessions and meets to your calendar.",
+        "NSCalendarsFullAccessUsageDescription": "TRU Performance needs access to add training sessions and meets to your calendar."
       }
     },
     "android": {
@@ -52,6 +54,12 @@
         {
           "icon": "./assets/icon.png",
           "color": "#111111"
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "TRU Performance needs access to add training sessions and meets to your calendar."
         }
       ]
     ],

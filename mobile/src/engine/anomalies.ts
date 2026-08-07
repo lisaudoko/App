@@ -85,8 +85,3 @@ export function detectAnomalies(athlete: Athlete, logs: WeeklyLog[], tests: Stre
     overreachRisk(athlete, logs),
   ].filter((a): a is Anomaly => a !== null);
 }
-
-export function strengthThrowCorrelation(tests: StrengthTest[], marksAtTestDates: number[]): number {
-  if (tests.length < 2 || marksAtTestDates.length !== tests.length) return 0;
-  return pearsonCorrelation(tests.map((t) => t.squat), marksAtTestDates);
-}

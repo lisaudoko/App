@@ -1,9 +1,16 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AthleteTabsLayout() {
   const { colors } = useAppTheme();
+  const mustChangePassword = useAuthStore((s) => s.session?.mustChangePassword ?? false);
+
+  // Coach-created athlete accounts start with a coach-chosen password — force a change
+  // before letting them into the tabs at all, same Redirect-gating style the coach layout
+  // already uses for onboarding/paywall.
+  if (mustChangePassword) return <Redirect href="/change-password" />;
 
   return (
     <Tabs
@@ -18,6 +25,10 @@ export default function AthleteTabsLayout() {
       <Tabs.Screen
         name="index"
         options={{ title: 'Workout', tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{ title: 'Calendar', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="progress"

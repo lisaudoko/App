@@ -38,6 +38,7 @@ export default function ManageSquadScreen() {
     if (confirmId !== athleteId) {
       setConfirmId(athleteId);
       setError(null);
+      setTimeout(() => setConfirmId((cur) => (cur === athleteId ? null : cur)), 3000);
       return;
     }
     setRemovingId(athleteId);

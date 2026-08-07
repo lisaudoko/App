@@ -14,7 +14,10 @@ export default function OnboardingConfigScreen() {
   const eventGroups = (groups ?? '').split(',').filter(Boolean) as EventGroup[];
 
   async function handleSave(value: EventConfigFormValue) {
-    await repository.saveProgrammeConfig({ eventGroups, ...value });
+    await Promise.all([
+      repository.saveProgrammeConfig({ eventGroups, ...value }),
+      repository.updateSeasonStartDate(value.seasonStartDate || null),
+    ]);
     router.replace('/(coach)/onboarding/done');
   }
 
@@ -23,7 +26,7 @@ export default function OnboardingConfigScreen() {
       <ScreenHeader title="Configure your programme" subtitle="Step 2 of 2" onBack={() => router.back()} />
       <Screen>
         <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
-          Set qualifying standards, competition date, and how each group trains. You can change any of this later
+          Set your season start date, competition date, and how each group trains. You can change any of this later
           from Settings.
         </Text>
         <EventConfigForm eventGroups={eventGroups} initial={null} onSave={handleSave} saveLabel="Finish setup" />

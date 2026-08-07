@@ -5,6 +5,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository, defaultWorkoutTemplate } from '@/data/repository';
 import { shareWorkout } from '@/lib/shareWorkout';
 import { computeExerciseWeight } from '@/engine/workoutWeight';
+import { genId } from '@/lib/id';
 import { DAY_LABELS, todayAsWorkoutDay, type BlockExercise, type EventGroup, type Workout, type WorkoutBlock } from '@/data/types';
 import { blockChoicesForGroups, blockTypeDef, type BlockTypeDef } from '@/data/workoutBlocks';
 import { Screen } from '@/components/Screen';
@@ -14,10 +15,6 @@ import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { Sheet } from '@/components/Sheet';
-
-function genId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 function emptyExercise(name: string): BlockExercise {
   return {
@@ -88,16 +85,22 @@ function describeExercise(ex: BlockExercise, blockType: WorkoutBlock['type'], ma
   return parts.join(' · ') || 'Tap to set details';
 }
 
-export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
+export function WorkoutPlansScreen({
+  onBack,
+  initialWeek,
+  initialDay,
+}: { onBack?: () => void; initialWeek?: number; initialDay?: number | null } = {}) {
   const { colors } = useAppTheme();
   const [existingWeeks, setExistingWeeks] = useState<number[]>([]);
-  const [week, setWeek] = useState(1);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [week, setWeek] = useState(initialWeek ?? 1);
+  const [selectedDay, setSelectedDay] = useState<number | null>(initialDay !== undefined ? initialDay : null);
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savingDay, setSavingDay] = useState(false);
+  const [daySaved, setDaySaved] = useState(false);
   const [addBlockVisible, setAddBlockVisible] = useState(false);
   const [pickerBlockId, setPickerBlockId] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -113,7 +116,9 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
       .listWorkoutWeeks()
       .then((weeks) => {
         setExistingWeeks(weeks);
-        setWeek(weeks.length ? weeks[weeks.length - 1] : 1);
+        // A date-jump from the Calendar screen supplies initialWeek explicitly — don't clobber
+        // it back to "latest week" once the real list of existing weeks comes in.
+        if (initialWeek == null) setWeek(weeks.length ? weeks[weeks.length - 1] : 1);
       })
       .catch(() => {});
   }, []);
@@ -213,14 +218,49 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
     );
   }
 
+  // A General (day: null) block applies to every day, so it genuinely satisfies any given
+  // day's "has content" requirement on its own — a coach who covers a day entirely with a
+  // General block shouldn't be blocked from finishing the week over it.
+  function dayHasContent(blocks: WorkoutBlock[], day: number): boolean {
+    return blocks.some((b) => b.day === day) || blocks.some((b) => b.day === null);
+  }
+
+  const allDaysHaveContent = workout ? ([1, 2, 3, 4, 5, 6, 7] as const).every((d) => dayHasContent(workout.blocks, d)) : false;
+
+  /** Persists the whole week draft (there's no per-day DB row — workouts is one row per
+   *  programme+week, so this is the same call handleSave makes), but only requires the
+   *  currently selected day to have content. This lets a coach build up a week's plan one
+   *  day at a time without every other day already being finished. */
+  async function saveDay() {
+    if (!workout) return;
+    if (visibleBlocks.length === 0) {
+      setError(selectedDay == null ? 'Add at least one general block before saving.' : `Add at least one block for ${DAY_LABELS[selectedDay - 1]} before saving.`);
+      return;
+    }
+    setSavingDay(true);
+    setError(null);
+    setDaySaved(false);
+    try {
+      const saved = await repository.saveWorkout(workout);
+      setWorkout(saved);
+      setExistingWeeks((prev) => (prev.includes(week) ? prev : [...prev, week].sort((a, b) => a - b)));
+      setDaySaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save that day');
+    } finally {
+      setSavingDay(false);
+    }
+  }
+
   async function handleSave() {
     if (!workout) return;
-    if (workout.blocks.length === 0) {
-      setError('Add at least one block before saving.');
+    if (!allDaysHaveContent) {
+      setError('Every day (Mon–Sun) needs at least one block before you can save the week.');
       return;
     }
     setSaving(true);
     setError(null);
+    setDaySaved(false);
     try {
       const saved = await repository.saveWorkout(workout);
       setWorkout(saved);
@@ -455,7 +495,15 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
           <Button label="Add block" onPress={() => setAddBlockVisible(true)} />
 
           {error && <Text style={{ color: colors.danger, fontSize: 12, marginTop: 8, marginBottom: 8 }}>{error}</Text>}
-          <Button label="Save week" onPress={handleSave} loading={saving} disabled={workout.blocks.length === 0} />
+          {daySaved && !error && <Text style={{ color: colors.success, fontSize: 12, marginTop: 8, marginBottom: 8 }}>Day saved.</Text>}
+
+          <Button label="Save day" variant="outline" onPress={saveDay} loading={savingDay} disabled={visibleBlocks.length === 0} />
+          <Button label="Save week" onPress={handleSave} loading={saving} disabled={!allDaysHaveContent} />
+          {!allDaysHaveContent && (
+            <Text style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: -4 }}>
+              Every day (Mon–Sun) needs at least one block before you can save the week.
+            </Text>
+          )}
         </Screen>
       )}
 

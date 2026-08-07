@@ -34,16 +34,22 @@ export default function AddAthleteScreen() {
   const [limitModalVisible, setLimitModalVisible] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  async function loadConfig() {
+    try {
+      const config = await repository.getProgrammeConfig();
+      const groups = config?.eventGroups ?? [];
+      setProgrammeEventGroups(groups);
+      if (groups.length === 1) setEventGroup(groups[0]);
+      setConfigError(null);
+    } catch {
+      setConfigError('Could not load your event groups. Pull down to retry.');
+    }
+  }
 
   useEffect(() => {
-    repository
-      .getProgrammeConfig()
-      .then((config) => {
-        const groups = config?.eventGroups ?? [];
-        setProgrammeEventGroups(groups);
-        if (groups.length === 1) setEventGroup(groups[0]);
-      })
-      .catch(() => {});
+    loadConfig();
   }, []);
 
   const canSubmit = !!name && !!email && password.length >= 6 && !!eventGroup && hasPermission;
@@ -142,11 +148,12 @@ export default function AddAthleteScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Add athlete" onBack={() => router.back()} />
-      <Screen>
+      <Screen onRefresh={loadConfig}>
         <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16 }}>
           Creates an athlete account directly in your programme — no team code needed. Set a temporary password and
           share it with them.
         </Text>
+        {configError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 12 }}>{configError}</Text>}
 
         <TextField label="Full name" value={name} onChangeText={setName} placeholder="First Last" textContentType="name" />
         <TextField

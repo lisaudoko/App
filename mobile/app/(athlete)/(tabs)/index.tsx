@@ -189,7 +189,6 @@ export default function AthleteWorkoutScreen() {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
-  const resultNoun = eventGroup === 'sprints' ? 'time' : eventGroup === 'jumps' ? 'jump' : 'throw';
   const { squat, clean, bench } = data.athlete.currentMaxes;
 
   if (!workout || workout.blocks.length === 0) {
@@ -389,8 +388,6 @@ export default function AthleteWorkoutScreen() {
             loading={submitting}
           />
         </Card>
-
-        <Button label={`Done — log my ${resultNoun}`} onPress={() => router.push('/(athlete)/(tabs)/logger')} />
       </Screen>
     </View>
   );

@@ -43,6 +43,8 @@ export default function MeetDetailScreen() {
   const [addBusy, setAddBusy] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
+  const [completingBusy, setCompletingBusy] = useState(false);
+
   const [standardsVisible, setStandardsVisible] = useState(false);
   const [newStandardEvent, setNewStandardEvent] = useState('');
   const [newStandardValue, setNewStandardValue] = useState('');
@@ -71,15 +73,10 @@ export default function MeetDetailScreen() {
     if (notesTimer.current) clearTimeout(notesTimer.current);
     notesTimer.current = setTimeout(() => {
       if (!meet) return;
-      repository.updateMeet(meet.id, {
-        name: meet.name,
-        date: meet.date,
-        standards: meet.standards,
-        location: meet.location,
-        meetType: meet.meetType,
-        conditions: meet.conditions,
-        generalNotes: text,
-      }).catch(() => {});
+      // Only patches generalNotes — sending the whole meet snapshot here raced with
+      // saveStandards() below if both fired within the same 800ms window, silently
+      // dropping whichever write landed first.
+      repository.updateMeet(meet.id, { generalNotes: text }).catch(() => {});
     }, 800);
   }
 
@@ -127,20 +124,26 @@ export default function MeetDetailScreen() {
     setStandardsBusy(true);
     setStandardsError(null);
     try {
-      await repository.updateMeet(meet.id, {
-        name: meet.name,
-        date: meet.date,
-        standards: next,
-        location: meet.location,
-        meetType: meet.meetType,
-        conditions: meet.conditions,
-        generalNotes: meet.generalNotes,
-      });
+      await repository.updateMeet(meet.id, { standards: next });
       setMeet({ ...meet, standards: next });
     } catch (err) {
       setStandardsError(err instanceof Error ? err.message : 'Could not save standard');
     } finally {
       setStandardsBusy(false);
+    }
+  }
+
+  async function toggleCompleted() {
+    if (!meet) return;
+    setCompletingBusy(true);
+    try {
+      const next = !meet.completed;
+      await repository.setMeetCompleted(meet.id, next);
+      setMeet({ ...meet, completed: next });
+    } catch {
+      // Button stays in its current state so the coach can retry.
+    } finally {
+      setCompletingBusy(false);
     }
   }
 
@@ -178,6 +181,7 @@ export default function MeetDetailScreen() {
       <ScreenHeader title={meet.name} subtitle={meet.date} onBack={() => router.back()} />
       <Screen>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          {meet.completed && <Pill label="Completed" tone="success" />}
           {meet.meetType && <Pill label={MEET_TYPE_LABEL[meet.meetType] ?? meet.meetType} tone="neutral" />}
           {meet.location && <Pill label={meet.location} tone="neutral" />}
           {meet.conditions && <Pill label={meet.conditions} tone="neutral" />}
@@ -235,7 +239,13 @@ export default function MeetDetailScreen() {
           );
         })}
 
-        <Button label="Mark complete" onPress={() => id && router.push(`/(coach)/meets/${id}/summary`)} />
+        <Button
+          label={meet.completed ? 'Reopen meet' : 'Mark as completed'}
+          variant={meet.completed ? 'outline' : 'primary'}
+          onPress={toggleCompleted}
+          loading={completingBusy}
+        />
+        <Button label="View summary" variant="outline" onPress={() => id && router.push(`/(coach)/meets/${id}/summary`)} />
       </Screen>
 
       <Sheet visible={pickerVisible} onClose={() => setPickerVisible(false)} maxHeightPct="80%">
