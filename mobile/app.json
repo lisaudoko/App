@@ -4,7 +4,7 @@
     "slug": "tru-performance",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/favicon.png",
     "scheme": "truperformance",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -52,7 +52,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/favicon.png",
           "color": "#111111"
         }
       ],
