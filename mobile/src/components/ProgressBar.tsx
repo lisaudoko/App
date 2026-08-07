@@ -15,8 +15,18 @@ export function ProgressBar({ pct, color }: { pct: number; color?: string }) {
   const animatedStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
 
   return (
-    <View style={{ backgroundColor: colors.border, borderRadius: 20, height: 7, overflow: 'hidden' }}>
-      <Animated.View style={[{ height: '100%', borderRadius: 20, backgroundColor: color ?? colors.text }, animatedStyle]} />
+    <View style={{ backgroundColor: colors.border, borderRadius: 20, height: 9, overflow: 'hidden' }}>
+      <Animated.View
+        style={[
+          {
+            height: '100%',
+            borderRadius: 20,
+            // Default to accent so bars feel colorful and on-brand
+            backgroundColor: color ?? colors.accent,
+          },
+          animatedStyle,
+        ]}
+      />
     </View>
   );
 }
