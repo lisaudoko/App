@@ -15,6 +15,12 @@ verify_jwt = true
 [functions.generate-workout]
 verify_jwt = true
 
+[functions.submit-workout]
+verify_jwt = true
+
+[functions.remove-athlete]
+verify_jwt = true
+
 [functions.send-notifications]
 # Invoked by the Postgres trigger / pg_cron sweep using the service role key,
 # and never called directly from the client.

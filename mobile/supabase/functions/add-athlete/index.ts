@@ -3,6 +3,7 @@
 // server-side — never exposed to the client.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { friendlyErrorMessage } from '../_shared/friendlyError.ts';
 
 interface RequestBody {
   name: string;
@@ -13,6 +14,8 @@ interface RequestBody {
   baselineMark?: number;
   qualifyingStandard?: number;
   qualifyingEvent?: string;
+  dateOfBirth?: string;
+  classCategory?: string;
 }
 
 Deno.serve(async (req) => {
@@ -70,6 +73,8 @@ Deno.serve(async (req) => {
       baseline_distance: body.baselineMark ?? null,
       qualifying_standard: body.qualifyingStandard ?? null,
       qualifying_event: body.qualifyingEvent ?? body.event ?? null,
+      date_of_birth: body.dateOfBirth ?? null,
+      class_category: body.classCategory ?? null,
     });
     if (profileError) {
       // Roll back the orphaned auth user if the profile insert failed.
@@ -81,7 +86,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: friendlyErrorMessage(err, 'Could not add the athlete. Please try again.') }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -45,7 +45,16 @@ async function streamAiCoach(
 
   if (!resp.ok || !resp.body) {
     const text = await resp.text().catch(() => '');
-    throw new Error(text || `AI request failed (${resp.status})`);
+    let message = `The AI assistant is unavailable right now. Please try again.`;
+    if (text) {
+      try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed?.error === 'string') message = parsed.error;
+      } catch {
+        // Not JSON — keep the generic message rather than showing raw text.
+      }
+    }
+    throw new Error(message);
   }
 
   const reader = resp.body.getReader();

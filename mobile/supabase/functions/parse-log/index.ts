@@ -3,6 +3,7 @@
 // this function.
 import Anthropic from 'npm:@anthropic-ai/sdk@0.32';
 import { corsHeaders } from '../_shared/cors.ts';
+import { friendlyErrorMessage } from '../_shared/friendlyError.ts';
 
 type EventGroup = 'throws' | 'sprints' | 'jumps';
 
@@ -95,35 +96,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
     const metricField = isTimed ? 'time_seconds' : 'distance_metres';
-    const metricInstruction = isTimed
-      ? `${metricField} is the sprint/hurdle time in seconds (convert mm:ss formats like "1:48.3" to total seconds, e.g. 108.3).`
-      : `${metricField} is the best throw or jump mark in metres.`;
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 256,
-      system:
-        `Extract a track & field athlete's weekly training log entry from free text. ` +
-        `Respond with ONLY a JSON object: {"${metricField}": number|null, "rpe": number|null, "notes": string|null}. ` +
-        `${metricInstruction} rpe is rate of perceived exertion, 1-10. ` +
-        'notes is any remaining free-text context (how it felt, conditions, etc), or null if none.',
-      messages: [{ role: 'user', content: body.text }],
-    });
-
-    const textBlock = response.content.find((b) => b.type === 'text');
     let aiResult: { rpe: number | null; notes: string | null; [key: string]: number | string | null } = {
       [metricField]: regexResult.mark,
       rpe: regexResult.rpe,
       notes: regexResult.notes,
     };
-    if (textBlock && textBlock.type === 'text') {
-      try {
+    // The AI pass only refines an already-usable regex result — if the model call
+    // fails (e.g. a provider-side outage), silently keep the regex result rather
+    // than failing the whole log entry over a "nice to have" enhancement.
+    try {
+      const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
+      const metricInstruction = isTimed
+        ? `${metricField} is the sprint/hurdle time in seconds (convert mm:ss formats like "1:48.3" to total seconds, e.g. 108.3).`
+        : `${metricField} is the best throw or jump mark in metres.`;
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 256,
+        system:
+          `Extract a track & field athlete's weekly training log entry from free text. ` +
+          `Respond with ONLY a JSON object: {"${metricField}": number|null, "rpe": number|null, "notes": string|null}. ` +
+          `${metricInstruction} rpe is rate of perceived exertion, 1-10. ` +
+          'notes is any remaining free-text context (how it felt, conditions, etc), or null if none.',
+        messages: [{ role: 'user', content: body.text }],
+      });
+
+      const textBlock = response.content.find((b) => b.type === 'text');
+      if (textBlock && textBlock.type === 'text') {
         const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
         if (jsonMatch) aiResult = JSON.parse(jsonMatch[0]);
-      } catch {
-        // fall back to regex result below
       }
+    } catch {
+      // fall back to the regex result already seeded into aiResult above
     }
 
     const result: ParsedResult = {
@@ -137,7 +141,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: friendlyErrorMessage(err) }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

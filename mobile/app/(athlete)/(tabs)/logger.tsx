@@ -15,6 +15,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
+import { InfoTip } from '@/components/InfoTip';
 
 export default function LoggerScreen() {
   const { colors } = useAppTheme();
@@ -34,6 +35,7 @@ export default function LoggerScreen() {
 
   // Manual flow
   const [manualMark, setManualMark] = useState('');
+  const [manualMarkError, setManualMarkError] = useState<string | null>(null);
   const [manualRpe, setManualRpe] = useState(6);
 
   // Shared wellness inputs
@@ -82,7 +84,7 @@ export default function LoggerScreen() {
       });
       await refresh();
       if (isNewPersonalBest) {
-        notifyPersonalBest(data.athlete.name, mark, perfUnit).catch(() => {});
+        notifyPersonalBest(data.athlete.id, data.athlete.name, mark, perfUnit).catch(() => {});
       }
     } finally {
       setSubmitting(false);
@@ -191,12 +193,22 @@ export default function LoggerScreen() {
             <TextField
               label={metricLabel}
               value={manualMark}
-              onChangeText={setManualMark}
+              onChangeText={(t) => {
+                setManualMark(t);
+                setManualMarkError(null);
+              }}
               keyboardType={isTimed ? 'numbers-and-punctuation' : 'decimal-pad'}
               placeholder={isTimed ? 'e.g. 10.82 or 1:48.30' : 'e.g. 16.1'}
+              error={manualMarkError ?? undefined}
             />
 
-            <SliderRow label="RPE" value={manualRpe} onChange={setManualRpe} max={10} />
+            <SliderRow
+              label="RPE"
+              value={manualRpe}
+              onChange={setManualRpe}
+              max={10}
+              info="Rate of Perceived Exertion — how hard this session felt, on a scale of 1 (very easy) to 10 (maximal effort). It's a subjective effort score, not tied to any specific pace or weight."
+            />
           </>
         )}
 
@@ -218,6 +230,10 @@ export default function LoggerScreen() {
             label="Save"
             onPress={() => {
               const mark = manualMark ? (isTimed ? parseTimeToSeconds(manualMark) : parseFloat(manualMark)) : null;
+              if (mark == null || !Number.isFinite(mark)) {
+                setManualMarkError(`Enter a valid ${isTimed ? 'time' : 'distance'} — e.g. ${isTimed ? '10.82 or 1:48.30' : '16.1'}.`);
+                return;
+              }
               finishSubmit(mark, manualRpe, null);
             }}
             loading={submitting}
@@ -229,12 +245,27 @@ export default function LoggerScreen() {
   );
 }
 
-function SliderRow({ label, value, onChange, max }: { label: string; value: number; onChange: (v: number) => void; max: number }) {
+function SliderRow({
+  label,
+  value,
+  onChange,
+  max,
+  info,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  max: number;
+  info?: string;
+}) {
   const { colors } = useAppTheme();
   return (
     <View style={{ marginBottom: 14 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 13, color: colors.textMuted }}>{label}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <Text style={{ fontSize: 13, color: colors.textMuted }}>{label}</Text>
+          {info && <InfoTip term={label} explanation={info} />}
+        </View>
         <Text style={{ fontSize: 17, fontWeight: '600', color: colors.text }}>{value}</Text>
       </View>
       <Slider

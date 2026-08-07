@@ -21,8 +21,15 @@ import { ErrorState } from '@/components/ErrorState';
 import { RpeHeatmapGrid } from '@/components/charts/RpeHeatmapGrid';
 import { useCoachAccess } from '@/hooks/useCoachAccess';
 import { repository } from '@/data/repository';
-import type { Athlete } from '@/data/types';
+import { ATHLETE_STATUS_LABEL, type Athlete, type AthleteStatus } from '@/data/types';
 import { EVENT_GROUP_DIRECTION, EVENT_GROUP_LABEL, formatPerformance, type EventGroup } from '@/lib/formatPerformance';
+import { Sheet } from '@/components/Sheet';
+import { Button } from '@/components/Button';
+import { InfoTip } from '@/components/InfoTip';
+
+type SortBy = 'name' | 'status' | 'class';
+const SORT_LABEL: Record<SortBy, string> = { name: 'Name', status: 'Status', class: 'Class' };
+const STATUS_SORT_ORDER: Record<AthleteStatus, number> = { active: 0, rest: 1, injured: 2, inactive: 3 };
 
 const HEATMAP_LEGEND: { label: string; statusKey: 'onTrack' | 'borderline' | 'alert' | 'noLog' }[] = [
   { label: 'Low', statusKey: 'onTrack' },
@@ -38,6 +45,9 @@ interface Row {
   pillTone: PillTone;
   subtitle: string;
   loggedThisWeek: boolean;
+  thisWeekMark: number | null;
+  thisWeekRpe: number | null;
+  alertMessage: string | null;
 }
 
 export default function SquadScreen() {
@@ -49,8 +59,13 @@ export default function SquadScreen() {
   const [joinCode, setJoinCode] = React.useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [activeEventGroup, setActiveEventGroup] = useState<EventGroup | null>(null);
+  const [activeStatus, setActiveStatus] = useState<AthleteStatus | null>(null);
+  const [activeClassCategory, setActiveClassCategory] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortBy>('name');
   const [viewMode, setViewMode] = useState<'list' | 'heatmap'>('list');
   const [broadcastVisible, setBroadcastVisible] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [statSheet, setStatSheet] = useState<'logged' | 'missing' | 'alerts' | null>(null);
 
   React.useEffect(() => {
     repository.getMyProgrammeJoinCode().then(setJoinCode).catch(() => {});
@@ -125,7 +140,20 @@ export default function SquadScreen() {
         projection ? ` · Proj ${formatPerformance(projection.mark, perfUnit)}` : ''
       }`;
 
-      return { athlete, dotColor, pillLabel, pillTone, subtitle, loggedThisWeek };
+      const thisWeekLog = loggedThisWeek ? logs.find((l) => l.week === currentWeek) : undefined;
+      const alertMessage = danger?.message ?? warning?.message ?? null;
+
+      return {
+        athlete,
+        dotColor,
+        pillLabel,
+        pillTone,
+        subtitle,
+        loggedThisWeek,
+        thisWeekMark: thisWeekLog?.mark ?? null,
+        thisWeekRpe: thisWeekLog?.rpe ?? null,
+        alertMessage,
+      };
     });
   }, [data, colors, currentWeek]);
 
@@ -144,10 +172,24 @@ export default function SquadScreen() {
     return Array.from(set).sort();
   }, [eventGroupFilteredRows]);
 
-  const visibleRows = useMemo(
-    () => (activeGroup ? eventGroupFilteredRows.filter((r) => r.athlete.group === activeGroup) : eventGroupFilteredRows),
-    [eventGroupFilteredRows, activeGroup],
-  );
+  const classCategories = useMemo(() => {
+    const set = new Set(data.athletes.map((a) => a.classCategory).filter((c): c is string => !!c));
+    return Array.from(set).sort();
+  }, [data.athletes]);
+
+  const visibleRows = useMemo(() => {
+    let out = activeGroup ? eventGroupFilteredRows.filter((r) => r.athlete.group === activeGroup) : eventGroupFilteredRows;
+    if (activeStatus) out = out.filter((r) => r.athlete.status === activeStatus);
+    if (activeClassCategory) out = out.filter((r) => r.athlete.classCategory === activeClassCategory);
+    out = [...out].sort((a, b) => {
+      if (sortBy === 'status') return STATUS_SORT_ORDER[a.athlete.status] - STATUS_SORT_ORDER[b.athlete.status] || a.athlete.name.localeCompare(b.athlete.name);
+      if (sortBy === 'class') return (a.athlete.classCategory ?? '').localeCompare(b.athlete.classCategory ?? '') || a.athlete.name.localeCompare(b.athlete.name);
+      return a.athlete.name.localeCompare(b.athlete.name);
+    });
+    return out;
+  }, [eventGroupFilteredRows, activeGroup, activeStatus, activeClassCategory, sortBy]);
+
+  const activeFilterCount = (activeStatus ? 1 : 0) + (activeClassCategory ? 1 : 0) + (sortBy !== 'name' ? 1 : 0);
 
   const heatmapRows = useMemo(
     () =>
@@ -167,9 +209,13 @@ export default function SquadScreen() {
     [eventGroupFilteredRows, data.weeklyLogs, data.strengthTests, currentWeek],
   );
 
-  const loggedCount = rows.filter((r) => r.loggedThisWeek).length;
-  const missingCount = rows.length - loggedCount;
-  const alertCount = rows.filter((r) => r.pillTone !== 'success').length;
+  const loggedRows = rows.filter((r) => r.loggedThisWeek);
+  const missingRows = rows.filter((r) => !r.loggedThisWeek);
+  const alertRows = rows.filter((r) => r.pillTone !== 'success');
+  const loggedCount = loggedRows.length;
+  const missingCount = missingRows.length;
+  const alertCount = alertRows.length;
+  const statSheetRows = statSheet === 'logged' ? loggedRows : statSheet === 'missing' ? missingRows : statSheet === 'alerts' ? alertRows : [];
   const unreadNotifications = data.notifications.filter((n) => !n.read).length;
 
   if (error && !loading && data.athletes.length === 0) return <ErrorState onRetry={refresh} />;
@@ -203,6 +249,20 @@ export default function SquadScreen() {
             <Ionicons name="megaphone-outline" size={19} color={colors.navText} />
           </Pressable>
           <Pressable
+            onPress={() => setFiltersVisible(true)}
+            hitSlop={12}
+            style={{ marginRight: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel={activeFilterCount > 0 ? `Sort and filter, ${activeFilterCount} active` : 'Sort and filter'}
+          >
+            <View>
+              <Ionicons name="filter-outline" size={19} color={colors.navText} />
+              {activeFilterCount > 0 && (
+                <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent }} />
+              )}
+            </View>
+          </Pressable>
+          <Pressable
             onPress={() => router.push('/(coach)/notifications')}
             hitSlop={12}
             style={{ marginRight: 16 }}
@@ -226,20 +286,12 @@ export default function SquadScreen() {
               )}
             </View>
           </Pressable>
-          <Pressable
-            onPress={() => router.push('/(coach)/settings')}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-          >
-            <Ionicons name="settings-outline" size={19} color={colors.navText} />
-          </Pressable>
         </View>
 
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 14 }}>
-          <StatBox value={loggedCount} label="Logged" bg={colors.successBg} fg={colors.success} />
-          <StatBox value={missingCount} label="Missing" bg={colors.dangerBg} fg={colors.danger} />
-          <StatBox value={alertCount} label="Alerts" bg={colors.warningBg} fg={colors.warning} />
+          <StatBox value={loggedCount} label="Logged" bg={colors.successBg} fg={colors.success} onPress={() => setStatSheet('logged')} />
+          <StatBox value={missingCount} label="Missing" bg={colors.dangerBg} fg={colors.danger} onPress={() => setStatSheet('missing')} />
+          <StatBox value={alertCount} label="Alerts" bg={colors.warningBg} fg={colors.warning} onPress={() => setStatSheet('alerts')} />
         </View>
       </View>
 
@@ -260,6 +312,7 @@ export default function SquadScreen() {
                 flex: 1,
                 alignItems: 'center',
                 paddingVertical: 8,
+                paddingHorizontal: 8,
                 borderRadius: 8,
                 backgroundColor: active ? colors.accent : 'transparent',
                 borderWidth: active ? 0 : 1,
@@ -368,6 +421,21 @@ export default function SquadScreen() {
                         {row.athlete.group}
                       </Text>
                     )}
+                    {row.athlete.status !== 'active' && (
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: '600',
+                          color: row.athlete.status === 'injured' ? colors.danger : colors.warning,
+                          backgroundColor: row.athlete.status === 'injured' ? colors.dangerBg : colors.warningBg,
+                          paddingHorizontal: 6,
+                          paddingVertical: 1,
+                          borderRadius: 8,
+                        }}
+                      >
+                        {ATHLETE_STATUS_LABEL[row.athlete.status]}
+                      </Text>
+                    )}
                   </View>
                   <Text style={{ fontSize: 13, color: colors.textMuted }}>{row.subtitle}</Text>
                 </View>
@@ -383,7 +451,7 @@ export default function SquadScreen() {
                 No athletes yet
               </Text>
               <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
-                Add them yourself from the + above, or share your programme join code so they can sign up: {'\n'}
+                Add them yourself from the + above, or share your team code so they can sign up: {'\n'}
                 <Text style={{ fontWeight: '700', color: colors.text }}>{joinCode ?? '…'}</Text>
               </Text>
             </View>
@@ -396,7 +464,13 @@ export default function SquadScreen() {
         </Screen>
       ) : (
         <Screen onRefresh={refresh}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 }}>RPE heatmap · Last 8 weeks</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>RPE heatmap · Last 8 weeks</Text>
+            <InfoTip
+              term="RPE"
+              explanation="Rate of Perceived Exertion — each athlete's self-reported effort score (1–10) for a week's training. This grid colors each week by how hard it felt, so you can spot squad-wide fatigue at a glance."
+            />
+          </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
             {HEATMAP_LEGEND.map((l) => (
               <View key={l.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -428,15 +502,158 @@ export default function SquadScreen() {
       )}
 
       <BroadcastSheet visible={broadcastVisible} onClose={() => setBroadcastVisible(false)} athletes={data.athletes} />
+
+      <Sheet visible={filtersVisible} onClose={() => setFiltersVisible(false)}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Sort & filter</Text>
+        </View>
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Sort by</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+            {(Object.keys(SORT_LABEL) as SortBy[]).map((s) => {
+              const active = sortBy === s;
+              return (
+                <Pressable
+                  key={s}
+                  onPress={() => setSortBy(s)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={SORT_LABEL[s]}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    backgroundColor: active ? colors.accent : 'transparent',
+                    borderWidth: active ? 0 : 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>{SORT_LABEL[s]}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Status</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {[null, ...(Object.keys(ATHLETE_STATUS_LABEL) as AthleteStatus[])].map((s) => {
+              const active = activeStatus === s;
+              const label = s ? ATHLETE_STATUS_LABEL[s] : 'All';
+              return (
+                <Pressable
+                  key={s ?? 'all-status'}
+                  onPress={() => setActiveStatus(s)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={label}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: active ? colors.accent : 'transparent',
+                    borderWidth: active ? 0 : 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {classCategories.length > 0 && (
+            <>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Class / category</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                {[null, ...classCategories].map((c) => {
+                  const active = activeClassCategory === c;
+                  return (
+                    <Pressable
+                      key={c ?? 'all-class'}
+                      onPress={() => setActiveClassCategory(c)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: active }}
+                      accessibilityLabel={c ?? 'All'}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        backgroundColor: active ? colors.accent : 'transparent',
+                        borderWidth: active ? 0 : 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>{c ?? 'All'}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          <Button
+            label="Reset filters"
+            variant="outline"
+            onPress={() => {
+              setActiveStatus(null);
+              setActiveClassCategory(null);
+              setSortBy('name');
+            }}
+          />
+        </View>
+      </Sheet>
+
+      <Sheet visible={statSheet != null} onClose={() => setStatSheet(null)} maxHeightPct="75%">
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
+            {statSheet === 'logged' ? `Logged this week (${loggedCount})` : statSheet === 'missing' ? `Missing this week (${missingCount})` : `Alerts (${alertCount})`}
+          </Text>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
+          {statSheetRows.length === 0 && <Text style={{ fontSize: 14, color: colors.textMuted }}>Nobody in this bucket.</Text>}
+          {statSheetRows.map((row) => {
+            const perfUnit = row.athlete.unit === 's' ? 'seconds' : 'metres';
+            let detail: string;
+            if (statSheet === 'logged') {
+              detail = `${row.thisWeekMark != null ? formatPerformance(row.thisWeekMark, perfUnit) : 'No mark'}${row.thisWeekRpe != null ? ` · RPE ${row.thisWeekRpe}` : ''}`;
+            } else if (statSheet === 'missing') {
+              detail = 'No result logged this week';
+            } else {
+              detail = row.alertMessage ?? (row.loggedThisWeek ? row.pillLabel : 'No result logged this week');
+            }
+            return (
+              <Pressable
+                key={row.athlete.id}
+                onPress={() => {
+                  setStatSheet(null);
+                  router.push(`/(coach)/athlete/${row.athlete.id}`);
+                }}
+                style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, color: colors.text }}>{row.athlete.name}</Text>
+                  <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{detail}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </Sheet>
     </View>
   );
 }
 
-function StatBox({ value, label, bg, fg }: { value: number; label: string; bg: string; fg: string }) {
+function StatBox({ value, label, bg, fg, onPress }: { value: number; label: string; bg: string; fg: string; onPress?: () => void }) {
   return (
-    <View style={{ flex: 1, backgroundColor: bg, borderRadius: 8, paddingVertical: 8, alignItems: 'center' }}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${value}. See breakdown.`}
+      style={({ pressed }) => [{ flex: 1, backgroundColor: bg, borderRadius: 8, paddingVertical: 8, alignItems: 'center', opacity: pressed ? 0.7 : 1 }]}
+    >
       <Text style={{ fontSize: 21, fontWeight: '600', color: fg }}>{value}</Text>
       <Text style={{ fontSize: 12, color: fg }}>{label}</Text>
-    </View>
+    </Pressable>
   );
 }

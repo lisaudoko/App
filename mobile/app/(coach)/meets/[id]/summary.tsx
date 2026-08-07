@@ -6,13 +6,14 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
 import { repository } from '@/data/repository';
 import type { Meet, MeetEntry } from '@/data/types';
-import { EVENT_GROUP_DIRECTION, formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, formatPerformance, inferEventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { InlineNoteField } from '@/components/InlineNoteField';
+import { InfoTip } from '@/components/InfoTip';
 
 export default function MeetSummaryScreen() {
   const { colors } = useAppTheme();
@@ -70,7 +71,7 @@ export default function MeetSummaryScreen() {
 
     for (const entry of entries) {
       const athlete = athletesById.get(entry.athleteId);
-      const eventGroup = athlete?.eventGroup ?? 'throws';
+      const eventGroup = inferEventGroup(entry.event) ?? athlete?.eventGroup ?? 'throws';
       const unit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
       const direction = EVENT_GROUP_DIRECTION[eventGroup];
       const sb = athlete && athlete.personalBest > 0 ? athlete.personalBest : null;
@@ -115,15 +116,20 @@ export default function MeetSummaryScreen() {
       <ScreenHeader title={`${meet.name} — Summary`} subtitle={meet.date} onBack={() => router.back()} />
       <Screen>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <View style={{ flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.surfaceAlt }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.surfaceAlt }}>
             <Text style={{ flex: 1.4, fontSize: 11, fontWeight: '700', color: colors.textMuted }}>Athlete</Text>
-            <Text style={{ flex: 1, fontSize: 11, fontWeight: '700', color: colors.textMuted }}>Mark</Text>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted }}>Mark</Text>
+              <InfoTip term="vs SB" explanation="Shows how this result compares to the athlete's Season Best (SB) — their best legal mark logged so far this season." />
+            </View>
             <Text style={{ width: 40, fontSize: 11, fontWeight: '700', color: colors.textMuted, textAlign: 'center' }}>Place</Text>
-            <Text style={{ width: 40, fontSize: 11, fontWeight: '700', color: colors.textMuted, textAlign: 'center' }}>Q</Text>
+            <View style={{ width: 40, alignItems: 'center' }}>
+              <InfoTip term="Q" explanation="Qualified — this athlete's mark met or beat this meet's qualifying standard for their event." />
+            </View>
           </View>
           {entries.map((entry, i) => {
             const athlete = athletesById.get(entry.athleteId);
-            const eventGroup = athlete?.eventGroup ?? 'throws';
+            const eventGroup = inferEventGroup(entry.event) ?? athlete?.eventGroup ?? 'throws';
             const unit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
             const direction = EVENT_GROUP_DIRECTION[eventGroup];
             const sb = athlete && athlete.personalBest > 0 ? athlete.personalBest : null;

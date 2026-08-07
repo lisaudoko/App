@@ -1,10 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { EVENT_GROUP_DIRECTION, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
+import { edgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import type {
   Athlete,
   AppNotification,
   AthleteNote,
+  AthleteStatus,
   BlockExercise,
   BlockType,
   JumpsConfig,
@@ -68,6 +69,9 @@ function toWorkoutBlock(b: unknown): WorkoutBlock {
     label: str(block.label) ?? '',
     order: typeof block.order === 'number' ? block.order : 0,
     exercises: rawExercises.map(toBlockExercise),
+    // Blocks saved before per-day scheduling existed have no `day` in their stored JSON —
+    // they apply to every day of the week, same as an explicit "General" block does.
+    day: typeof block.day === 'number' ? block.day : null,
   };
 }
 
@@ -158,7 +162,12 @@ function toAthleteNote(row: AthleteNoteRow): AthleteNote {
   };
 }
 
-const WORKOUT_PROGRESS_KEY = 'tru.workoutProgress.v1';
+const EPOCH_MONDAY_UTC = Date.UTC(2020, 0, 6);
+/** Deterministic Mon–Sun (UTC) week bucket for a "YYYY-MM-DD" date string — used only to detect
+ *  "already logged this calendar week" (not tied to real ISO week numbers, just needs consistent equality). */
+function weekBucket(dateStr: string): number {
+  return Math.floor((new Date(`${dateStr}T00:00:00Z`).getTime() - EPOCH_MONDAY_UTC) / (7 * 24 * 60 * 60 * 1000));
+}
 
 function toWeeklyLog(row: WeeklyLogRow): WeeklyLog {
   return {
@@ -216,10 +225,9 @@ function toAthlete(profile: ProfileRow, weeklyLogs: WeeklyLog[], strengthTests: 
     event: profile.event ?? '',
     eventGroup,
     group: profile.group_name ?? '',
-    // status/target-maxes aren't part of the backend schema; target maxes
-    // default to +10% over current (a conventional next-block goal) so
-    // strength gauges aren't always full.
-    status: 'active',
+    // target maxes default to +10% over current (a conventional next-block
+    // goal) so strength gauges aren't always full — not part of the backend schema.
+    status: (profile.status as AthleteStatus | undefined) ?? 'active',
     unit: eventGroup === 'sprints' ? 's' : 'm',
     baselineMark: profile.baseline_distance ?? 0,
     personalBest: personalBest ?? 0,
@@ -232,25 +240,37 @@ function toAthlete(profile: ProfileRow, weeklyLogs: WeeklyLog[], strengthTests: 
     },
     qualifyingStandard: profile.qualifying_standard ?? 0,
     qualifyingEvent: profile.qualifying_event ?? '',
+    dateOfBirth: profile.date_of_birth ?? null,
+    classCategory: profile.class_category ?? null,
     joinedAt: profile.created_at,
   };
 }
 
-const NOTIFICATION_COPY: Record<NotificationRow['type'], { title: string; severity: AppNotification['severity'] }> = {
+const NOTIFICATION_COPY: Record<string, { title: string; severity: AppNotification['severity'] }> = {
   pb: { title: 'New PB', severity: 'success' },
   missing_log: { title: 'Missing log', severity: 'danger' },
   high_rpe: { title: 'High RPE', severity: 'warning' },
   anomaly: { title: 'Anomaly', severity: 'warning' },
   qualifying_risk: { title: 'Qualifying risk', severity: 'warning' },
+  meet_pb: { title: 'Meet PB', severity: 'success' },
+  meet_qualified: { title: 'Qualified', severity: 'success' },
+  broadcast: { title: 'Message from your coach', severity: 'info' },
+  workout_complete: { title: 'Workout completed', severity: 'success' },
 };
+// Any notification type not yet in the map above (e.g. a new one added on the
+// backend before the app is updated) falls back to this rather than crashing
+// the whole notifications list — row.type was previously used as a direct,
+// unchecked object-key lookup here.
+const DEFAULT_NOTIFICATION_COPY = { title: 'Notification', severity: 'info' as const };
 
 function toNotification(row: NotificationRow): AppNotification {
+  const copy = NOTIFICATION_COPY[row.type] ?? DEFAULT_NOTIFICATION_COPY;
   return {
     id: row.id,
     athleteId: row.athlete_id,
-    title: NOTIFICATION_COPY[row.type].title,
+    title: copy.title,
     body: row.message,
-    severity: NOTIFICATION_COPY[row.type].severity,
+    severity: copy.severity,
     createdAt: row.sent_at,
     read: row.read_at != null,
   };
@@ -266,15 +286,6 @@ async function myProfile(): Promise<ProfileRow> {
   return data;
 }
 
-async function loadWorkoutProgress(): Promise<Record<string, Record<number, string[]>>> {
-  const raw = await AsyncStorage.getItem(WORKOUT_PROGRESS_KEY);
-  return raw ? JSON.parse(raw) : {};
-}
-
-async function saveWorkoutProgress(data: Record<string, Record<number, string[]>>): Promise<void> {
-  await AsyncStorage.setItem(WORKOUT_PROGRESS_KEY, JSON.stringify(data));
-}
-
 export interface ProfileEditableFields {
   name?: string;
   event?: string;
@@ -283,6 +294,9 @@ export interface ProfileEditableFields {
   baselineMark?: number;
   qualifyingStandard?: number;
   qualifyingEvent?: string;
+  dateOfBirth?: string | null;
+  classCategory?: string | null;
+  status?: AthleteStatus;
 }
 
 function profileFieldsToRow(fields: ProfileEditableFields): Database['public']['Tables']['profiles']['Update'] {
@@ -294,6 +308,9 @@ function profileFieldsToRow(fields: ProfileEditableFields): Database['public']['
   if (fields.baselineMark !== undefined) row.baseline_distance = fields.baselineMark;
   if (fields.qualifyingStandard !== undefined) row.qualifying_standard = fields.qualifyingStandard;
   if (fields.qualifyingEvent !== undefined) row.qualifying_event = fields.qualifyingEvent;
+  if (fields.dateOfBirth !== undefined) row.date_of_birth = fields.dateOfBirth;
+  if (fields.classCategory !== undefined) row.class_category = fields.classCategory;
+  if (fields.status !== undefined) row.status = fields.status;
   return row;
 }
 
@@ -358,10 +375,18 @@ export const repository = {
     baselineMark?: number;
     qualifyingStandard?: number;
     qualifyingEvent?: string;
+    dateOfBirth?: string;
+    classCategory?: string;
   }): Promise<{ athleteId: string }> {
     const { data, error } = await supabase.functions.invoke<{ athleteId: string }>('add-athlete', { body: input });
-    if (error || !data) throw error ?? new Error('Could not add athlete');
+    if (error || !data) throw new Error(await edgeFunctionErrorMessage(error, 'Could not add athlete'));
     return data;
+  },
+
+  /** Fully removes an athlete from the coach's programme (deletes their account). */
+  async removeAthlete(athleteId: string): Promise<void> {
+    const { error } = await supabase.functions.invoke('remove-athlete', { body: { athleteId } });
+    if (error) throw new Error(await edgeFunctionErrorMessage(error, 'Could not remove that athlete'));
   },
 
   async getWeeklyLogs(athleteId: string): Promise<WeeklyLog[]> {
@@ -394,38 +419,58 @@ export const repository = {
     const direction = EVENT_GROUP_DIRECTION[eventGroup];
     const unit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
 
-    const nextWeek = (existingLogs[existingLogs.length - 1]?.week ?? 0) + 1;
+    const today = new Date().toISOString().slice(0, 10);
+    const lastLog = existingLogs[existingLogs.length - 1];
+    // A second log within the same calendar week updates that week's row rather than minting a
+    // new "week" — week_number is otherwise a plain incrementing counter with no calendar meaning,
+    // so double-submitting used to silently fabricate an extra week and drag the whole squad's
+    // currentWeekFromLogs() (the max week_number across every athlete) ahead of everyone else.
+    const updatingThisWeek = lastLog?.loggedAt != null && weekBucket(lastLog.loggedAt) === weekBucket(today);
+    const priorLogs = updatingThisWeek ? existingLogs.slice(0, -1) : existingLogs;
+
     let priorBest: number | null = null;
-    for (const l of existingLogs) {
+    for (const l of priorLogs) {
       if (l.mark == null) continue;
       if (priorBest == null || isBetter(l.mark, priorBest, direction)) priorBest = l.mark;
     }
 
-    const { data, error } = await supabase
-      .from('weekly_logs')
-      .insert({
-        athlete_id: athleteId,
-        programme_id: profile.programme_id,
-        week_number: nextWeek,
-        week_start: new Date().toISOString().slice(0, 10),
-        best_performance: entry.mark,
-        performance_unit: unit,
-        // Kept in sync for anything still reading the legacy throws-only column.
-        best_throw: unit === 'metres' ? entry.mark : null,
-        rpe: entry.rpe,
-        sleep_score: entry.sleep,
-        soreness_score: entry.soreness,
-        energy_score: entry.energy,
-        motivation_score: entry.motivation ?? null,
-        body_weight: entry.bodyWeight ?? null,
-        notes: entry.notes ?? null,
-      })
-      .select()
-      .single();
+    const fields = {
+      best_performance: entry.mark,
+      performance_unit: unit,
+      // Kept in sync for anything still reading the legacy throws-only column.
+      best_throw: unit === 'metres' ? entry.mark : null,
+      rpe: entry.rpe,
+      sleep_score: entry.sleep,
+      soreness_score: entry.soreness,
+      energy_score: entry.energy,
+      motivation_score: entry.motivation ?? null,
+      body_weight: entry.bodyWeight ?? null,
+      notes: entry.notes ?? null,
+    };
+
+    const { data, error } = updatingThisWeek
+      ? await supabase
+          .from('weekly_logs')
+          .update({ ...fields, week_start: today })
+          .eq('athlete_id', athleteId)
+          .eq('week_number', lastLog!.week)
+          .select()
+          .single()
+      : await supabase
+          .from('weekly_logs')
+          .insert({
+            athlete_id: athleteId,
+            programme_id: profile.programme_id,
+            week_number: (lastLog?.week ?? 0) + 1,
+            week_start: today,
+            ...fields,
+          })
+          .select()
+          .single();
     if (error || !data) throw error ?? new Error('Could not save log');
 
     const isNewPersonalBest =
-      entry.mark != null && existingLogs.length > 0 && (priorBest == null || isBetter(entry.mark, priorBest, direction));
+      entry.mark != null && priorLogs.length > 0 && (priorBest == null || isBetter(entry.mark, priorBest, direction));
     return { log: toWeeklyLog(data), isNewPersonalBest };
   },
 
@@ -681,7 +726,7 @@ export const repository = {
     const { data, error } = await supabase.functions.invoke<{ sent: number }>('broadcast', {
       body: { message, athleteIds },
     });
-    if (error || !data) throw error ?? new Error('Could not send broadcast');
+    if (error || !data) throw new Error(await edgeFunctionErrorMessage(error, 'Could not send broadcast'));
     return data;
   },
 
@@ -753,13 +798,16 @@ export const repository = {
   async getMesocycleWeek(): Promise<number> {
     const profile = await myProfile();
     if (!profile.programme_id) return 1;
+    // Skips any row with no blocks (e.g. an accidental empty save) so a stray blank week never
+    // hides the last real published week from every athlete's home screen.
     const { data } = await supabase
       .from('workouts')
-      .select('week_number')
+      .select('week_number, blocks')
       .eq('programme_id', profile.programme_id)
       .order('week_number', { ascending: false })
-      .limit(1);
-    return data?.[0]?.week_number ?? 1;
+      .limit(5);
+    const withBlocks = (data ?? []).find((row) => Array.isArray(row.blocks) && row.blocks.length > 0);
+    return withBlocks?.week_number ?? data?.[0]?.week_number ?? 1;
   },
 
   async getWorkoutForWeek(weekNumber: number): Promise<Workout | null> {
@@ -797,7 +845,7 @@ export const repository = {
     const { data, error } = await supabase.functions.invoke<{
       blocks: { type: BlockType; label: string; exercises: Omit<BlockExercise, 'id' | 'category' | 'weightLbs'>[] }[];
     }>('generate-workout', { body: input });
-    if (error || !data) throw error ?? new Error('Could not generate workout');
+    if (error || !data) throw new Error(await edgeFunctionErrorMessage(error, 'Could not generate workout'));
     return data;
   },
 
@@ -813,20 +861,32 @@ export const repository = {
     return (data ?? []).map((r) => r.week_number);
   },
 
-  async getWorkoutProgress(athleteId: string, week: number): Promise<string[]> {
-    const progress = await loadWorkoutProgress();
-    return progress[athleteId]?.[week] ?? [];
+  /** Per-exercise checklist state, plus whether this week has already been submitted to the coach. */
+  async getWorkoutProgress(athleteId: string, week: number): Promise<{ completedIds: string[]; submittedAt: string | null }> {
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .select('completed_exercise_ids, submitted_at')
+      .eq('athlete_id', athleteId)
+      .eq('week_number', week)
+      .maybeSingle();
+    if (error) throw error;
+    return { completedIds: (data?.completed_exercise_ids as string[] | null) ?? [], submittedAt: data?.submitted_at ?? null };
   },
 
-  async toggleWorkoutExercise(athleteId: string, week: number, exerciseId: string): Promise<string[]> {
-    const progress = await loadWorkoutProgress();
-    const forAthlete = progress[athleteId] ?? (progress[athleteId] = {});
-    const done = new Set(forAthlete[week] ?? []);
-    if (done.has(exerciseId)) done.delete(exerciseId);
-    else done.add(exerciseId);
-    forAthlete[week] = Array.from(done);
-    await saveWorkoutProgress(progress);
-    return forAthlete[week];
+  /** Uses the toggle_workout_exercise() RPC (row-locked, single statement) rather than a
+   *  client-side read-modify-write — two exercises toggled in quick succession must not race. */
+  async toggleWorkoutExercise(week: number, exerciseId: string): Promise<string[]> {
+    const { data, error } = await supabase.rpc('toggle_workout_exercise', { p_week_number: week, p_exercise_id: exerciseId });
+    if (error) throw error;
+    return (data as string[] | null) ?? [];
+  },
+
+  /** Explicit "submit to coach" action — sends an in-app + push notification, distinct from the per-exercise checklist above. */
+  async submitWorkoutToCoach(week: number, completedExerciseIds: string[]): Promise<void> {
+    const { error } = await supabase.functions.invoke('submit-workout', {
+      body: { weekNumber: week, completedExerciseIds },
+    });
+    if (error) throw new Error(await edgeFunctionErrorMessage(error, 'Could not submit your workout'));
   },
 
   async getFullContext(): Promise<{

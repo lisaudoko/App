@@ -4,6 +4,7 @@
 // service role, so this must run server-side.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { friendlyErrorMessage } from '../_shared/friendlyError.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: friendlyErrorMessage(err, 'Could not delete the account. Please try again.') }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

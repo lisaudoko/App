@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
+import * as Clipboard from 'expo-clipboard';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useThemeStore, type ThemeMode } from '@/theme/themeStore';
 import { useAuthStore } from '@/store/authStore';
+import { repository } from '@/data/repository';
+import type { AppNotification } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'Yesterday' : `${days} days ago`;
+}
 
 const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { mode: 'light', label: 'Light', icon: 'sunny-outline' },
@@ -30,6 +43,26 @@ export function SettingsScreen() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [teamCode, setTeamCode] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<AppNotification[]>([]);
+
+  useEffect(() => {
+    if (session?.role === 'coach') {
+      repository.getMyProgrammeJoinCode().then(setTeamCode).catch(() => {});
+    }
+    repository
+      .getNotifications()
+      .then((all) => setRecentActivity(all.slice(0, 5)))
+      .catch(() => {});
+  }, [session?.role]);
+
+  async function handleCopyTeamCode() {
+    if (!teamCode) return;
+    await Clipboard.setStringAsync(teamCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  }
 
   function handleLogout() {
     logout();
@@ -56,7 +89,7 @@ export function SettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title="Settings" onBack={() => router.back()} />
+      <ScreenHeader title="Settings" onBack={router.canGoBack() ? () => router.back() : undefined} />
       <Screen>
         <Card>
           <Text style={{ fontSize: 17, fontWeight: '600', color: colors.text }}>{session?.name}</Text>
@@ -97,16 +130,57 @@ export function SettingsScreen() {
         {session?.role === 'coach' && (
           <>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Team code
+            </Text>
+            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text, letterSpacing: 1 }}>{teamCode ?? '…'}</Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                  Share this so athletes can join your team from the signup screen.
+                </Text>
+              </View>
+              <Pressable
+                onPress={handleCopyTeamCode}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Copy team code"
+                style={{ paddingHorizontal: 10, paddingVertical: 8 }}
+              >
+                <Ionicons name={codeCopied ? 'checkmark' : 'copy-outline'} size={18} color={codeCopied ? colors.success : colors.text} />
+              </Pressable>
+            </Card>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
               Manage programme
             </Text>
             <Card style={{ padding: 0 }}>
               <SettingsLink icon="add-circle-outline" label="Add athlete" onPress={() => router.push('/(coach)/add-athlete')} />
+              <SettingsLink icon="people-outline" label="Manage squad" onPress={() => router.push('/(coach)/settings/squad')} />
               <SettingsLink
                 icon="options-outline"
                 label="Event groups & standards"
                 onPress={() => router.push('/(coach)/settings/config')}
                 last
               />
+            </Card>
+          </>
+        )}
+
+        {recentActivity.length > 0 && (
+          <>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Recent activity
+            </Text>
+            <Card style={{ padding: 0 }}>
+              {recentActivity.map((n, i) => (
+                <View
+                  key={n.id}
+                  style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: i === recentActivity.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
+                >
+                  <Text style={{ fontSize: 14, color: colors.text }}>{n.body}</Text>
+                  <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 2 }}>{timeAgo(n.createdAt)}</Text>
+                </View>
+              ))}
             </Card>
           </>
         )}

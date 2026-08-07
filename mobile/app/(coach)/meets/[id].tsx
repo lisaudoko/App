@@ -6,7 +6,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
 import { repository } from '@/data/repository';
 import type { Meet, MeetEntry } from '@/data/types';
-import { formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
+import { formatPerformance, inferEventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -42,6 +42,12 @@ export default function MeetDetailScreen() {
   const [entrySeedMark, setEntrySeedMark] = useState('');
   const [addBusy, setAddBusy] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  const [standardsVisible, setStandardsVisible] = useState(false);
+  const [newStandardEvent, setNewStandardEvent] = useState('');
+  const [newStandardValue, setNewStandardValue] = useState('');
+  const [standardsBusy, setStandardsBusy] = useState(false);
+  const [standardsError, setStandardsError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -116,6 +122,47 @@ export default function MeetDetailScreen() {
     }
   }
 
+  async function saveStandards(next: Record<string, number>) {
+    if (!meet) return;
+    setStandardsBusy(true);
+    setStandardsError(null);
+    try {
+      await repository.updateMeet(meet.id, {
+        name: meet.name,
+        date: meet.date,
+        standards: next,
+        location: meet.location,
+        meetType: meet.meetType,
+        conditions: meet.conditions,
+        generalNotes: meet.generalNotes,
+      });
+      setMeet({ ...meet, standards: next });
+    } catch (err) {
+      setStandardsError(err instanceof Error ? err.message : 'Could not save standard');
+    } finally {
+      setStandardsBusy(false);
+    }
+  }
+
+  function addStandard() {
+    if (!meet || !newStandardEvent.trim() || !newStandardValue.trim()) return;
+    const value = parseFloat(newStandardValue);
+    if (!Number.isFinite(value)) {
+      setStandardsError('Enter a valid number for the standard.');
+      return;
+    }
+    saveStandards({ ...meet.standards, [newStandardEvent.trim()]: value });
+    setNewStandardEvent('');
+    setNewStandardValue('');
+  }
+
+  function removeStandard(event: string) {
+    if (!meet) return;
+    const next = { ...meet.standards };
+    delete next[event];
+    saveStandards(next);
+  }
+
   if (loading || squadLoading) return <LoadingState />;
   if (!meet) {
     return (
@@ -141,6 +188,21 @@ export default function MeetDetailScreen() {
           <InlineNoteField value={notes} onChangeText={handleNotesChange} multiline minHeight={44} />
         </Card>
 
+        <Pressable onPress={() => setStandardsVisible(true)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="ribbon-outline" size={18} color={colors.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>Qualifying standards</Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>
+                {Object.keys(meet.standards).length > 0
+                  ? Object.keys(meet.standards).join(', ')
+                  : 'Set the cutoff mark per event for this meet'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          </Card>
+        </Pressable>
+
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 8 }}>
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Athletes ({entries.length})</Text>
           <Pressable onPress={openPicker} accessibilityRole="button" accessibilityLabel="Add athlete" hitSlop={8}>
@@ -154,7 +216,7 @@ export default function MeetDetailScreen() {
 
         {entries.map((entry) => {
           const athlete = athletesById.get(entry.athleteId);
-          const eventGroup = athlete?.eventGroup ?? 'throws';
+          const eventGroup = inferEventGroup(entry.event) ?? athlete?.eventGroup ?? 'throws';
           const unit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
           return (
             <Pressable key={entry.id} onPress={() => id && router.push(`/(coach)/meets/${id}/athlete/${entry.athleteId}`)}>
@@ -207,6 +269,54 @@ export default function MeetDetailScreen() {
             <Button label="Back" variant="outline" onPress={() => setPickerAthleteId(null)} />
           </ScrollView>
         )}
+      </Sheet>
+
+      <Sheet visible={standardsVisible} onClose={() => setStandardsVisible(false)} maxHeightPct="80%">
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Qualifying standards</Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+            One cutoff per event, shared by every athlete entered in it here.
+          </Text>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+          {Object.entries(meet.standards).length === 0 && (
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 12 }}>No standards set for this meet yet.</Text>
+          )}
+          {Object.entries(meet.standards).map(([event, value]) => {
+            const unit: PerformanceUnit = inferEventGroup(event) === 'sprints' ? 'seconds' : 'metres';
+            return (
+              <View
+                key={event}
+                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, color: colors.text }}>{event}</Text>
+                  <Text style={{ fontSize: 12, color: colors.textMuted }}>{formatPerformance(value, unit)}</Text>
+                </View>
+                <Pressable onPress={() => removeStandard(event)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${event} standard`}>
+                  <Ionicons name="close-circle-outline" size={20} color={colors.danger} />
+                </Pressable>
+              </View>
+            );
+          })}
+
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 16, marginBottom: 6, fontWeight: '500' }}>Add a standard</Text>
+          <TextField label="Event" value={newStandardEvent} onChangeText={setNewStandardEvent} placeholder="e.g. Shot Put" />
+          <TextField
+            label={`Standard${inferEventGroup(newStandardEvent) === 'sprints' ? ' (seconds)' : ' (metres)'}`}
+            value={newStandardValue}
+            onChangeText={setNewStandardValue}
+            keyboardType="decimal-pad"
+            placeholder="e.g. 16.00"
+          />
+          {standardsError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{standardsError}</Text>}
+          <Button
+            label="Add standard"
+            onPress={addStandard}
+            loading={standardsBusy}
+            disabled={!newStandardEvent.trim() || !newStandardValue.trim()}
+          />
+        </ScrollView>
       </Sheet>
     </View>
   );

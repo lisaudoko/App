@@ -5,7 +5,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository, defaultWorkoutTemplate } from '@/data/repository';
 import { shareWorkout } from '@/lib/shareWorkout';
 import { computeExerciseWeight } from '@/engine/workoutWeight';
-import type { BlockExercise, EventGroup, Workout, WorkoutBlock } from '@/data/types';
+import { DAY_LABELS, todayAsWorkoutDay, type BlockExercise, type EventGroup, type Workout, type WorkoutBlock } from '@/data/types';
 import { blockChoicesForGroups, blockTypeDef, type BlockTypeDef } from '@/data/workoutBlocks';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -39,13 +39,16 @@ function emptyExercise(name: string): BlockExercise {
 
 function blocksFromGenerated(
   generated: { type: WorkoutBlock['type']; label: string; exercises: Omit<BlockExercise, 'id' | 'category' | 'weightLbs'>[] }[],
+  day: number | null,
+  orderStart: number,
 ): WorkoutBlock[] {
   return generated.map((b, i) => ({
     id: genId(),
     type: b.type,
     label: b.label,
-    order: i,
+    order: orderStart + i,
     exercises: b.exercises.map((e) => ({ ...e, id: genId(), category: null, weightLbs: null })),
+    day,
   }));
 }
 
@@ -89,6 +92,7 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
   const { colors } = useAppTheme();
   const [existingWeeks, setExistingWeeks] = useState<number[]>([]);
   const [week, setWeek] = useState(1);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +151,10 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
   }
 
   function addBlock(def: BlockTypeDef & { displayLabel: string }) {
-    updateBlocks((blocks) => [...blocks, { id: genId(), type: def.type, label: def.displayLabel, order: blocks.length, exercises: [] }]);
+    updateBlocks((blocks) => [
+      ...blocks,
+      { id: genId(), type: def.type, label: def.displayLabel, order: blocks.length, exercises: [], day: selectedDay },
+    ]);
     setAddBlockVisible(false);
   }
 
@@ -157,11 +164,19 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
 
   function moveBlock(blockId: string, dir: -1 | 1) {
     updateBlocks((blocks) => {
-      const idx = blocks.findIndex((b) => b.id === blockId);
-      const target = idx + dir;
-      if (idx < 0 || target < 0 || target >= blocks.length) return blocks;
+      const block = blocks.find((b) => b.id === blockId);
+      if (!block) return blocks;
+      // Reorder within the block's own day only — the underlying array can interleave
+      // days, so "up/down" must move relative to day-mates, not raw array neighbors.
+      const dayIds = blocks.filter((b) => (b.day ?? null) === (block.day ?? null)).map((b) => b.id);
+      const posInDay = dayIds.indexOf(blockId);
+      const targetPosInDay = posInDay + dir;
+      if (posInDay < 0 || targetPosInDay < 0 || targetPosInDay >= dayIds.length) return blocks;
+      const otherId = dayIds[targetPosInDay];
+      const idxA = blocks.findIndex((b) => b.id === blockId);
+      const idxB = blocks.findIndex((b) => b.id === otherId);
       const copy = [...blocks];
-      [copy[idx], copy[target]] = [copy[target], copy[idx]];
+      [copy[idxA], copy[idxB]] = [copy[idxB], copy[idxA]];
       return copy.map((b, i) => ({ ...b, order: i }));
     });
   }
@@ -200,6 +215,10 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
 
   async function handleSave() {
     if (!workout) return;
+    if (workout.blocks.length === 0) {
+      setError('Add at least one block before saving.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -224,7 +243,12 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
         intensityPct: workout.intensityPct,
         focus: generateFocus.trim() || undefined,
       });
-      setWorkout((w) => (w ? { ...w, blocks: blocksFromGenerated(blocks) } : w));
+      setWorkout((w) => {
+        if (!w) return w;
+        const kept = w.blocks.filter((b) => (b.day ?? null) !== selectedDay);
+        const fresh = blocksFromGenerated(blocks, selectedDay, kept.length);
+        return { ...w, blocks: [...kept, ...fresh] };
+      });
       setGenerateVisible(false);
       setGenerateFocus('');
     } catch (err) {
@@ -239,6 +263,7 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
     shareWorkout(`Week ${workout.weekNumber} plan`, workout, primaryGroup, null);
   }
 
+  const visibleBlocks = workout?.blocks.filter((b) => (b.day ?? null) === selectedDay) ?? [];
   const pickerBlock = workout?.blocks.find((b) => b.id === pickerBlockId) ?? null;
   const pickerDef = pickerBlock ? blockTypeDef(pickerBlock.type, primaryGroup) : null;
   const pickerResults = pickerDef?.exercises.filter((n) => n.toLowerCase().includes(pickerSearch.toLowerCase())) ?? [];
@@ -274,6 +299,38 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
                 }}
               >
                 <Text style={{ fontSize: 12, color: active ? colors.accentText : colors.textMuted }}>W{w}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
+          {[null, ...([1, 2, 3, 4, 5, 6, 7] as const)].map((d) => {
+            const active = selectedDay === d;
+            const label = d == null ? 'General' : DAY_LABELS[d - 1];
+            const count = workout?.blocks.filter((b) => (b.day ?? null) === d).length ?? 0;
+            return (
+              <Pressable
+                key={d ?? 'general'}
+                onPress={() => setSelectedDay(d)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${label}${count > 0 ? `, ${count} block${count === 1 ? '' : 's'}` : ''}`}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: active ? colors.text : 'transparent',
+                  borderWidth: 1,
+                  borderColor: active ? colors.text : colors.border,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.background : colors.textMuted }}>
+                  {label}
+                  {count > 0 ? ` (${count})` : ''}
+                </Text>
               </Pressable>
             );
           })}
@@ -321,7 +378,7 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
             }}
           />
 
-          {workout.blocks.map((block, i) => {
+          {visibleBlocks.map((block, i) => {
             const def = blockTypeDef(block.type, primaryGroup);
             const color = def?.color ?? colors.surfaceAlt;
             const textColor = def?.textColor ?? colors.text;
@@ -332,8 +389,8 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
                   <Pressable onPress={() => moveBlock(block.id, -1)} disabled={i === 0} hitSlop={8} accessibilityRole="button" accessibilityLabel="Move block up">
                     <Ionicons name="chevron-up" size={18} color={textColor} style={{ opacity: i === 0 ? 0.3 : 1 }} />
                   </Pressable>
-                  <Pressable onPress={() => moveBlock(block.id, 1)} disabled={i === workout.blocks.length - 1} hitSlop={8} accessibilityRole="button" accessibilityLabel="Move block down">
-                    <Ionicons name="chevron-down" size={18} color={textColor} style={{ opacity: i === workout.blocks.length - 1 ? 0.3 : 1 }} />
+                  <Pressable onPress={() => moveBlock(block.id, 1)} disabled={i === visibleBlocks.length - 1} hitSlop={8} accessibilityRole="button" accessibilityLabel="Move block down">
+                    <Ionicons name="chevron-down" size={18} color={textColor} style={{ opacity: i === visibleBlocks.length - 1 ? 0.3 : 1 }} />
                   </Pressable>
                   <Pressable onPress={() => removeBlock(block.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${block.label} block`}>
                     <Ionicons name="trash-outline" size={17} color={textColor} />
@@ -387,16 +444,18 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
             );
           })}
 
-          {workout.blocks.length === 0 && (
+          {visibleBlocks.length === 0 && (
             <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 16, marginBottom: 8 }}>
-              No blocks yet — add one to start building this week&apos;s session.
+              {selectedDay == null
+                ? 'No general blocks yet — these apply every day of the week. Add one, or switch to a specific day above.'
+                : `No blocks for ${DAY_LABELS[selectedDay - 1]} yet — add one below.`}
             </Text>
           )}
 
           <Button label="Add block" onPress={() => setAddBlockVisible(true)} />
 
           {error && <Text style={{ color: colors.danger, fontSize: 12, marginTop: 8, marginBottom: 8 }}>{error}</Text>}
-          <Button label="Save week" onPress={handleSave} loading={saving} />
+          <Button label="Save week" onPress={handleSave} loading={saving} disabled={workout.blocks.length === 0} />
         </Screen>
       )}
 
@@ -453,13 +512,17 @@ export function WorkoutPlansScreen({ onBack }: { onBack?: () => void } = {}) {
 
       <Sheet visible={generateVisible} onClose={() => setGenerateVisible(false)}>
         <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Generate week {week} with AI</Text>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
+            Generate {selectedDay == null ? 'general blocks' : DAY_LABELS[selectedDay - 1]} (week {week}) with AI
+          </Text>
         </View>
         <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
           <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 12, lineHeight: 17 }}>
             Builds a full set of blocks for {primaryGroup} at {Math.round((workout?.intensityPct ?? 0.75) * 100)}% intensity,
             using only exercises already in your library. You can edit anything before saving.
-            {workout && workout.blocks.length > 0 ? ` This replaces the ${workout.blocks.length} block${workout.blocks.length === 1 ? '' : 's'} already on this week.` : ''}
+            {visibleBlocks.length > 0
+              ? ` This replaces the ${visibleBlocks.length} block${visibleBlocks.length === 1 ? '' : 's'} already on ${selectedDay == null ? 'General' : DAY_LABELS[selectedDay - 1]}.`
+              : ''}
           </Text>
           <TextField
             label="Focus (optional)"

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { repository } from '@/data/repository';
 import { useCoachAccess } from '@/hooks/useCoachAccess';
 import { EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
+import { CLASS_CATEGORY_PRESETS } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TextField } from '@/components/TextField';
@@ -25,6 +26,8 @@ export default function AddAthleteScreen() {
   const [eventGroup, setEventGroup] = useState<EventGroup | null>(null);
   const [baselineMark, setBaselineMark] = useState('');
   const [qualifyingStandard, setQualifyingStandard] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [classCategory, setClassCategory] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -71,6 +74,8 @@ export default function AddAthleteScreen() {
         eventGroup,
         baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
         qualifyingStandard: qualifyingStandard ? parseFloat(qualifyingStandard) : undefined,
+        dateOfBirth: dateOfBirth.trim() || undefined,
+        classCategory: classCategory.trim() || undefined,
       });
       setDone(true);
     } catch (err) {
@@ -139,7 +144,7 @@ export default function AddAthleteScreen() {
       <ScreenHeader title="Add athlete" onBack={() => router.back()} />
       <Screen>
         <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16 }}>
-          Creates an athlete account directly in your programme — no join code needed. Set a temporary password and
+          Creates an athlete account directly in your programme — no team code needed. Set a temporary password and
           share it with them.
         </Text>
 
@@ -180,6 +185,7 @@ export default function AddAthleteScreen() {
                       flex: 1,
                       alignItems: 'center',
                       paddingVertical: 10,
+                      paddingHorizontal: 8,
                       borderRadius: 8,
                       backgroundColor: active ? colors.accent : 'transparent',
                       borderWidth: active ? 0 : 1,
@@ -202,6 +208,32 @@ export default function AddAthleteScreen() {
           onChangeText={setEvent}
           placeholder={eventGroup === 'sprints' ? 'e.g. 100m' : eventGroup === 'jumps' ? 'e.g. Long Jump' : 'e.g. Shot Put'}
         />
+        <TextField
+          label="Date of birth — optional"
+          value={dateOfBirth}
+          onChangeText={setDateOfBirth}
+          placeholder="YYYY-MM-DD"
+          keyboardType="numbers-and-punctuation"
+        />
+        <TextField
+          label="Class / category — optional"
+          value={classCategory}
+          onChangeText={setClassCategory}
+          placeholder="e.g. Open, Class 1, U20"
+        />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -6, marginBottom: 12 }}>
+          {CLASS_CATEGORY_PRESETS.map((preset) => (
+            <Pressable
+              key={preset}
+              onPress={() => setClassCategory(preset)}
+              accessibilityRole="button"
+              accessibilityLabel={preset}
+              style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: colors.border }}
+            >
+              <Text style={{ fontSize: 12, color: colors.textMuted }}>{preset}</Text>
+            </Pressable>
+          ))}
+        </View>
         <TextField
           label={`Baseline mark${eventGroup === 'sprints' ? ' (seconds)' : ' (metres)'} — optional`}
           value={baselineMark}

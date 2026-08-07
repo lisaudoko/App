@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
 import { repository } from '@/data/repository';
-import type { BlockExercise, BlockType, Workout, WorkoutBlock } from '@/data/types';
+import { DAY_LABELS, todayAsWorkoutDay, type BlockExercise, type BlockType, type Workout, type WorkoutBlock } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -91,28 +91,33 @@ export default function AthleteWorkoutScreen() {
   const insets = useSafeAreaInsets();
   const { data, loading, isStale, error, refresh } = useAthleteSelf();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [workoutLoading, setWorkoutLoading] = useState(true);
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState(todayAsWorkoutDay());
 
   useEffect(() => {
     setWorkoutLoading(true);
     repository
       .getWorkoutForWeek(data.mesocycleWeek)
-      .then((w) => {
-        setWorkout(w);
-        if (w && w.blocks.length > 0) setExpandedBlocks(new Set([w.blocks[0].id]));
-      })
+      .then((w) => setWorkout(w))
       .catch(() => {})
       .finally(() => setWorkoutLoading(false));
   }, [data.mesocycleWeek]);
 
   React.useEffect(() => {
     if (!data.athlete) return;
+    setHydrated(false);
     repository
       .getWorkoutProgress(data.athlete.id, data.mesocycleWeek)
-      .then((ids) => setCompletedIds(ids))
+      .then(({ completedIds, submittedAt }) => {
+        setCompletedIds(completedIds);
+        setSubmittedAt(submittedAt);
+      })
       .catch(() => {})
       .finally(() => setHydrated(true));
   }, [data.athlete, data.mesocycleWeek]);
@@ -123,6 +128,9 @@ export default function AthleteWorkoutScreen() {
     if (!workout || !data.athlete) return [];
     const maxes = data.athlete.currentMaxes;
     return [...workout.blocks]
+      // "General" blocks (day: null — also every block saved before per-day scheduling
+      // existed) apply on top of every day; day-specific blocks only show on their day.
+      .filter((block) => block.day == null || block.day === selectedDay)
       .sort((a, b) => a.order - b.order)
       .map((block) => ({
         block,
@@ -133,7 +141,16 @@ export default function AthleteWorkoutScreen() {
           return { ex, weight, key: `${block.id}:${ex.id}`, line: exerciseLine(ex, block.type, weight) };
         }),
       }));
-  }, [workout, data.athlete, eventGroup]);
+  }, [workout, data.athlete, eventGroup, selectedDay]);
+
+  const totalExercises = useMemo(() => blockRows.reduce((sum, r) => sum + r.exercises.length, 0), [blockRows]);
+
+  // Re-expand the first block whenever the visible set changes (new workout loaded, or the
+  // athlete switches days) — previously this only ran once on workout load, off the unfiltered list.
+  useEffect(() => {
+    setExpandedBlocks(blockRows.length > 0 ? new Set([blockRows[0].block.id]) : new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workout, selectedDay]);
 
   function toggleBlock(blockId: string) {
     setExpandedBlocks((prev) => {
@@ -148,8 +165,22 @@ export default function AthleteWorkoutScreen() {
     if (!data.athlete) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCompletedIds((prev) => (prev.includes(exerciseKey) ? prev.filter((id) => id !== exerciseKey) : [...prev, exerciseKey]));
-    const authoritative = await repository.toggleWorkoutExercise(data.athlete.id, data.mesocycleWeek, exerciseKey);
+    const authoritative = await repository.toggleWorkoutExercise(data.mesocycleWeek, exerciseKey);
     setCompletedIds(authoritative);
+  }
+
+  async function submitToCoach() {
+    setSubmitting(true);
+    setSubmitError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await repository.submitWorkoutToCoach(data.mesocycleWeek, completedIds);
+      setSubmittedAt(new Date().toISOString());
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not submit your workout. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (loading || workoutLoading) return <LoadingState />;
@@ -185,7 +216,9 @@ export default function AthleteWorkoutScreen() {
       <View style={{ backgroundColor: colors.navBar, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: '600', color: colors.navText }}>Today&apos;s workout</Text>
+            <Text style={{ fontSize: 20, fontWeight: '600', color: colors.navText }}>
+              {selectedDay === todayAsWorkoutDay() ? "Today's workout" : `${DAY_LABELS[selectedDay - 1]}'s workout`}
+            </Text>
             <Text style={{ fontSize: 13, color: colors.navText, opacity: 0.6, marginTop: 1 }}>
               Week {workout.weekNumber} · {Math.round(workout.intensityPct * 100)}% intensity
             </Text>
@@ -201,9 +234,43 @@ export default function AthleteWorkoutScreen() {
         </View>
       </View>
 
+      <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 10 }}>
+        {([1, 2, 3, 4, 5, 6, 7] as const).map((d) => {
+          const active = selectedDay === d;
+          const isToday = d === todayAsWorkoutDay();
+          return (
+            <Pressable
+              key={d}
+              onPress={() => setSelectedDay(d)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`${DAY_LABELS[d - 1]}${isToday ? ', today' : ''}`}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 7,
+                borderRadius: 8,
+                backgroundColor: active ? colors.accent : 'transparent',
+                borderWidth: active ? 0 : 1,
+                borderColor: isToday && !active ? colors.text : colors.border,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>{DAY_LABELS[d - 1]}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {isStale && <StaleBanner />}
 
       <Screen onRefresh={refresh}>
+        {blockRows.length === 0 && (
+          <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
+            <Ionicons name="cafe-outline" size={26} color={colors.textFaint} />
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginTop: 8 }}>Nothing scheduled for {DAY_LABELS[selectedDay - 1]}</Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2, textAlign: 'center' }}>Rest day, or check another day above.</Text>
+          </Card>
+        )}
         {(squat > 0 || clean > 0 || bench > 0) && (
           <Card style={{ marginBottom: 12 }}>
             <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>Your current maxes</Text>
@@ -298,6 +365,30 @@ export default function AthleteWorkoutScreen() {
             </View>
           );
         })}
+
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>
+                {submittedAt ? 'Submitted to your coach' : 'Submit this workout'}
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                {hydrated ? `${completedIds.length}/${totalExercises} exercises checked` : ''}
+                {submittedAt
+                  ? ` · Sent ${new Date(submittedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                  : ''}
+              </Text>
+            </View>
+            {submittedAt && <Ionicons name="checkmark-circle" size={22} color={colors.success} />}
+          </View>
+          {submitError && <Text style={{ color: colors.danger, fontSize: 13, marginTop: 8 }}>{submitError}</Text>}
+          <Button
+            label={submittedAt ? 'Resubmit to coach' : 'Submit workout to coach'}
+            variant={submittedAt ? 'outline' : 'primary'}
+            onPress={submitToCoach}
+            loading={submitting}
+          />
+        </Card>
 
         <Button label={`Done — log my ${resultNoun}`} onPress={() => router.push('/(athlete)/(tabs)/logger')} />
       </Screen>

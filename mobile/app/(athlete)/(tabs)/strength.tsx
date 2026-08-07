@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
 import { StaleBanner } from '@/components/StaleBanner';
 import { StrengthChart } from '@/components/charts/StrengthChart';
+import { InfoTip } from '@/components/InfoTip';
 
 export default function AthleteStrengthScreen() {
   const { colors } = useAppTheme();
@@ -77,7 +78,10 @@ export default function AthleteStrengthScreen() {
         />
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Strength progression</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Strength progression</Text>
+            <InfoTip term="1RM" explanation="One-Rep Max — the most weight you can lift for a single complete repetition of an exercise. It's the standard reference point strength programmes are built around." />
+          </View>
           <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>
             1RM maxes across test dates (lbs) · Squat / Clean / Bench
           </Text>

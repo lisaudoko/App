@@ -258,7 +258,9 @@ export type Database = {
       profiles: {
         Row: {
           baseline_distance: number | null
+          class_category: string | null
           created_at: string
+          date_of_birth: string | null
           event: string | null
           event_group: string | null
           expo_push_token: string | null
@@ -270,12 +272,15 @@ export type Database = {
           qualifying_standard: number | null
           revenuecat_customer_id: string | null
           role: string
+          status: string
           subscription_exempt: boolean
           trial_started_at: string | null
         }
         Insert: {
           baseline_distance?: number | null
+          class_category?: string | null
           created_at?: string
+          date_of_birth?: string | null
           event?: string | null
           event_group?: string | null
           expo_push_token?: string | null
@@ -287,12 +292,15 @@ export type Database = {
           qualifying_standard?: number | null
           revenuecat_customer_id?: string | null
           role: string
+          status?: string
           subscription_exempt?: boolean
           trial_started_at?: string | null
         }
         Update: {
           baseline_distance?: number | null
+          class_category?: string | null
           created_at?: string
+          date_of_birth?: string | null
           event?: string | null
           event_group?: string | null
           expo_push_token?: string | null
@@ -304,6 +312,7 @@ export type Database = {
           qualifying_standard?: number | null
           revenuecat_customer_id?: string | null
           role?: string
+          status?: string
           subscription_exempt?: boolean
           trial_started_at?: string | null
         }
@@ -559,6 +568,54 @@ export type Database = {
           },
         ]
       }
+      workout_completions: {
+        Row: {
+          athlete_id: string
+          completed_exercise_ids: Json
+          created_at: string
+          id: string
+          programme_id: string
+          submitted_at: string | null
+          updated_at: string
+          week_number: number
+        }
+        Insert: {
+          athlete_id: string
+          completed_exercise_ids?: Json
+          created_at?: string
+          id?: string
+          programme_id: string
+          submitted_at?: string | null
+          updated_at?: string
+          week_number: number
+        }
+        Update: {
+          athlete_id?: string
+          completed_exercise_ids?: Json
+          created_at?: string
+          id?: string
+          programme_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_completions_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_completions_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "programmes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workouts: {
         Row: {
           blocks: Json
@@ -686,6 +743,10 @@ export type Database = {
       start_trial_if_needed: {
         Args: { target_programme_id: string }
         Returns: undefined
+      }
+      toggle_workout_exercise: {
+        Args: { p_week_number: number; p_exercise_id: string }
+        Returns: Json
       }
     }
     Enums: {

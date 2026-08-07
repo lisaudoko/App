@@ -10,6 +10,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Pill } from '@/components/Pill';
 import { TextField } from '@/components/TextField';
+import { LocationAutocomplete } from '@/components/LocationAutocomplete';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
@@ -141,6 +142,7 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
                 flex: 1,
                 alignItems: 'center',
                 paddingVertical: 8,
+                paddingHorizontal: 8,
                 borderRadius: 8,
                 backgroundColor: active ? colors.accent : colors.surfaceAlt,
                 borderWidth: active ? 0 : 1,
@@ -212,7 +214,7 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
                 placeholder="2026-04-11"
                 keyboardType="numbers-and-punctuation"
               />
-              <TextField label="Location" value={form.location} onChangeText={(t) => setForm((f) => ({ ...f, location: t }))} placeholder="e.g. National Stadium" />
+              <LocationAutocomplete label="Location" value={form.location} onChangeText={(t) => setForm((f) => ({ ...f, location: t }))} placeholder="e.g. National Stadium" />
 
               <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Meet type</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>

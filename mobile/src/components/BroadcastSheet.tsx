@@ -98,6 +98,7 @@ export function BroadcastSheet({ visible, onClose, athletes }: Props) {
                         flex: 1,
                         alignItems: 'center',
                         paddingVertical: 8,
+                        paddingHorizontal: 8,
                         borderRadius: radius.md,
                         backgroundColor: active ? colors.accent : 'transparent',
                         borderWidth: active ? 0 : 1,

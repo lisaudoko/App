@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { registerPushToken, clearPushToken } from '@/lib/notifications';
 import { identifyRevenueCatUser, signOutRevenueCat } from '@/lib/revenuecat';
 import { startTrialIfNeeded } from '@/lib/subscription';
+import { edgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import type { UserAccount } from '@/data/types';
 
 export class AuthError extends Error {}
@@ -212,7 +213,7 @@ export const useAuthStore = create<AuthState>()(
         const { error } = await supabase.functions.invoke('delete-account');
         if (error) {
           set({ isBusy: false });
-          throw mapAuthError(error);
+          throw new AuthError(await edgeFunctionErrorMessage(error, 'Could not delete your account'));
         }
         await supabase.auth.signOut();
         set({ session: null, isBusy: false });

@@ -1,5 +1,5 @@
 import { Share } from 'react-native';
-import type { BlockExercise, EventGroup, LiftMaxes, Workout, WorkoutBlock } from '@/data/types';
+import { DAY_LABELS, type BlockExercise, type EventGroup, type LiftMaxes, type Workout, type WorkoutBlock } from '@/data/types';
 import { blockTypeDef, inferLiftForExercise } from '@/data/workoutBlocks';
 import { roundToIncrement } from '@/engine/workoutWeight';
 
@@ -52,14 +52,24 @@ function describeForExport(ex: BlockExercise, blockType: WorkoutBlock['type'], r
 export async function shareWorkout(title: string, workout: Workout, group: EventGroup, maxes: LiftMaxes | null): Promise<void> {
   const lines = [title, `Week ${workout.weekNumber} · ${Math.round(workout.intensityPct * 100)}% intensity`, ''];
 
-  for (const block of [...workout.blocks].sort((a, b) => a.order - b.order)) {
-    if (block.exercises.length === 0) continue;
-    const def = blockTypeDef(block.type, group);
-    lines.push(`${block.label || def?.label || block.type}:`);
-    for (const ex of block.exercises) {
-      lines.push(`  ${describeForExport(ex, block.type, workout.roundingIncrement, maxes)}`);
+  // General (day: null) blocks apply to every day, so they're listed first, unlabeled — then
+  // each day that has blocks gets its own heading, in Mon–Sun order.
+  const byDay = [null, 1, 2, 3, 4, 5, 6, 7] as const;
+  for (const day of byDay) {
+    const blocksForDay = workout.blocks.filter((b) => (b.day ?? null) === day).sort((a, b) => a.order - b.order);
+    if (blocksForDay.length === 0) continue;
+    if (day != null) {
+      lines.push(`${DAY_LABELS[day - 1]}`, '');
     }
-    lines.push('');
+    for (const block of blocksForDay) {
+      if (block.exercises.length === 0) continue;
+      const def = blockTypeDef(block.type, group);
+      lines.push(`${block.label || def?.label || block.type}:`);
+      for (const ex of block.exercises) {
+        lines.push(`  ${describeForExport(ex, block.type, workout.roundingIncrement, maxes)}`);
+      }
+      lines.push('');
+    }
   }
 
   try {

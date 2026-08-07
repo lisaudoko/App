@@ -4,6 +4,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.32';
 import { corsHeaders } from '../_shared/cors.ts';
+import { friendlyErrorMessage } from '../_shared/friendlyError.ts';
 
 const MODEL = 'claude-sonnet-5';
 
@@ -227,7 +228,7 @@ Respond with ONLY the JSON array, nothing else.`;
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: friendlyErrorMessage(err, 'Could not generate a workout right now. Please try again.') }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

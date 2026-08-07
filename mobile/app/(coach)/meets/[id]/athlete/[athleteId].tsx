@@ -4,8 +4,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
-import type { Athlete, MeetAttempt, MeetEntry } from '@/data/types';
-import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, type PerformanceUnit } from '@/lib/formatPerformance';
+import type { Athlete, Meet, MeetAttempt, MeetEntry } from '@/data/types';
+import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, inferEventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { bestLegalAttempt, deriveMeetEntryResult } from '@/engine/meetEntry';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -26,6 +26,7 @@ export default function AthleteMeetEntryScreen() {
 
   const [entry, setEntry] = useState<MeetEntry | null>(null);
   const [athlete, setAthlete] = useState<Athlete | null>(null);
+  const [meet, setMeet] = useState<Meet | null>(null);
   const [attempts, setAttempts] = useState<MeetAttempt[]>(padAttempts([]));
   const [technicalCues, setTechnicalCues] = useState('');
   const [coachNotes, setCoachNotes] = useState('');
@@ -37,10 +38,11 @@ export default function AthleteMeetEntryScreen() {
 
   useEffect(() => {
     if (!id || !athleteId) return;
-    Promise.all([repository.getMeetEntryByAthlete(id, athleteId), repository.getAthlete(athleteId)])
-      .then(([e, a]) => {
+    Promise.all([repository.getMeetEntryByAthlete(id, athleteId), repository.getAthlete(athleteId), repository.getMeet(id)])
+      .then(([e, a, m]) => {
         setEntry(e);
         setAthlete(a ?? null);
+        setMeet(m);
         if (e) {
           setAttempts(padAttempts(e.attempts));
           setTechnicalCues(e.technicalCues ?? '');
@@ -52,9 +54,14 @@ export default function AthleteMeetEntryScreen() {
       .finally(() => setLoading(false));
   }, [id, athleteId]);
 
-  const eventGroup = athlete?.eventGroup ?? 'throws';
+  const eventGroup = inferEventGroup(entry?.event ?? '') ?? athlete?.eventGroup ?? 'throws';
   const direction = EVENT_GROUP_DIRECTION[eventGroup];
   const unit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
+
+  // The meet's own per-event cutoff (set by the coach on the meet, shared by every athlete
+  // entered in that event) takes priority over the athlete's personal season target — that
+  // flat field is a training-progress goal, not necessarily this specific meet's real standard.
+  const qualifyingStandard = (entry ? meet?.standards[entry.event] : undefined) ?? athlete?.qualifyingStandard ?? null;
 
   const bestMark = useMemo(() => bestLegalAttempt(attempts, direction), [attempts, direction]);
   const bestIndex = useMemo(() => {
@@ -63,20 +70,20 @@ export default function AthleteMeetEntryScreen() {
   }, [attempts, bestMark]);
 
   const qualified = useMemo(() => {
-    if (bestMark == null || !athlete?.qualifyingStandard) return false;
-    return deriveMeetEntryResult(attempts, direction, athlete.qualifyingStandard).qualified;
-  }, [attempts, direction, athlete]);
+    if (bestMark == null || !qualifyingStandard) return false;
+    return deriveMeetEntryResult(attempts, direction, qualifyingStandard).qualified;
+  }, [attempts, direction, qualifyingStandard]);
 
   const saveAttempts = useCallback(
     (next: MeetAttempt[]) => {
       if (!entry || !athlete) return;
       if (attemptsTimer.current) clearTimeout(attemptsTimer.current);
       attemptsTimer.current = setTimeout(() => {
-        const { finalMark, qualified: q } = deriveMeetEntryResult(next, direction, athlete.qualifyingStandard || null);
+        const { finalMark, qualified: q } = deriveMeetEntryResult(next, direction, qualifyingStandard);
         repository.updateMeetEntry(entry.id, { attempts: next, finalMark, qualified: q }).catch(() => {});
       }, 500);
     },
-    [entry, athlete, direction],
+    [entry, athlete, direction, qualifyingStandard],
   );
 
   function updateAttempt(index: number, patch: Partial<MeetAttempt>) {
@@ -105,7 +112,7 @@ export default function AthleteMeetEntryScreen() {
     );
   }
 
-  const seedGap = athlete.qualifyingStandard && entry.seedMark != null ? computeGap(entry.seedMark, athlete.qualifyingStandard, direction) : null;
+  const seedGap = qualifyingStandard && entry.seedMark != null ? computeGap(entry.seedMark, qualifyingStandard, direction) : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

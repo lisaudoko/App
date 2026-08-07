@@ -22,6 +22,7 @@ import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
 import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
+import { InfoTip } from '@/components/InfoTip';
 
 export default function CoachAthleteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -153,20 +154,32 @@ export default function CoachAthleteDetailScreen() {
         </Card>
 
         <Card>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Training load + RPE</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Training load + RPE</Text>
+            <InfoTip term="RPE" explanation="Rate of Perceived Exertion — this athlete's self-reported effort (1–10) for each week's training." />
+          </View>
           <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Bars = volume load · Line = RPE · Red dashed = RPE 8 threshold</Text>
           <LoadRpeChart logs={logs} />
           {acRatio != null && (
-            <Text style={{ fontSize: 12, color: acRatio > 1.3 ? colors.danger : colors.textMuted, marginTop: 4 }}>
-              Acute:chronic ratio {acRatio.toFixed(1)}
-              {acRatio > 1.3 ? ' — elevated, monitor this week' : ''}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+              <Text style={{ fontSize: 12, color: acRatio > 1.3 ? colors.danger : colors.textMuted }}>
+                Acute:chronic ratio {acRatio.toFixed(1)}
+                {acRatio > 1.3 ? ' — elevated, monitor this week' : ''}
+              </Text>
+              <InfoTip
+                term="Acute:chronic ratio"
+                explanation="Compares this week's training load (acute) to the athlete's rolling 4-week average (chronic). Above ~1.3 means load has spiked faster than the body has adapted — a common marker for injury risk."
+              />
+            </View>
           )}
         </Card>
 
         {tests.length >= 2 && (
           <Card>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression — test weeks</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression — test weeks</Text>
+              <InfoTip term="1RM" explanation="One-Rep Max — the most weight this athlete can lift for a single complete repetition of an exercise." />
+            </View>
             <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season (lbs)</Text>
             <StrengthChart tests={tests} thirdLift={athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench'} />
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
@@ -230,7 +243,7 @@ export default function CoachAthleteDetailScreen() {
             </View>
           ))}
           <Pressable
-            onPress={() => router.push(`/(coach)/(tabs)/notes?athleteId=${athlete.id}&new=1`)}
+            onPress={() => router.push(`/(coach)/(tabs)/notes?athleteId=${athlete.id}&new=1&t=${Date.now()}`)}
             accessibilityRole="button"
             accessibilityLabel="Add note"
             style={({ pressed }) => [{

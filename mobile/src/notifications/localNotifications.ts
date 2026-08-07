@@ -11,7 +11,7 @@ Notifications.setNotificationHandler({
 });
 
 /** Fires a local (on-device) notification — no push server involved. */
-export async function notifyPersonalBest(athleteName: string, mark: number, unit: PerformanceUnit) {
+export async function notifyPersonalBest(athleteId: string, athleteName: string, mark: number, unit: PerformanceUnit) {
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') {
     const { status: requested } = await Notifications.requestPermissionsAsync();
@@ -21,6 +21,9 @@ export async function notifyPersonalBest(athleteName: string, mark: number, unit
     content: {
       title: `New PB, ${athleteName}! 🎉`,
       body: `${formatPerformance(mark, unit)} — new season best.`,
+      // Matches the { athleteId } shape app/_layout.tsx's notification-tap
+      // handler expects — without it, tapping this notification did nothing.
+      data: { athleteId },
     },
     trigger: null,
   });

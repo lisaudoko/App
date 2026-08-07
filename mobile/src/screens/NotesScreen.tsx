@@ -56,7 +56,7 @@ function emptyForm(athleteId: string | null = null): FormState {
 
 export function NotesScreen() {
   const { colors } = useAppTheme();
-  const params = useLocalSearchParams<{ athleteId?: string; new?: string }>();
+  const params = useLocalSearchParams<{ athleteId?: string; new?: string; t?: string }>();
   const { data: squad } = useProgrammeData();
 
   const [notes, setNotes] = useState<AthleteNote[]>([]);
@@ -96,8 +96,11 @@ export function NotesScreen() {
     if (params.new === '1' && params.athleteId) {
       openNew(params.athleteId);
     }
+    // `t` is a cache-busting nonce (see app/(coach)/athlete/[id].tsx's push call) so re-tapping
+    // "Add note" for the same athlete twice in a row still re-triggers this effect — without it,
+    // identical repeated params meant the second tap silently failed to reopen the sheet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.athleteId, params.new]);
+  }, [params.athleteId, params.new, params.t]);
 
   const visibleNotes = useMemo(
     () =>

@@ -10,6 +10,7 @@ export default function CoachLayout() {
       <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="settings/config" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="settings/squad" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="add-athlete" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="meets/[id]" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="meets/[id]/athlete/[athleteId]" options={{ animation: 'slide_from_right' }} />

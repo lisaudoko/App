@@ -26,6 +26,20 @@ export const EVENT_GROUP_EVENTS: Record<EventGroup, string[]> = {
   jumps: ['Long Jump', 'Triple Jump', 'High Jump', 'Pole Vault'],
 };
 
+/**
+ * Best-effort event-name → group lookup, for contexts (meet entries) where the
+ * event is free text and may not match the athlete's own default event group —
+ * e.g. a sprinter entered in a jump at a meet. Falls back to null (caller should
+ * fall back to the athlete's default group) when the text doesn't match anything.
+ */
+export function inferEventGroup(eventName: string): EventGroup | null {
+  const s = eventName.toLowerCase();
+  if (/shot|discus|hammer|javelin|throw/.test(s)) return 'throws';
+  if (/jump|vault/.test(s)) return 'jumps';
+  if (/hurdle|dash|sprint|relay|steeple|mile|\d/.test(s)) return 'sprints';
+  return null;
+}
+
 /** metres: "16.42m" · seconds <60: "10.82s" · seconds >=60: "1:48.30" (no unit suffix — mm:ss is unambiguous). */
 export function formatPerformance(value: number, unit: PerformanceUnit): string {
   if (unit === 'metres') return `${value.toFixed(2)}m`;

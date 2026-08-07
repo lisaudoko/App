@@ -43,6 +43,7 @@ const styles = StyleSheet.create({
   btn: {
     borderRadius: radius.md,
     paddingVertical: 13,
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
-import type { Athlete } from '@/data/types';
+import { ATHLETE_STATUS_LABEL, CLASS_CATEGORY_PRESETS, type Athlete, type AthleteStatus } from '@/data/types';
 import { EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -29,6 +29,9 @@ export default function EditAthleteScreen() {
   const [qualifyingEvent, setQualifyingEvent] = useState('');
   const [qualifyingStandard, setQualifyingStandard] = useState('');
   const [baselineMark, setBaselineMark] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [classCategory, setClassCategory] = useState('');
+  const [status, setStatus] = useState<AthleteStatus>('active');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +57,9 @@ export default function EditAthleteScreen() {
         setQualifyingEvent(a.qualifyingEvent);
         setQualifyingStandard(a.qualifyingStandard ? String(a.qualifyingStandard) : '');
         setBaselineMark(a.baselineMark ? String(a.baselineMark) : '');
+        setDateOfBirth(a.dateOfBirth ?? '');
+        setClassCategory(a.classCategory ?? '');
+        setStatus(a.status);
         if (config?.eventGroups.length) setProgrammeEventGroups(config.eventGroups);
       })
       .catch(() => {})
@@ -73,6 +79,9 @@ export default function EditAthleteScreen() {
         qualifyingEvent,
         qualifyingStandard: qualifyingStandard ? parseFloat(qualifyingStandard) : undefined,
         baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
+        dateOfBirth: dateOfBirth.trim() || null,
+        classCategory: classCategory.trim() || null,
+        status,
       });
       router.back();
     } catch (err) {
@@ -150,7 +159,53 @@ export default function EditAthleteScreen() {
           )}
 
           <TextField label="Event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
-          <TextField label="Group / classification" value={group} onChangeText={setGroup} placeholder="e.g. Varsity, U18" />
+          <TextField label="Group" value={group} onChangeText={setGroup} placeholder="e.g. Varsity" />
+
+          <TextField label="Date of birth" value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+
+          <TextField label="Class / category" value={classCategory} onChangeText={setClassCategory} placeholder="e.g. Open, Class 1, U20" />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -6, marginBottom: 12 }}>
+            {CLASS_CATEGORY_PRESETS.map((preset) => (
+              <Pressable
+                key={preset}
+                onPress={() => setClassCategory(preset)}
+                accessibilityRole="button"
+                accessibilityLabel={preset}
+                style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ fontSize: 12, color: colors.textMuted }}>{preset}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Status</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {(Object.keys(ATHLETE_STATUS_LABEL) as AthleteStatus[]).map((s) => {
+              const active = status === s;
+              return (
+                <Pressable
+                  key={s}
+                  onPress={() => setStatus(s)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={ATHLETE_STATUS_LABEL[s]}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    backgroundColor: active ? colors.accent : 'transparent',
+                    borderWidth: active ? 0 : 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                    {ATHLETE_STATUS_LABEL[s]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
           <TextField label="Qualifying event" value={qualifyingEvent} onChangeText={setQualifyingEvent} />
           <TextField
             label={`Qualifying standard (${eventGroup === 'sprints' ? 'seconds' : 'm'})`}

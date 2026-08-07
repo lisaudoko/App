@@ -57,7 +57,12 @@ export default function PaywallScreen() {
     setError(null);
     try {
       await Purchases.purchasePackage(pkg);
-      router.back();
+      // The paywall is reached via a Redirect (app/(coach)/(tabs)/_layout.tsx)
+      // when the trial has expired, which replaces history — there's often no
+      // back-stack entry to return to, so an unconditional back() could leave
+      // the coach stuck here with no feedback that the purchase succeeded.
+      if (router.canGoBack()) router.back();
+      else router.replace('/(coach)/(tabs)');
     } catch (err: unknown) {
       const rcError = err as { userCancelled?: boolean; message?: string };
       if (!rcError.userCancelled) {
@@ -73,7 +78,8 @@ export default function PaywallScreen() {
     setError(null);
     try {
       await Purchases.restorePurchases();
-      router.back();
+      if (router.canGoBack()) router.back();
+      else router.replace('/(coach)/(tabs)');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not restore purchases.');
     } finally {

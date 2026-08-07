@@ -339,6 +339,7 @@ function SegmentedRow({
               flex: 1,
               alignItems: 'center',
               paddingVertical: 8,
+              paddingHorizontal: 8,
               borderRadius: 8,
               backgroundColor: active ? colors.accent : 'transparent',
               borderWidth: active ? 0 : 1,

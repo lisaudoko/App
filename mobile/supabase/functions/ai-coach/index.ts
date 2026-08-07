@@ -4,6 +4,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.32';
 import { corsHeaders } from '../_shared/cors.ts';
 import { projectToWeek, computeGap, type Direction } from '../_shared/projections.ts';
+import { friendlyErrorMessage } from '../_shared/friendlyError.ts';
 
 const HAIKU_MODEL = 'claude-haiku-4-5';
 const DEEP_ANALYSIS_MODEL = 'claude-sonnet-5';
@@ -221,7 +222,7 @@ ${JSON.stringify(squadContext, null, 2)}`;
             }
           }
         } catch (err) {
-          controller.enqueue(encoder.encode(`\n[error: ${err instanceof Error ? err.message : 'stream failed'}]`));
+          controller.enqueue(encoder.encode(`\n\n${friendlyErrorMessage(err, "Sorry, I couldn't finish that response. Please try again.")}`));
         } finally {
           controller.close();
         }
@@ -232,7 +233,7 @@ ${JSON.stringify(squadContext, null, 2)}`;
       headers: { ...corsHeaders, 'Content-Type': 'text/plain; charset=utf-8' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: friendlyErrorMessage(err) }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -73,6 +73,7 @@ export default function SignupScreen() {
                 style={{
                   flex: 1,
                   paddingVertical: 12,
+                  paddingHorizontal: 8,
                   borderRadius: 10,
                   alignItems: 'center',
                   borderWidth: role === r ? 0 : 1,
@@ -149,7 +150,7 @@ export default function SignupScreen() {
           ) : (
             <>
               <TextField label="Primary event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
-              <TextField label="Programme join code" value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" placeholder="Ask your coach" />
+              <TextField label="Team code" value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" placeholder="Ask your coach" />
             </>
           )}
 

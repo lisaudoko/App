@@ -4,6 +4,17 @@ export type Role = 'coach' | 'athlete';
 
 export type AthleteStatus = 'active' | 'injured' | 'rest' | 'inactive';
 
+export const ATHLETE_STATUS_LABEL: Record<AthleteStatus, string> = {
+  active: 'Active',
+  injured: 'Injured',
+  rest: 'Rest',
+  inactive: 'Inactive',
+};
+
+/** Common athlete classifications — a starting point, not exhaustive; the field itself is free text
+ *  since class/category terminology varies by federation and country. */
+export const CLASS_CATEGORY_PRESETS = ['Open', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'U20', 'U18', 'U16'];
+
 export type MarkUnit = 'm' | 's' | 'kg' | 'lbs';
 
 export type { EventGroup } from '@/lib/formatPerformance';
@@ -84,6 +95,16 @@ export interface WorkoutBlock {
   label: string;
   order: number;
   exercises: BlockExercise[];
+  /** 1 (Mon) – 7 (Sun), or null for a "general" block that applies every day of the week
+   *  (also the value for blocks saved before per-day scheduling existed). */
+  day: number | null;
+}
+
+export const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+/** JS Date#getDay() is 0 (Sun) – 6 (Sat); WorkoutBlock.day is 1 (Mon) – 7 (Sun). */
+export function todayAsWorkoutDay(): number {
+  const jsDay = new Date().getDay();
+  return jsDay === 0 ? 7 : jsDay;
 }
 
 export interface Workout {
@@ -110,6 +131,9 @@ export interface Athlete {
   targetMaxes: LiftMaxes;
   qualifyingStandard: number;
   qualifyingEvent: string;
+  dateOfBirth: string | null;
+  /** Free text (e.g. "Open", "Class 1", "U20") — terminology varies by federation/country. */
+  classCategory: string | null;
   joinedAt: string;
 }
 
