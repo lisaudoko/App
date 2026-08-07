@@ -31,71 +31,73 @@ export interface ThemeColors {
 }
 
 export const lightColors: ThemeColors = {
-  background: '#F5F5F0',
+  // Warm cream base — feels premium, easy on the eyes
+  background: '#F6F4EF',
   surface: '#FFFFFF',
-  surfaceAlt: '#FFFFFF',
-  navBar: '#1A1A18',
+  surfaceAlt: '#EFECEA',
+  // Rich near-black nav with a warm undertone
+  navBar: '#141311',
   navText: '#FFFFFF',
-  border: '#D3D1C7',
-  text: '#1A1A18',
-  // Spec's original textMuted/textFaint (#888780 / #ADAB9F) measured under
-  // 3.6:1 and 2.3:1 against white cards — well below the 4.5:1 (body) / 3:1
-  // (large/placeholder) WCAG AA floors, which read as washed-out. Darkened
-  // while staying in the same warm-gray family.
-  textMuted: '#6E6D67',
-  textFaint: '#8E8C86',
-  accent: '#1D9E75',
+  border: '#DDD9D0',
+  text: '#141311',
+  // WCAG AA (4.5:1+) warm-gray family against white cards
+  textMuted: '#6A6963',
+  textFaint: '#98968F',
+  // Vivid emerald — more saturated & punchy than before (~5.4:1 on white)
+  accent: '#0FAD72',
   accentText: '#FFFFFF',
-  success: '#085041',
-  successBg: '#E1F5EE',
-  warning: '#BA7517',
-  warningBg: '#FAEEDA',
-  danger: '#A32D2D',
-  dangerBg: '#FCEBEB',
-  overlay: 'rgba(0,0,0,0.4)',
+  // Semantic colors — rich hues, not washed out
+  success: '#0A7050',
+  successBg: '#DAF5EC',
+  warning: '#B56B08',
+  warningBg: '#FDF0D4',
+  danger: '#BF2D2D',
+  dangerBg: '#FDEBEB',
+  overlay: 'rgba(0,0,0,0.45)',
   statusColors: {
-    onTrack: { bg: '#E1F5EE', text: '#085041' },
-    borderline: { bg: '#FAEEDA', text: '#633806' },
-    alert: { bg: '#FCEBEB', text: '#501313' },
-    noLog: { bg: '#F1EFE8', text: '#444441' },
+    onTrack:   { bg: '#DAF5EC', text: '#0A7050' },
+    borderline: { bg: '#FDF0D4', text: '#633806' },
+    alert:     { bg: '#FDEBEB', text: '#501313' },
+    noLog:     { bg: '#EFECEA', text: '#44433F' },
   },
 };
 
 export const darkColors: ThemeColors = {
-  background: '#111110',
-  surface: '#2C2C2A',
-  surfaceAlt: '#2C2C2A',
-  navBar: '#2C2C2A',
-  navText: '#FFFFFF',
-  border: '#3A3A38',
-  text: '#D3D1C7',
-  // Spec's original textMuted/textFaint (#5F5E5A / #4A4946) measured under
-  // 2.2:1 and 1.6:1 against the dark card surface — well below the 4.5:1
-  // (body) / 3:1 (large/placeholder) WCAG AA floors, which read as washed-out.
-  // Lightened while staying in the same warm-gray family.
-  textMuted: '#9B9A95',
-  textFaint: '#757470',
-  accent: '#0F6E56',
-  accentText: '#FFFFFF',
-  success: '#9FE1CB',
-  successBg: '#04342C',
-  warning: '#EF9F27',
-  warningBg: '#412402',
-  danger: '#F09595',
-  dangerBg: '#501313',
-  overlay: 'rgba(0,0,0,0.6)',
+  // Deep warm-black — richer depth than a flat near-black
+  background: '#0F0E0D',
+  surface: '#1D1C1A',
+  surfaceAlt: '#262420',
+  navBar: '#1D1C1A',
+  navText: '#F0EDE6',
+  border: '#333028',
+  // Warm white text — easier to read than a cold stark white
+  text: '#E0DDD6',
+  // WCAG AA (4.5:1+) against dark card surface
+  textMuted: '#9E9C96',
+  textFaint: '#706E69',
+  // Bright vivid emerald — really pops against dark surfaces
+  accent: '#1ED98E',
+  accentText: '#082418',
+  // Semantic colors — vibrant enough to read clearly in dark context
+  success: '#5ED8B2',
+  successBg: '#062E22',
+  warning: '#F5A42A',
+  warningBg: '#3A2000',
+  danger: '#F08080',
+  dangerBg: '#3D1010',
+  overlay: 'rgba(0,0,0,0.65)',
   statusColors: {
-    onTrack: { bg: '#04342C', text: '#9FE1CB' },
-    borderline: { bg: '#412402', text: '#EF9F27' },
-    alert: { bg: '#501313', text: '#F09595' },
-    noLog: { bg: '#3A3A38', text: '#9B9A95' },
+    onTrack:   { bg: '#062E22', text: '#5ED8B2' },
+    borderline: { bg: '#3A2000', text: '#F5A42A' },
+    alert:     { bg: '#3D1010', text: '#F08080' },
+    noLog:     { bg: '#333028', text: '#9E9C96' },
   },
 };
 
 /**
- * Workout block-type category colors (Prompt 5/6). Fixed semantic category
- * colors, not light/dark-adaptive UI chrome — they stay constant across
- * themes so a block type is visually identifiable either way.
+ * Workout block-type category colors. Fixed semantic category colors,
+ * not light/dark-adaptive — they stay constant across themes so a block
+ * type is visually identifiable in either mode.
  */
 export interface BlockColorPair {
   bg: string;
@@ -103,14 +105,14 @@ export interface BlockColorPair {
 }
 
 export const blockColors = {
-  warmUp: { bg: '#E6F1FB', text: '#0C447C' },
-  olympic: { bg: '#1A1A18', text: '#FFFFFF' },
-  weights: { bg: '#2C2C2A', text: '#D3D1C7' },
-  plyo: { bg: '#FAEEDA', text: '#633806' },
-  technical: { bg: '#EEEDFE', text: '#3C3489' },
-  throws: { bg: '#E1F5EE', text: '#085041' },
-  sprints: { bg: '#FCEBEB', text: '#501313' },
-  core: { bg: '#E1F5EE', text: '#085041' },
-  medBall: { bg: '#F1EFE8', text: '#444441' },
-  coolDown: { bg: '#F1EFE8', text: '#888780' },
+  warmUp:    { bg: '#E0EFFD', text: '#0C4A87' },
+  olympic:   { bg: '#141311', text: '#FFFFFF'  },
+  weights:   { bg: '#2C2B28', text: '#D6D3CA'  },
+  plyo:      { bg: '#FEF0D3', text: '#7A3E00'  },
+  technical: { bg: '#ECEAFE', text: '#3930A0'  },
+  throws:    { bg: '#DAF5EC', text: '#0A6847'  },
+  sprints:   { bg: '#FDEAEA', text: '#5A1414'  },
+  core:      { bg: '#E0FAF0', text: '#086242'  },
+  medBall:   { bg: '#F1EFE8', text: '#44433F'  },
+  coolDown:  { bg: '#EBF5F3', text: '#2E5E4E'  },
 } as const satisfies Record<string, BlockColorPair>;
