@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# local tool caches (DevTools/dotslash downloads break EAS tarball upload)
+.cache/
+
 # Expo
 .expo/
 dist/
