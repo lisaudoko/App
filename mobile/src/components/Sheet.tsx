@@ -1,5 +1,5 @@
 import React from 'react';
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, TouchableWithoutFeedback, type ViewStyle } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TouchableWithoutFeedback, View, type ViewStyle } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
 
 interface Props {
@@ -24,14 +24,18 @@ export function Sheet({ visible, onClose, maxHeightPct = '85%', children }: Prop
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <Pressable
               onPress={() => {}}
-              style={{
-                marginTop: 'auto',
-                backgroundColor: colors.surface,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                maxHeight: maxHeightPct,
-              }}
+              style={[
+                styles.sheet,
+                {
+                  backgroundColor: colors.surface,
+                  maxHeight: maxHeightPct,
+                },
+              ]}
             >
+              {/* Drag handle */}
+              <View style={styles.handleWrap}>
+                <View style={[styles.handle, { backgroundColor: colors.border }]} />
+              </View>
               {children}
             </Pressable>
           </TouchableWithoutFeedback>
@@ -40,3 +44,27 @@ export function Sheet({ visible, onClose, maxHeightPct = '85%', children }: Prop
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  sheet: {
+    marginTop: 'auto',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    // Upward shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    elevation: Platform.OS === 'android' ? 12 : 0,
+  },
+  handleWrap: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 2,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+});

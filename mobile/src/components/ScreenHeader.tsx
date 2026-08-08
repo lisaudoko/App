@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -54,11 +54,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 14,
     gap: 10,
+    // Drop shadow so header feels elevated above content
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: Platform.OS === 'android' ? 6 : 0,
+    zIndex: 10,
   },
   side: { width: 24 },
   titleWrap: { flex: 1 },
-  title: { fontSize: 20, fontWeight: '600' },
-  subtitle: { fontSize: 13, opacity: 0.6, marginTop: 1 },
+  title: { fontSize: 20, fontWeight: '700', letterSpacing: 0.1 },
+  subtitle: { fontSize: 13, opacity: 0.65, marginTop: 1 },
 });
