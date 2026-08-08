@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { Redirect, Tabs } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useCoachAccess } from '@/hooks/useCoachAccess';

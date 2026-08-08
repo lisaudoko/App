@@ -7,7 +7,6 @@
     "icon": "./assets/favicon.png",
     "scheme": "truperformance",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.truperformance.app",
@@ -61,7 +60,11 @@
         {
           "calendarPermission": "TRU Performance needs access to add training sessions and meets to your calendar."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-router",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "extra": {
       "router": {},

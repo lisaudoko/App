@@ -17,7 +17,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   const mode = useThemeStore((s) => s.mode);
   const setMode = useThemeStore((s) => s.setMode);
 
-  const resolvedScheme = mode === 'system' ? (systemScheme ?? 'light') : mode;
+  const resolvedScheme = mode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : mode;
   const colors = resolvedScheme === 'dark' ? darkColors : lightColors;
 
   const value = useMemo(

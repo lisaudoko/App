@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PermissionStatus } from 'expo';
 import * as Calendar from 'expo-calendar';
 
 /**
@@ -13,38 +14,38 @@ import * as Calendar from 'expo-calendar';
 
 export type CalendarPermissionStatus = 'granted' | 'denied' | 'undetermined';
 
-function toStatus(status: Calendar.PermissionStatus): CalendarPermissionStatus {
-  if (status === Calendar.PermissionStatus.GRANTED) return 'granted';
-  if (status === Calendar.PermissionStatus.DENIED) return 'denied';
+function toStatus(status: PermissionStatus): CalendarPermissionStatus {
+  if (status === PermissionStatus.GRANTED) return 'granted';
+  if (status === PermissionStatus.DENIED) return 'denied';
   return 'undetermined';
 }
 
 export async function getCalendarPermissionStatus(): Promise<CalendarPermissionStatus> {
-  const { status } = await Calendar.getCalendarPermissionsAsync();
+  const { status } = await Calendar.getCalendarPermissions();
   return toStatus(status);
 }
 
 export async function requestCalendarPermission(): Promise<CalendarPermissionStatus> {
-  const { status } = await Calendar.requestCalendarPermissionsAsync();
+  const { status } = await Calendar.requestCalendarPermissions();
   return toStatus(status);
 }
 
 const CALENDAR_NAME = 'TRU Performance';
-let cachedCalendarId: string | null = null;
+let cachedCalendar: Calendar.ExpoCalendar | null = null;
 
 /** Resolves (creating if necessary) a calendar this app can write events into. */
-async function getWritableCalendarId(): Promise<string> {
-  if (cachedCalendarId) return cachedCalendarId;
+async function getWritableCalendar(): Promise<Calendar.ExpoCalendar> {
+  if (cachedCalendar) return cachedCalendar;
 
   if (Platform.OS === 'ios') {
-    const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    const calendars = await Calendar.getCalendars(Calendar.EntityTypes.EVENT);
     const existing = calendars.find((c) => c.title === CALENDAR_NAME) ?? calendars.find((c) => c.allowsModifications);
     if (existing) {
-      cachedCalendarId = existing.id;
-      return existing.id;
+      cachedCalendar = existing;
+      return existing;
     }
-    const defaultCalendar = await Calendar.getDefaultCalendarAsync();
-    const id = await Calendar.createCalendarAsync({
+    const defaultCalendar = Calendar.getDefaultCalendarSync();
+    const created = await Calendar.createCalendar({
       title: CALENDAR_NAME,
       color: '#1D9E75',
       entityType: Calendar.EntityTypes.EVENT,
@@ -54,18 +55,18 @@ async function getWritableCalendarId(): Promise<string> {
       ownerAccount: defaultCalendar.source.name,
       accessLevel: Calendar.CalendarAccessLevel.OWNER,
     });
-    cachedCalendarId = id;
-    return id;
+    cachedCalendar = created;
+    return created;
   }
 
   // Android
-  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+  const calendars = await Calendar.getCalendars(Calendar.EntityTypes.EVENT);
   const existing = calendars.find((c) => c.title === CALENDAR_NAME) ?? calendars.find((c) => c.allowsModifications);
   if (existing) {
-    cachedCalendarId = existing.id;
-    return existing.id;
+    cachedCalendar = existing;
+    return existing;
   }
-  const id = await Calendar.createCalendarAsync({
+  const created = await Calendar.createCalendar({
     title: CALENDAR_NAME,
     color: '#1D9E75',
     entityType: Calendar.EntityTypes.EVENT,
@@ -74,8 +75,8 @@ async function getWritableCalendarId(): Promise<string> {
     ownerAccount: CALENDAR_NAME,
     accessLevel: Calendar.CalendarAccessLevel.OWNER,
   });
-  cachedCalendarId = id;
-  return id;
+  cachedCalendar = created;
+  return created;
 }
 
 export interface DeviceCalendarEvent {
@@ -87,8 +88,8 @@ export interface DeviceCalendarEvent {
 }
 
 export async function addEventToDeviceCalendar(event: DeviceCalendarEvent): Promise<string> {
-  const calendarId = await getWritableCalendarId();
-  return Calendar.createEventAsync(calendarId, {
+  const calendar = await getWritableCalendar();
+  const created = await calendar.createEvent({
     title: event.title,
     startDate: event.startDate,
     endDate: event.endDate,
@@ -96,10 +97,12 @@ export async function addEventToDeviceCalendar(event: DeviceCalendarEvent): Prom
     notes: event.notes,
     alarms: [{ relativeOffset: -60 }],
   });
+  return created.id;
 }
 
 export async function updateDeviceCalendarEvent(nativeEventId: string, patch: Partial<DeviceCalendarEvent>): Promise<void> {
-  await Calendar.updateEventAsync(nativeEventId, {
+  const event = await Calendar.ExpoCalendarEvent.get(nativeEventId);
+  await event.update({
     title: patch.title,
     startDate: patch.startDate,
     endDate: patch.endDate,
@@ -109,7 +112,8 @@ export async function updateDeviceCalendarEvent(nativeEventId: string, patch: Pa
 }
 
 export async function removeDeviceCalendarEvent(nativeEventId: string): Promise<void> {
-  await Calendar.deleteEventAsync(nativeEventId);
+  const event = await Calendar.ExpoCalendarEvent.get(nativeEventId);
+  await event.delete();
 }
 
 // --- Local id-mapping store -------------------------------------------------

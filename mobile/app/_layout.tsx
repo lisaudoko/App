@@ -1,12 +1,13 @@
 import 'react-native-gesture-handler';
 import { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from 'expo-router/react-navigation';
 import { AppThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
 import { useAuthStore } from '@/store/authStore';
 import { initRevenueCat } from '@/lib/revenuecat';
@@ -48,7 +49,8 @@ function RootNavigation() {
     });
     // The listener above only fires while JS is already running — a tap that cold-starts the
     // app from fully killed delivers its response here instead, once hydration/routing settles.
-    if (hasHydrated) {
+    // Not implemented on web: https://docs.expo.dev/versions/latest/sdk/notifications/#web-support
+    if (hasHydrated && Platform.OS !== 'web') {
       Notifications.getLastNotificationResponseAsync().then((response) => {
         if (response) routeFromNotification(response.notification.request.content.data as Record<string, unknown> | undefined);
       });
