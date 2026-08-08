@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
-import { ATHLETE_STATUS_LABEL, CLASS_CATEGORY_PRESETS, type Athlete, type AthleteStatus } from '@/data/types';
+import { ATHLETE_STATUS_LABEL, CLASS_CATEGORY_PRESETS, SEX_LABEL, type Athlete, type AthleteStatus, type Sex } from '@/data/types';
 import { EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -30,6 +30,7 @@ export default function EditAthleteScreen() {
   const [baselineMark, setBaselineMark] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [classCategory, setClassCategory] = useState('');
+  const [sex, setSex] = useState<Sex | null>(null);
   const [status, setStatus] = useState<AthleteStatus>('active');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export default function EditAthleteScreen() {
         setBaselineMark(a.baselineMark ? String(a.baselineMark) : '');
         setDateOfBirth(a.dateOfBirth ?? '');
         setClassCategory(a.classCategory ?? '');
+        setSex(a.sex);
         setStatus(a.status);
         if (config?.eventGroups.length) setProgrammeEventGroups(config.eventGroups);
       })
@@ -83,6 +85,7 @@ export default function EditAthleteScreen() {
         baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
         dateOfBirth: dateOfBirth.trim() || null,
         classCategory: classCategory.trim() || null,
+        sex,
         status,
       });
       router.back();
@@ -179,6 +182,35 @@ export default function EditAthleteScreen() {
                 <Text style={{ fontSize: 12, color: colors.textMuted }}>{preset}</Text>
               </Pressable>
             ))}
+          </View>
+
+          <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Sex</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            {(['male', 'female'] as Sex[]).map((s) => {
+              const active = sex === s;
+              return (
+                <Pressable
+                  key={s}
+                  onPress={() => setSex((current) => (current === s ? null : s))}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={SEX_LABEL[s]}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    backgroundColor: active ? colors.accent : 'transparent',
+                    borderWidth: active ? 0 : 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                    {SEX_LABEL[s]}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Status</Text>

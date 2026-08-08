@@ -6,7 +6,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
 import { useAuthStore } from '@/store/authStore';
 import { repository } from '@/data/repository';
-import type { Meet, MeetEntry } from '@/data/types';
+import { SEX_LABEL, type Meet, type MeetEntry, type Sex } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -27,6 +27,7 @@ export default function AthleteProfileScreen() {
   const [name, setName] = useState('');
   const [event, setEvent] = useState('');
   const [baselineMark, setBaselineMark] = useState('');
+  const [sex, setSex] = useState<Sex | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +36,7 @@ export default function AthleteProfileScreen() {
     setName(session?.name ?? '');
     setEvent(athlete.event);
     setBaselineMark(athlete.baselineMark ? String(athlete.baselineMark) : '');
+    setSex(athlete.sex);
     setError(null);
     setEditVisible(true);
   }
@@ -48,6 +50,7 @@ export default function AthleteProfileScreen() {
         name,
         event,
         baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
+        sex,
       });
       await Promise.all([refresh(), useAuthStore.getState().restoreSession()]);
       setEditVisible(false);
@@ -210,6 +213,34 @@ export default function AthleteProfileScreen() {
             <TextField label="Name" value={name} onChangeText={setName} />
             <TextField label="Event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
             <TextField label="Baseline mark (m)" keyboardType="decimal-pad" value={baselineMark} onChangeText={setBaselineMark} />
+            <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Sex</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+              {(['male', 'female'] as Sex[]).map((s) => {
+                const active = sex === s;
+                return (
+                  <Pressable
+                    key={s}
+                    onPress={() => setSex((current) => (current === s ? null : s))}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                    accessibilityLabel={SEX_LABEL[s]}
+                    style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      borderRadius: 8,
+                      backgroundColor: active ? colors.accent : 'transparent',
+                      borderWidth: active ? 0 : 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                      {SEX_LABEL[s]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
             <Button label="Save" onPress={handleSaveProfile} loading={saving} />
           </Screen>

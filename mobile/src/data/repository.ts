@@ -16,6 +16,7 @@ import type {
   MeetType,
   NoteType,
   ProgrammeConfig,
+  Sex,
   SprintsConfig,
   StrengthTest,
   ThrowsConfig,
@@ -244,6 +245,7 @@ function toAthlete(profile: ProfileRow, weeklyLogs: WeeklyLog[], strengthTests: 
     qualifyingEvent: profile.qualifying_event ?? '',
     dateOfBirth: profile.date_of_birth ?? null,
     classCategory: profile.class_category ?? null,
+    sex: (profile.sex as Sex | null) ?? null,
     joinedAt: profile.created_at,
   };
 }
@@ -299,6 +301,7 @@ export interface ProfileEditableFields {
   qualifyingEvent?: string;
   dateOfBirth?: string | null;
   classCategory?: string | null;
+  sex?: Sex | null;
   status?: AthleteStatus;
   mustChangePassword?: boolean;
 }
@@ -314,6 +317,7 @@ function profileFieldsToRow(fields: ProfileEditableFields): Database['public']['
   if (fields.qualifyingEvent !== undefined) row.qualifying_event = fields.qualifyingEvent;
   if (fields.dateOfBirth !== undefined) row.date_of_birth = fields.dateOfBirth;
   if (fields.classCategory !== undefined) row.class_category = fields.classCategory;
+  if (fields.sex !== undefined) row.sex = fields.sex;
   if (fields.status !== undefined) row.status = fields.status;
   if (fields.mustChangePassword !== undefined) row.must_change_password = fields.mustChangePassword;
   return row;
@@ -385,6 +389,7 @@ export const repository = {
     qualifyingEvent?: string;
     dateOfBirth?: string;
     classCategory?: string;
+    sex?: Sex;
   }): Promise<{ athleteId: string }> {
     const { data, error } = await supabase.functions.invoke<{ athleteId: string }>('add-athlete', { body: input });
     if (error || !data) throw new Error(await edgeFunctionErrorMessage(error, 'Could not add athlete'));

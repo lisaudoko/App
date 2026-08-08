@@ -11,6 +11,13 @@ export const ATHLETE_STATUS_LABEL: Record<AthleteStatus, string> = {
   inactive: 'Inactive',
 };
 
+export type Sex = 'male' | 'female';
+
+export const SEX_LABEL: Record<Sex, string> = {
+  male: 'Male',
+  female: 'Female',
+};
+
 /** Common athlete classifications — a starting point, not exhaustive; the field itself is free text
  *  since class/category terminology varies by federation and country. */
 export const CLASS_CATEGORY_PRESETS = ['Open', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'U20', 'U18', 'U16'];
@@ -133,6 +140,7 @@ export interface Athlete {
   dateOfBirth: string | null;
   /** Free text (e.g. "Open", "Class 1", "U20") — terminology varies by federation/country. */
   classCategory: string | null;
+  sex: Sex | null;
   joinedAt: string;
 }
 

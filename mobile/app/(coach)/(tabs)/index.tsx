@@ -16,6 +16,8 @@ import { Screen } from '@/components/Screen';
 import { Pill, type PillTone } from '@/components/Pill';
 import { StaleBanner } from '@/components/StaleBanner';
 import { TrialBanner } from '@/components/TrialBanner';
+import { WelcomeBanner } from '@/components/WelcomeBanner';
+import { useDailyWelcome } from '@/hooks/useDailyWelcome';
 import { BroadcastSheet } from '@/components/BroadcastSheet';
 import { ErrorState } from '@/components/ErrorState';
 import { RpeHeatmapGrid } from '@/components/charts/RpeHeatmapGrid';
@@ -56,6 +58,7 @@ export default function SquadScreen() {
   const { data, loading, isStale, error, refresh } = useProgrammeData();
   const { access } = useCoachAccess();
   const programmeName = useAuthStore((s) => s.session?.programmeName) ?? 'Your programme';
+  const welcome = useDailyWelcome();
   const [joinCode, setJoinCode] = React.useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [activeEventGroup, setActiveEventGroup] = useState<EventGroup | null>(null);
@@ -356,6 +359,7 @@ export default function SquadScreen() {
         </View>
       </View>
 
+      {welcome && <WelcomeBanner text={welcome} />}
       {access.isTrialing && <TrialBanner daysLeft={access.daysLeft} />}
       {isStale && <StaleBanner />}
 

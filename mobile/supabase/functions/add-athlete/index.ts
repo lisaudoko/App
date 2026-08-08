@@ -16,6 +16,7 @@ interface RequestBody {
   qualifyingEvent?: string;
   dateOfBirth?: string;
   classCategory?: string;
+  sex?: 'male' | 'female';
 }
 
 Deno.serve(async (req) => {
@@ -47,6 +48,7 @@ Deno.serve(async (req) => {
     if (!body.name || !body.email || !body.password) throw new Error('name, email, and password are required');
     if (body.password.length < 6) throw new Error('Password must be at least 6 characters');
     if (!['throws', 'sprints', 'jumps'].includes(body.eventGroup)) throw new Error('A valid event group is required');
+    if (body.sex !== undefined && !['male', 'female'].includes(body.sex)) throw new Error('Sex must be male or female');
 
     // Bypasses RLS to create the auth user + profile — must use service role.
     const adminClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -75,6 +77,7 @@ Deno.serve(async (req) => {
       qualifying_event: body.qualifyingEvent ?? body.event ?? null,
       date_of_birth: body.dateOfBirth ?? null,
       class_category: body.classCategory ?? null,
+      sex: body.sex ?? null,
       // The coach chose this password, not the athlete — force a change on first login.
       must_change_password: true,
     });

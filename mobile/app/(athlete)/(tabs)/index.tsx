@@ -15,6 +15,8 @@ import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
 import { StaleBanner } from '@/components/StaleBanner';
+import { WelcomeBanner } from '@/components/WelcomeBanner';
+import { useDailyWelcome } from '@/hooks/useDailyWelcome';
 import { computeExerciseWeight } from '@/engine/workoutWeight';
 import { shareWorkout } from '@/lib/shareWorkout';
 import { blockTypeDef } from '@/data/workoutBlocks';
@@ -90,6 +92,7 @@ export default function AthleteWorkoutScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { data, loading, isStale, error, refresh } = useAthleteSelf();
+  const welcome = useDailyWelcome();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -197,6 +200,7 @@ export default function AthleteWorkoutScreen() {
         <View style={{ backgroundColor: colors.navBar, paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 12 }}>
           <Text style={{ fontSize: 20, fontWeight: '600', color: colors.navText }}>Today&apos;s workout</Text>
         </View>
+        {welcome && <WelcomeBanner text={welcome} />}
         <Screen scroll={false} style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
           <Ionicons name="barbell-outline" size={32} color={colors.textFaint} />
           <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
@@ -260,6 +264,7 @@ export default function AthleteWorkoutScreen() {
         })}
       </View>
 
+      {welcome && <WelcomeBanner text={welcome} />}
       {isStale && <StaleBanner />}
 
       <Screen onRefresh={refresh}>

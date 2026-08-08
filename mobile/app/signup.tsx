@@ -7,7 +7,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
-import type { Role } from '@/data/types';
+import { SEX_LABEL, type Role, type Sex } from '@/data/types';
 
 export default function SignupScreen() {
   const { colors } = useAppTheme();
@@ -25,6 +25,7 @@ export default function SignupScreen() {
   const [programmeName, setProgrammeName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [event, setEvent] = useState('');
+  const [sex, setSex] = useState<Sex | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const emailRef = useRef<TextInput>(null);
@@ -39,7 +40,7 @@ export default function SignupScreen() {
       if (role === 'coach') {
         await signupCoach({ name, email, password, programmeName: programmeName || `${name}'s Programme` });
       } else {
-        await signupAthlete({ name, email, password, joinCode, event });
+        await signupAthlete({ name, email, password, joinCode, event, sex: sex ?? undefined });
       }
       router.replace('/');
     } catch {
@@ -151,6 +152,29 @@ export default function SignupScreen() {
             <>
               <TextField label="Primary event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
               <TextField label="Team code" value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" placeholder="Ask your coach" />
+
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 6 }}>Sex (optional)</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                {(['male', 'female'] as Sex[]).map((s) => (
+                  <Pressable
+                    key={s}
+                    onPress={() => setSex((current) => (current === s ? null : s))}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: sex === s }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                      borderWidth: sex === s ? 0 : 1,
+                      borderColor: colors.border,
+                      backgroundColor: sex === s ? colors.accent : 'transparent',
+                    }}
+                  >
+                    <Text style={{ color: sex === s ? colors.accentText : colors.textMuted, fontWeight: '600' }}>{SEX_LABEL[s]}</Text>
+                  </Pressable>
+                ))}
+              </View>
             </>
           )}
 

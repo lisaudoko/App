@@ -6,7 +6,7 @@ import { registerPushToken, clearPushToken } from '@/lib/notifications';
 import { identifyRevenueCatUser, signOutRevenueCat } from '@/lib/revenuecat';
 import { startTrialIfNeeded } from '@/lib/subscription';
 import { edgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
-import type { UserAccount } from '@/data/types';
+import type { Sex, UserAccount } from '@/data/types';
 
 export class AuthError extends Error {}
 
@@ -23,6 +23,7 @@ interface AuthState {
     password: string;
     joinCode: string;
     event: string;
+    sex?: Sex;
   }) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -184,6 +185,7 @@ export const useAuthStore = create<AuthState>()(
             full_name: input.name,
             event: input.event,
             qualifying_event: input.event,
+            sex: input.sex ?? null,
           });
           if (profileError) throw profileError;
 

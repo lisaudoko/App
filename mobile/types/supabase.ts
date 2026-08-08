@@ -330,6 +330,7 @@ export type Database = {
           qualifying_standard: number | null
           revenuecat_customer_id: string | null
           role: string
+          sex: string | null
           status: string
           subscription_exempt: boolean
           trial_started_at: string | null
@@ -351,6 +352,7 @@ export type Database = {
           qualifying_standard?: number | null
           revenuecat_customer_id?: string | null
           role: string
+          sex?: string | null
           status?: string
           subscription_exempt?: boolean
           trial_started_at?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           qualifying_standard?: number | null
           revenuecat_customer_id?: string | null
           role?: string
+          sex?: string | null
           status?: string
           subscription_exempt?: boolean
           trial_started_at?: string | null
