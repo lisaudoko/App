@@ -67,6 +67,7 @@ export default function SquadScreen() {
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [statSheet, setStatSheet] = useState<'logged' | 'missing' | 'alerts' | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     repository.getMyProgrammeJoinCode().then(setJoinCode).catch(() => {});
@@ -104,6 +105,23 @@ export default function SquadScreen() {
       .getMissingLogDismissals(currentWeek)
       .then((ids) => {
         if (!cancelled) setDismissedIds(new Set(ids));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [currentWeek]);
+
+  useEffect(() => {
+    if (currentWeek === 0) {
+      setDismissedAlertIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    repository
+      .getAlertDismissals(currentWeek)
+      .then((ids) => {
+        if (!cancelled) setDismissedAlertIds(new Set(ids));
       })
       .catch(() => {});
     return () => {
@@ -232,7 +250,7 @@ export default function SquadScreen() {
 
   const loggedRows = rows.filter((r) => r.loggedThisWeek);
   const missingRows = rows.filter((r) => !r.loggedThisWeek && !dismissedIds.has(r.athlete.id));
-  const alertRows = rows.filter((r) => r.pillTone !== 'success');
+  const alertRows = rows.filter((r) => r.pillTone !== 'success' && !dismissedAlertIds.has(r.athlete.id));
   const loggedCount = loggedRows.length;
   const missingCount = missingRows.length;
   const alertCount = alertRows.length;
@@ -243,6 +261,17 @@ export default function SquadScreen() {
     setDismissedIds((prev) => new Set(prev).add(athleteId));
     repository.dismissMissingLog(athleteId, currentWeek).catch(() => {
       setDismissedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(athleteId);
+        return next;
+      });
+    });
+  }
+
+  function handleDismissAlert(athleteId: string) {
+    setDismissedAlertIds((prev) => new Set(prev).add(athleteId));
+    repository.dismissAlert(athleteId, currentWeek).catch(() => {
+      setDismissedAlertIds((prev) => {
         const next = new Set(prev);
         next.delete(athleteId);
         return next;
@@ -676,6 +705,17 @@ export default function SquadScreen() {
                     onPress={() => handleDismissMissing(row.athlete.id)}
                     accessibilityRole="button"
                     accessibilityLabel={`Dismiss ${row.athlete.name} from missing this week`}
+                    hitSlop={8}
+                    style={{ paddingLeft: 12 }}
+                  >
+                    <Ionicons name="close-circle" size={20} color={colors.textFaint} />
+                  </Pressable>
+                )}
+                {statSheet === 'alerts' && (
+                  <Pressable
+                    onPress={() => handleDismissAlert(row.athlete.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Dismiss ${row.athlete.name} from alerts`}
                     hitSlop={8}
                     style={{ paddingLeft: 12 }}
                   >

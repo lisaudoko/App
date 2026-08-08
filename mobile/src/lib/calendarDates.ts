@@ -65,6 +65,11 @@ export function daysUntil(dateIso: string): number {
   return Math.round(diffMs / MS_PER_DAY);
 }
 
+/** "Tuesday, Mar 10" style label for the day-workout-editor sheet header. */
+export function formatFullDate(dateIso: string): string {
+  return parseIsoUtc(dateIso).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
 /** "Aug 23 · 14 days away" style countdown text for upcoming meets. */
 export function formatCountdown(dateIso: string): string {
   const days = daysUntil(dateIso);

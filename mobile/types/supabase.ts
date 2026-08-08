@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_dismissals: {
+        Row: {
+          athlete_id: string
+          coach_id: string
+          dismissed_at: string
+          id: string
+          programme_id: string
+          week_number: number
+        }
+        Insert: {
+          athlete_id: string
+          coach_id: string
+          dismissed_at?: string
+          id?: string
+          programme_id: string
+          week_number: number
+        }
+        Update: {
+          athlete_id?: string
+          coach_id?: string
+          dismissed_at?: string
+          id?: string
+          programme_id?: string
+          week_number?: number
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string

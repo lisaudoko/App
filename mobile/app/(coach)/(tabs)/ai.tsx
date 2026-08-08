@@ -123,6 +123,7 @@ export default function AiAssistantScreen() {
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 16,
+          paddingTop: 14,
           paddingBottom: 8,
         }}
       >

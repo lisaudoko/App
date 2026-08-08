@@ -50,10 +50,6 @@ export default function CoachTabsLayout() {
         options={{ title: 'Squad', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
       />
       <Tabs.Screen
-        name="workouts"
-        options={{ title: 'Workouts', tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
         name="calendar"
         options={{ title: 'Calendar', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
       />

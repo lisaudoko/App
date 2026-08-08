@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
 import { blockTypeDef } from '@/data/workoutBlocks';
 import { DAY_LABELS, type EventGroup, type ProgrammeConfig, type Workout } from '@/data/types';
-import { addDays, getWeekLabel, isMonday, mondayOfIso, weekDatesContaining, weekDayForDate } from '@/lib/calendarDates';
+import { addDays, formatFullDate, getWeekLabel, isMonday, mondayOfIso, weekDatesContaining, weekDayForDate } from '@/lib/calendarDates';
 import { exportScheduleAsIcs } from '@/lib/exportSchedule';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -19,6 +18,7 @@ import { Sheet } from '@/components/Sheet';
 import { WeekStrip } from '@/components/WeekStrip';
 import { MonthGrid } from '@/components/MonthGrid';
 import { DayEventList, type TrainingCardData } from '@/components/DayEventList';
+import { DayWorkoutEditor } from '@/components/DayWorkoutEditor';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -38,6 +38,7 @@ export function CoachCalendarScreen() {
   const [copySheetDay, setCopySheetDay] = useState<TrainingCardData | null>(null);
   const [copyBusy, setCopyBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [editorTarget, setEditorTarget] = useState<{ weekNumber: number; day: number; dateIso: string } | null>(null);
 
   const seasonStartDate = config?.seasonStartDate ?? null;
   const primaryGroup: EventGroup = config?.eventGroups[0] ?? 'throws';
@@ -123,7 +124,7 @@ export function CoachCalendarScreen() {
     if (!seasonStartDate) return;
     const wd = weekDayForDate(seasonStartDate, selectedDate);
     if (!wd) return;
-    router.push(`/(coach)/(tabs)/workouts?week=${wd.weekNumber}&day=${wd.day}`);
+    setEditorTarget({ ...wd, dateIso: selectedDate });
   }
 
   async function handleSaveSeasonStart() {
@@ -327,6 +328,21 @@ export function CoachCalendarScreen() {
             })}
           </View>
         </View>
+      </Sheet>
+
+      <Sheet visible={editorTarget != null} onClose={() => setEditorTarget(null)} maxHeightPct="92%">
+        {editorTarget && (
+          <DayWorkoutEditor
+            key={`${editorTarget.weekNumber}-${editorTarget.day}`}
+            weekNumber={editorTarget.weekNumber}
+            day={editorTarget.day}
+            dateLabel={formatFullDate(editorTarget.dateIso)}
+            eventGroups={config?.eventGroups ?? []}
+            workout={workoutCache[editorTarget.weekNumber]}
+            onClose={() => setEditorTarget(null)}
+            onSaved={(weekNumber, workout) => setWorkoutCache((prev) => ({ ...prev, [weekNumber]: workout }))}
+          />
+        )}
       </Sheet>
     </View>
   );

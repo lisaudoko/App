@@ -757,8 +757,36 @@ export const repository = {
     if (error) throw error;
   },
 
+  /** Same as getMissingLogDismissals, for the Squad screen's "Alerts" bucket. */
+  async getAlertDismissals(weekNumber: number): Promise<string[]> {
+    const profile = await myProfile();
+    const { data, error } = await supabase
+      .from('alert_dismissals')
+      .select('athlete_id')
+      .eq('coach_id', profile.id)
+      .eq('week_number', weekNumber);
+    if (error) throw error;
+    return (data ?? []).map((d) => d.athlete_id);
+  },
+
+  async dismissAlert(athleteId: string, weekNumber: number): Promise<void> {
+    const profile = await myProfile();
+    if (!profile.programme_id) throw new Error('No programme assigned');
+    const { error } = await supabase.from('alert_dismissals').upsert(
+      { coach_id: profile.id, athlete_id: athleteId, programme_id: profile.programme_id, week_number: weekNumber },
+      { onConflict: 'coach_id,athlete_id,week_number' },
+    );
+    if (error) throw error;
+  },
+
   async getNotifications(): Promise<AppNotification[]> {
-    const { data, error } = await supabase.from('notifications_log').select('*').order('sent_at', { ascending: false });
+    const profile = await myProfile();
+    let query = supabase.from('notifications_log').select('*').order('sent_at', { ascending: false });
+    // Coaches can read every notification in their programme (RLS), which incidentally
+    // includes the athlete-targeted 'broadcast' rows they just sent themselves — those are
+    // addressed to athletes, never meant to show back up in the coach's own feed.
+    if (profile.role === 'coach') query = query.neq('type', 'broadcast');
+    const { data, error } = await query;
     if (error) throw error;
     return (data ?? []).map(toNotification);
   },
