@@ -20,6 +20,20 @@ const SUGGESTED_PROMPTS = [
   'Any anomalies I should look into?',
 ];
 
+const DAILY_MESSAGE_LIMIT = 3;
+
+async function fetchAiMessagesUsedToday(): Promise<number> {
+  const { data } = await supabase
+    .from('ai_message_usage')
+    .select('message_count, usage_date')
+    .order('usage_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return 0;
+  const today = new Date().toISOString().slice(0, 10);
+  return data.usage_date === today ? data.message_count : 0;
+}
+
 async function streamAiCoach(
   message: string,
   conversationHistory: { role: 'user' | 'assistant'; content: string }[],
@@ -77,6 +91,13 @@ export default function AiAssistantScreen() {
   const [thinking, setThinking] = useState(false);
   const [deepAnalysis, setDeepAnalysis] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usedToday, setUsedToday] = useState(0);
+
+  const limitReached = usedToday >= DAILY_MESSAGE_LIMIT;
+
+  useEffect(() => {
+    fetchAiMessagesUsedToday().then(setUsedToday).catch(() => {});
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -84,7 +105,9 @@ export default function AiAssistantScreen() {
 
   async function send(question: string) {
     const trimmed = question.trim();
-    if (!trimmed || thinking) return;
+    // Server-side (increment_ai_message_usage) is the real enforcement — this is just
+    // instant client-side feedback so a maxed-out coach can't even fire the request.
+    if (!trimmed || thinking || limitReached) return;
     setInput('');
     setError(null);
 
@@ -105,6 +128,7 @@ export default function AiAssistantScreen() {
           setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk } : m)));
         }
       });
+      setUsedToday((n) => n + 1);
     } catch (err) {
       setThinking(false);
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
@@ -123,7 +147,7 @@ export default function AiAssistantScreen() {
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 16,
-          paddingTop: 14,
+          paddingTop: 24,
           paddingBottom: 8,
         }}
       >
@@ -140,7 +164,6 @@ export default function AiAssistantScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView
@@ -221,6 +244,14 @@ export default function AiAssistantScreen() {
         </ScrollView>
         </TouchableWithoutFeedback>
 
+        <View style={{ paddingHorizontal: 16, paddingTop: 6, backgroundColor: colors.surface }}>
+          <Text style={{ fontSize: 12, color: limitReached ? colors.danger : colors.textFaint }}>
+            {limitReached
+              ? "Daily limit reached (3/3) — resets tomorrow."
+              : `${usedToday}/${DAILY_MESSAGE_LIMIT} questions used today`}
+          </Text>
+        </View>
+
         <View
           style={{
             flexDirection: 'row',
@@ -235,8 +266,9 @@ export default function AiAssistantScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Ask anything about your squad…"
+            placeholder={limitReached ? 'Daily limit reached' : 'Ask anything about your squad…'}
             placeholderTextColor={colors.textFaint}
+            editable={!limitReached}
             style={{
               flex: 1,
               borderWidth: 1,
@@ -246,6 +278,7 @@ export default function AiAssistantScreen() {
               paddingVertical: 9,
               fontSize: 17,
               color: colors.text,
+              opacity: limitReached ? 0.5 : 1,
             }}
             onSubmitEditing={() => send(input)}
             returnKeyType="send"
@@ -254,7 +287,7 @@ export default function AiAssistantScreen() {
             onPress={() => send(input)}
             accessibilityRole="button"
             accessibilityLabel="Send message"
-            accessibilityState={{ disabled: thinking }}
+            accessibilityState={{ disabled: thinking || limitReached }}
             style={{
               width: 36,
               height: 36,
@@ -262,9 +295,9 @@ export default function AiAssistantScreen() {
               backgroundColor: colors.accent,
               alignItems: 'center',
               justifyContent: 'center',
-              opacity: thinking ? 0.5 : 1,
+              opacity: thinking || limitReached ? 0.5 : 1,
             }}
-            disabled={thinking}
+            disabled={thinking || limitReached}
           >
             <Ionicons name="arrow-up" size={16} color={colors.accentText} />
           </Pressable>

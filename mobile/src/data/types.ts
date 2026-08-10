@@ -1,6 +1,12 @@
 import type { EventGroup } from '@/lib/formatPerformance';
 
-export type Role = 'coach' | 'athlete';
+export type Role = 'coach' | 'assistant_coach' | 'athlete';
+
+export const ROLE_LABEL: Record<Role, string> = {
+  coach: 'Coach',
+  assistant_coach: 'Assistant Coach',
+  athlete: 'Athlete',
+};
 
 export type AthleteStatus = 'active' | 'injured' | 'rest' | 'inactive';
 

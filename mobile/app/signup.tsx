@@ -1,15 +1,23 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { supabase } from '@/lib/supabase';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
+import { LoadingState } from '@/components/LoadingState';
 import { SEX_LABEL, type Role, type Sex } from '@/data/types';
 
 export default function SignupScreen() {
+  const { inviteToken } = useLocalSearchParams<{ inviteToken?: string }>();
+  if (inviteToken) return <AcceptInviteScreen token={inviteToken} />;
+  return <SelfSignupScreen />;
+}
+
+function SelfSignupScreen() {
   const { colors } = useAppTheme();
   const signupCoach = useAuthStore((s) => s.signupCoach);
   const signupAthlete = useAuthStore((s) => s.signupAthlete);
@@ -225,6 +233,127 @@ export default function SignupScreen() {
               </Link>
             </Text>
           </View>
+      </Screen>
+    </SafeAreaView>
+  );
+}
+
+interface ResolvedInvite {
+  email: string;
+  programmeName: string;
+}
+
+function AcceptInviteScreen({ token }: { token: string }) {
+  const { colors } = useAppTheme();
+  const acceptAssistantCoachInvite = useAuthStore((s) => s.acceptAssistantCoachInvite);
+  const isBusy = useAuthStore((s) => s.isBusy);
+  const error = useAuthStore((s) => s.error);
+  const clearError = useAuthStore((s) => s.clearError);
+
+  const [resolving, setResolving] = useState(true);
+  const [invite, setInvite] = useState<ResolvedInvite | null>(null);
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    async function resolve() {
+      const { data } = await supabase.rpc('resolve_coach_invite', { p_token: token });
+      const row = data?.[0];
+      if (row) setInvite({ email: row.email, programmeName: row.programme_name });
+      setResolving(false);
+    }
+    resolve();
+  }, [token]);
+
+  const passwordsMatch = password === confirmPassword;
+  const canSubmit = !!name && password.length >= 6 && passwordsMatch;
+
+  async function handleSubmit() {
+    clearError();
+    try {
+      await acceptAssistantCoachInvite({ token, name, password });
+      router.replace('/');
+    } catch {
+      // error surfaced via store
+    }
+  }
+
+  if (resolving) return <LoadingState />;
+
+  if (!invite) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <Screen scroll={false} style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+          <Text style={{ fontSize: 40, textAlign: 'center' }}>⚠️</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginTop: 12, textAlign: 'center' }}>
+            This invite link is no longer valid
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+            It may have already been used or revoked. Ask your head coach to send a new one.
+          </Text>
+          <Button label="Back to login" variant="outline" onPress={() => router.replace('/login')} />
+        </Screen>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <Screen>
+        <Text style={{ fontSize: 25, fontWeight: '600', color: colors.text, marginTop: 12, marginBottom: 4 }}>
+          Join {invite.programmeName}
+        </Text>
+        <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 20 }}>
+          You&apos;ve been invited as an assistant coach. Set up your account to get started.
+        </Text>
+
+        <TextField label="Email" value={invite.email} editable={false} />
+        <TextField
+          label="Full name"
+          value={name}
+          onChangeText={setName}
+          placeholder="First Last"
+          textContentType="name"
+          autoComplete="name"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+          blurOnSubmit={false}
+        />
+        <TextField
+          ref={passwordRef}
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          revealable
+          textContentType="newPassword"
+          autoComplete="password-new"
+          placeholder="At least 6 characters"
+          returnKeyType="next"
+          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+          blurOnSubmit={false}
+        />
+        <TextField
+          ref={confirmPasswordRef}
+          label="Confirm password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          revealable
+          textContentType="newPassword"
+          autoComplete="password-new"
+          placeholder="Re-enter your password"
+          returnKeyType="done"
+          error={confirmPassword.length > 0 && !passwordsMatch ? "Passwords don't match" : undefined}
+        />
+
+        {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
+
+        <Button label="Join as assistant coach" onPress={handleSubmit} loading={isBusy} disabled={!canSubmit} />
       </Screen>
     </SafeAreaView>
   );

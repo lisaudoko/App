@@ -1,23 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { getCoachAccess, type CoachAccess } from '@/lib/subscription';
+import { getCoachAccess, resolvePlanOwnerId, type CoachAccess } from '@/lib/subscription';
 
 const DEFAULT_ACCESS: CoachAccess = { hasAccess: true, tier: null, isTrialing: false, daysLeft: null, athleteLimit: Infinity };
 
-/** Coach-only subscription access status — always full access for non-coach sessions. */
+/**
+ * Coach/assistant-coach subscription access status — always full access for
+ * athlete sessions. Assistant coaches inherit the head coach's plan (see
+ * resolvePlanOwnerId) rather than having any billing identity of their own.
+ */
 export function useCoachAccess() {
-  const coachId = useAuthStore((s) => (s.session?.role === 'coach' ? s.session.id : undefined));
+  const session = useAuthStore((s) => (s.session?.role === 'coach' || s.session?.role === 'assistant_coach' ? s.session : undefined));
   const [access, setAccess] = useState<CoachAccess>(DEFAULT_ACCESS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!coachId) {
+    if (!session) {
       setAccess(DEFAULT_ACCESS);
       return;
     }
     try {
-      const result = await getCoachAccess(coachId);
+      const ownerId = await resolvePlanOwnerId(session.id, session.role);
+      const result = await getCoachAccess(ownerId);
       setAccess(result);
       setError(null);
     } catch (err) {
@@ -25,7 +30,7 @@ export function useCoachAccess() {
       // retry rather than this failing silently and the gate never updating.
       setError(err instanceof Error ? err.message : 'Could not check subscription access');
     }
-  }, [coachId]);
+  }, [session]);
 
   useEffect(() => {
     refresh().finally(() => setLoading(false));

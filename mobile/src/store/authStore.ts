@@ -25,6 +25,8 @@ interface AuthState {
     event: string;
     sex?: Sex;
   }) => Promise<void>;
+  /** Consumes a pending coach_invites token, creating a fresh assistant_coach account. */
+  acceptAssistantCoachInvite: (input: { token: string; name: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -190,6 +192,32 @@ export const useAuthStore = create<AuthState>()(
           if (profileError) throw profileError;
 
           const account = await accountFromProfile(signUpData.user.id, input.email);
+          set({ session: account, isBusy: false });
+          onSessionEstablished(account);
+        } catch (e) {
+          const authError = mapAuthError(e);
+          set({ isBusy: false, error: authError.message });
+          throw authError;
+        }
+      },
+
+      acceptAssistantCoachInvite: async (input) => {
+        set({ isBusy: true, error: null });
+        try {
+          const { data, error } = await supabase.functions.invoke<{ email: string }>('accept-coach-invite', {
+            body: input,
+          });
+          if (error || !data) throw new Error(await edgeFunctionErrorMessage(error, 'Could not accept that invite.'));
+
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email: data.email, password: input.password });
+          if (signInError) throw signInError;
+
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) throw new Error('Could not sign you in.');
+
+          const account = await accountFromProfile(user.id, user.email ?? data.email);
           set({ session: account, isBusy: false });
           onSessionEstablished(account);
         } catch (e) {

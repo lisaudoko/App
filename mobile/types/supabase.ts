@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_message_usage: {
+        Row: {
+          coach_id: string
+          message_count: number
+          usage_date: string
+        }
+        Insert: {
+          coach_id: string
+          message_count?: number
+          usage_date?: string
+        }
+        Update: {
+          coach_id?: string
+          message_count?: number
+          usage_date?: string
+        }
+        Relationships: []
+      }
       alert_dismissals: {
         Row: {
           athlete_id: string
@@ -107,6 +125,67 @@ export type Database = {
           },
           {
             foreignKeyName: "athlete_notes_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "programmes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          id: string
+          invited_by: string
+          invited_role: string
+          programme_id: string
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invited_by: string
+          invited_role?: string
+          programme_id: string
+          status?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string
+          invited_role?: string
+          programme_id?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_invites_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_invites_programme_id_fkey"
             columns: ["programme_id"]
             isOneToOne: false
             referencedRelation: "programmes"
@@ -438,6 +517,7 @@ export type Database = {
           id: string
           join_code: string
           name: string
+          owner_id: string | null
           season_start_date: string | null
         }
         Insert: {
@@ -447,6 +527,7 @@ export type Database = {
           id?: string
           join_code?: string
           name: string
+          owner_id?: string | null
           season_start_date?: string | null
         }
         Update: {
@@ -456,6 +537,7 @@ export type Database = {
           id?: string
           join_code?: string
           name?: string
+          owner_id?: string | null
           season_start_date?: string | null
         }
         Relationships: []
@@ -791,8 +873,13 @@ export type Database = {
       }
     }
     Functions: {
+      auth_is_coach_team: { Args: never; Returns: boolean }
       auth_programme_id: { Args: never; Returns: string }
       auth_role: { Args: never; Returns: string }
+      increment_ai_message_usage: {
+        Args: { daily_limit?: number }
+        Returns: number
+      }
       programme_athlete_count: {
         Args: { target_programme_id: string }
         Returns: number
@@ -802,6 +889,10 @@ export type Database = {
         Returns: number
       }
       programme_id_for_join_code: { Args: { code: string }; Returns: string }
+      resolve_coach_invite: {
+        Args: { p_token: string }
+        Returns: { email: string; programme_name: string; invited_role: string }[]
+      }
       setup_notification_wiring: {
         Args: { project_url: string; service_role_key: string }
         Returns: undefined

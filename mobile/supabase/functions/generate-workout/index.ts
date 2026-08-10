@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .single();
     if (coachError || !coach) throw new Error('Coach profile not found');
-    if (coach.role !== 'coach') throw new Error('Only coaches can generate workouts');
+    if (!['coach', 'assistant_coach'].includes(coach.role)) throw new Error('Only coaches can generate workouts');
 
     const body: RequestBody = await req.json();
     const eventGroup = body.eventGroup;

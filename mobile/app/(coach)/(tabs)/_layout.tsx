@@ -3,12 +3,15 @@ import { Redirect, Tabs } from 'expo-router';
 import { useFocusEffect } from 'expo-router/react-navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
+import { useAuthStore } from '@/store/authStore';
 import { useCoachAccess } from '@/hooks/useCoachAccess';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { LoadingState } from '@/components/LoadingState';
+import { AppTour } from '@/components/AppTour';
 
 export default function CoachTabsLayout() {
   const { colors } = useAppTheme();
+  const role = useAuthStore((s) => s.session?.role);
   const { access, loading: accessLoading, refresh: refreshAccess } = useCoachAccess();
   const { needsOnboarding, loading: onboardingLoading } = useOnboardingStatus();
 
@@ -36,39 +39,44 @@ export default function CoachTabsLayout() {
   if (!access.hasAccess) return <Redirect href="/(coach)/paywall" />;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.textFaint,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontSize: 12 },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Squad', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{ title: 'Calendar', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="meets"
-        options={{ title: 'Meets', tabBarIcon: ({ color, size }) => <Ionicons name="trophy" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="ai"
-        options={{ title: 'AI', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="notes"
-        options={{ title: 'Notes', tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{ title: 'Settings', tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} /> }}
-      />
-    </Tabs>
+    <>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.text,
+          tabBarInactiveTintColor: colors.textFaint,
+          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+          tabBarLabelStyle: { fontSize: 12 },
+        }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{ title: 'Squad', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="calendar"
+          options={{ title: 'Calendar', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="meets"
+          options={{ title: 'Meets', tabBarIcon: ({ color, size }) => <Ionicons name="trophy" color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="ai"
+          options={{ title: 'AI', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="notes"
+          options={{ title: 'Notes', tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{ title: 'Settings', tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} /> }}
+        />
+      </Tabs>
+      {/* Head-coach only — see AppTour.tsx. Renders as a Modal on top of the tabs
+          above, which keep loading/rendering their own data unaffected underneath. */}
+      {role === 'coach' && <AppTour />}
+    </>
   );
 }

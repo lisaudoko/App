@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Share, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
@@ -7,13 +7,26 @@ import * as Clipboard from 'expo-clipboard';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useThemeStore, type ThemeMode } from '@/theme/themeStore';
 import { useAuthStore } from '@/store/authStore';
+import { useTourStore } from '@/store/tourStore';
 import { repository } from '@/data/repository';
-import type { AppNotification } from '@/data/types';
+import { ROLE_LABEL, type AppNotification } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
+import { Sheet } from '@/components/Sheet';
+
+interface AssistantCoachRow {
+  id: string;
+  name: string;
+  email: string;
+  joinedAt: string;
+}
+
+function formatJoined(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -37,6 +50,7 @@ export function SettingsScreen() {
   const setThemeMode = useThemeStore((s) => s.setMode);
   const session = useAuthStore((s) => s.session);
   const logout = useAuthStore((s) => s.logout);
+  const replayTour = useTourStore((s) => s.replay);
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const isBusy = useAuthStore((s) => s.isBusy);
 
@@ -47,15 +61,88 @@ export function SettingsScreen() {
   const [codeCopied, setCodeCopied] = useState(false);
   const [recentActivity, setRecentActivity] = useState<AppNotification[]>([]);
 
+  const [assistantCoaches, setAssistantCoaches] = useState<AssistantCoachRow[]>([]);
+  const [inviteVisible, setInviteVisible] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<AssistantCoachRow | null>(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  function refreshAssistantCoaches() {
+    repository.getAssistantCoaches().then(setAssistantCoaches).catch(() => {});
+  }
+
   useEffect(() => {
     if (session?.role === 'coach') {
       repository.getMyProgrammeJoinCode().then(setTeamCode).catch(() => {});
+      refreshAssistantCoaches();
     }
     repository
       .getNotifications()
       .then((all) => setRecentActivity(all.slice(0, 5)))
       .catch(() => {});
   }, [session?.role]);
+
+  function openInvite() {
+    setInviteEmail('');
+    setInviteError(null);
+    setInviteLink(null);
+    setInviteCopied(false);
+    setInviteVisible(true);
+  }
+
+  async function handleSendInvite() {
+    setInviteBusy(true);
+    setInviteError(null);
+    try {
+      const { token } = await repository.inviteAssistantCoach(inviteEmail.trim());
+      setInviteLink(`truperformance://signup?inviteToken=${token}`);
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Could not send that invite');
+    } finally {
+      setInviteBusy(false);
+    }
+  }
+
+  async function handleCopyInviteLink() {
+    if (!inviteLink) return;
+    await Clipboard.setStringAsync(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }
+
+  async function handleShareInviteLink() {
+    if (!inviteLink) return;
+    try {
+      await Share.share({ message: `You've been invited to help coach on TRU Performance. Tap to join: ${inviteLink}` });
+    } catch {
+      // user dismissed the share sheet — nothing to do
+    }
+  }
+
+  function closeInvite() {
+    setInviteVisible(false);
+    if (inviteLink) refreshAssistantCoaches();
+  }
+
+  async function handleRemoveAssistantCoach() {
+    if (!removeTarget) return;
+    setRemoveBusy(true);
+    setRemoveError(null);
+    try {
+      await repository.removeAssistantCoach(removeTarget.id);
+      setRemoveTarget(null);
+      refreshAssistantCoaches();
+    } catch (err) {
+      setRemoveError(err instanceof Error ? err.message : 'Could not remove that assistant coach');
+    } finally {
+      setRemoveBusy(false);
+    }
+  }
 
   async function handleCopyTeamCode() {
     if (!teamCode) return;
@@ -95,7 +182,7 @@ export function SettingsScreen() {
           <Text style={{ fontSize: 17, fontWeight: '600', color: colors.text }}>{session?.name}</Text>
           <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 2 }}>{session?.email}</Text>
           <Text style={{ fontSize: 13, color: colors.textFaint, marginTop: 4 }}>
-            {session?.programmeName} · {session?.role === 'coach' ? 'Coach' : 'Athlete'}
+            {session?.programmeName} · {session ? ROLE_LABEL[session.role] : ''}
           </Text>
         </Card>
 
@@ -163,6 +250,47 @@ export function SettingsScreen() {
                 last
               />
             </Card>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Assistant Coaches
+            </Text>
+            <Card style={{ padding: 0 }}>
+              {assistantCoaches.length === 0 && (
+                <Text style={{ fontSize: 15, color: colors.textMuted, padding: 12 }}>No assistant coaches yet.</Text>
+              )}
+              {assistantCoaches.map((ac, i) => (
+                <View
+                  key={ac.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderBottomWidth: i === assistantCoaches.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>{ac.name}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>
+                      {ac.email} · Joined {formatJoined(ac.joinedAt)}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setRemoveTarget(ac)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${ac.name}`}
+                    style={{ paddingHorizontal: 8, paddingVertical: 6 }}
+                  >
+                    <Text style={{ fontSize: 13, color: colors.danger, fontWeight: '600' }}>Remove</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </Card>
+            <Pressable onPress={openInvite} style={{ paddingVertical: 10 }}>
+              <Text style={{ fontSize: 15, color: colors.accent, fontWeight: '600' }}>+ Invite assistant coach</Text>
+            </Pressable>
           </>
         )}
 
@@ -181,6 +309,17 @@ export function SettingsScreen() {
                   <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 2 }}>{timeAgo(n.createdAt)}</Text>
                 </View>
               ))}
+            </Card>
+          </>
+        )}
+
+        {session?.role === 'coach' && (
+          <>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Help
+            </Text>
+            <Card style={{ padding: 0 }}>
+              <SettingsLink icon="play-circle-outline" label="Replay app tour" onPress={replayTour} last />
             </Card>
           </>
         )}
@@ -255,6 +394,63 @@ export function SettingsScreen() {
           </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
+      </Modal>
+
+      <Sheet visible={inviteVisible} onClose={closeInvite}>
+        <View style={{ padding: 20, paddingBottom: 32 }}>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Invite assistant coach</Text>
+          {!inviteLink ? (
+            <>
+              <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
+                They&apos;ll get full day-to-day squad access (workouts, meets, notes, AI assistant) but can&apos;t
+                change programme setup, billing, or invite others.
+              </Text>
+              <TextField
+                label="Email"
+                value={inviteEmail}
+                onChangeText={setInviteEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                placeholder="assistant@example.com"
+              />
+              {inviteError && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{inviteError}</Text>}
+              <Button
+                label="Send Invite"
+                onPress={handleSendInvite}
+                loading={inviteBusy}
+                disabled={!inviteEmail.trim()}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
+                Send this link to {inviteEmail.trim()} — tapping it takes them straight to sign-up.
+              </Text>
+              <Button label="Share invite link" onPress={handleShareInviteLink} />
+              <Button
+                label={inviteCopied ? 'Copied!' : 'Copy invite link'}
+                variant="outline"
+                onPress={handleCopyInviteLink}
+              />
+              <Button label="Done" variant="outline" onPress={closeInvite} />
+            </>
+          )}
+        </View>
+      </Sheet>
+
+      <Modal visible={!!removeTarget} transparent animationType="fade" onRequestClose={() => setRemoveTarget(null)}>
+        <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 20 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Remove access?</Text>
+            <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
+              This permanently deletes {removeTarget?.name}&apos;s account. This cannot be undone.
+            </Text>
+            {removeError && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{removeError}</Text>}
+            <Button label="Remove access" variant="danger" loading={removeBusy} onPress={handleRemoveAssistantCoach} />
+            <Button label="Cancel" variant="outline" onPress={() => setRemoveTarget(null)} />
+          </View>
+        </View>
       </Modal>
     </View>
   );

@@ -27,6 +27,7 @@ const TIERS: Tier[] = [
 
 export default function PaywallScreen() {
   const { colors } = useAppTheme();
+  const session = useAuthStore((s) => s.session);
   const [packages, setPackages] = useState<Record<string, PurchasesPackage>>({});
   const [offeringsError, setOfferingsError] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -85,6 +86,33 @@ export default function PaywallScreen() {
     } finally {
       setRestoring(false);
     }
+  }
+
+  // Assistant coaches have no billing identity of their own — access is inherited
+  // from the head coach's plan, so there's nothing for them to purchase here.
+  if (session?.role === 'assistant_coach') {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <ScreenHeader title="Programme access paused" />
+        <Screen>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
+            Your programme&apos;s subscription is inactive
+          </Text>
+          <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 20 }}>
+            Ask your head coach to renew the programme&apos;s plan to regain access.
+          </Text>
+          <Pressable
+            onPress={async () => {
+              await useAuthStore.getState().logout();
+              router.replace('/login');
+            }}
+            style={{ marginTop: 16, alignItems: 'center' }}
+          >
+            <Text style={{ fontSize: 15, color: colors.textFaint }}>Log out</Text>
+          </Pressable>
+        </Screen>
+      </View>
+    );
   }
 
   return (

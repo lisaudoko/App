@@ -402,6 +402,56 @@ export const repository = {
     if (error) throw new Error(await edgeFunctionErrorMessage(error, 'Could not remove that athlete'));
   },
 
+  /** Head-coach-only: lists assistant coaches in the caller's own programme. */
+  async getAssistantCoaches(): Promise<{ id: string; name: string; email: string; joinedAt: string }[]> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not signed in');
+    const { data: me } = await supabase.from('profiles').select('programme_id').eq('id', user.id).single();
+    if (!me?.programme_id) return [];
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, created_at')
+      .eq('programme_id', me.programme_id)
+      .eq('role', 'assistant_coach')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    // Email isn't on profiles — pulled from the invite that created the account
+    // (accepted_by links each accepted invite back to the profile it created).
+    const { data: invites } = await supabase
+      .from('coach_invites')
+      .select('email, accepted_by')
+      .eq('programme_id', me.programme_id)
+      .eq('invited_role', 'assistant_coach')
+      .eq('status', 'accepted');
+    const emailByProfileId = new Map((invites ?? []).map((inv) => [inv.accepted_by, inv.email]));
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      name: row.full_name,
+      email: emailByProfileId.get(row.id) ?? '',
+      joinedAt: row.created_at,
+    }));
+  },
+
+  /** Head-coach-only: creates a pending invite and returns its shareable token. */
+  async inviteAssistantCoach(email: string): Promise<{ token: string }> {
+    const { data, error } = await supabase.functions.invoke<{ token: string }>('invite-assistant-coach', {
+      body: { email },
+    });
+    if (error || !data) throw new Error(await edgeFunctionErrorMessage(error, 'Could not send that invite'));
+    return data;
+  },
+
+  /** Head-coach-only: fully removes an assistant coach's access (deletes their account). */
+  async removeAssistantCoach(assistantCoachId: string): Promise<void> {
+    const { error } = await supabase.functions.invoke('remove-assistant-coach', { body: { assistantCoachId } });
+    if (error) throw new Error(await edgeFunctionErrorMessage(error, 'Could not remove that assistant coach'));
+  },
+
   async getWeeklyLogs(athleteId: string): Promise<WeeklyLog[]> {
     const { data, error } = await supabase
       .from('weekly_logs')

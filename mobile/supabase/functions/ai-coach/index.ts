@@ -48,10 +48,22 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .single();
     if (coachError || !coach) throw new Error('Coach profile not found');
-    if (coach.role !== 'coach') throw new Error('Only coaches can use the AI assistant');
+    if (!['coach', 'assistant_coach'].includes(coach.role)) throw new Error('Only coaches can use the AI assistant');
 
     const body: RequestBody = await req.json();
     if (!body.message) throw new Error('message is required');
+
+    // Server-side source of truth for the daily question cap — checked before doing any
+    // squad-data reads or spending an Anthropic call. Atomic (see migration) so concurrent
+    // requests can't both slip through under the limit.
+    const { data: usageCount, error: usageError } = await supabase.rpc('increment_ai_message_usage');
+    if (usageError) throw usageError;
+    if (usageCount == null) {
+      return new Response(
+        JSON.stringify({ error: "You've reached today's limit of 3 AI questions. Try again tomorrow." }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     const [{ data: athletes, error: athletesError }, { data: programme }, { data: config }] = await Promise.all([
       supabase

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Purchases } from './revenuecat';
+import type { Role } from '@/data/types';
 
 export type SubscriptionTier = 'starter' | 'growth' | 'pro' | 'exempt';
 
@@ -37,6 +38,24 @@ export function getAthleteLimit(tier: SubscriptionTier | null): number {
 
 function daysRemaining(endIso: string): number {
   return Math.max(0, Math.ceil((new Date(endIso).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+}
+
+/**
+ * Assistant coaches have no billing identity of their own — their access is
+ * entirely inherited from the programme's head coach. Resolves the profile
+ * id whose subscription actually governs access: the caller's own id for a
+ * head coach (unchanged fast path), or the programme owner's id otherwise.
+ */
+export async function resolvePlanOwnerId(callerId: string, role: Role): Promise<string> {
+  if (role === 'coach') return callerId;
+
+  const { data: profile } = await supabase.from('profiles').select('programme_id').eq('id', callerId).single();
+  if (!profile?.programme_id) throw new Error('No programme found');
+
+  const { data: programme } = await supabase.from('programmes').select('owner_id').eq('id', profile.programme_id).single();
+  if (!programme?.owner_id) throw new Error('No programme owner found');
+
+  return programme.owner_id;
 }
 
 /**
