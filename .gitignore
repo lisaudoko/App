@@ -1,0 +1,6 @@
+# Tool caches — Replit sets XDG_CACHE_HOME here; read-only dotslash files
+# inside break EAS tarball packing if included
+.cache/
+
+# Local agent/workspace state
+.local/
