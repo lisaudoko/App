@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository, defaultWorkoutTemplate } from '@/data/repository';
+import { shareWorkout } from '@/lib/shareWorkout';
 import { computeExerciseWeight } from '@/engine/workoutWeight';
 import { genId } from '@/lib/id';
 import { DAY_LABELS, type BlockExercise, type EventGroup, type Workout, type WorkoutBlock } from '@/data/types';
@@ -252,6 +253,15 @@ export function DayWorkoutEditor({ weekNumber, day, dateLabel, eventGroups, work
           <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{dateLabel}</Text>
           <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 1 }}>Week {weekNumber}</Text>
         </View>
+        <Pressable
+          onPress={() => shareWorkout(`Week ${weekNumber} plan`, draft, primaryGroup, null)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Export plan"
+          style={{ marginRight: 16 }}
+        >
+          <Ionicons name="share-outline" size={22} color={colors.textMuted} />
+        </Pressable>
         <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close">
           <Ionicons name="close" size={24} color={colors.textMuted} />
         </Pressable>

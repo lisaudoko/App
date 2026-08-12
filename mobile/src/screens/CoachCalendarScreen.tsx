@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
@@ -26,6 +27,7 @@ function todayIso(): string {
 
 export function CoachCalendarScreen() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { data, loading: squadLoading } = useProgrammeData();
   const [config, setConfig] = useState<ProgrammeConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
@@ -41,6 +43,10 @@ export function CoachCalendarScreen() {
   const [editorTarget, setEditorTarget] = useState<{ weekNumber: number; day: number; dateIso: string } | null>(null);
 
   const seasonStartDate = config?.seasonStartDate ?? null;
+  // Training weeks are only defined from the season start date forward — weekDayForDate
+  // returns null for anything earlier, which openWorkoutBuilder silently no-ops on. Surface
+  // that as a visible, disabled state instead of a dead-looking + button.
+  const beforeSeason = seasonStartDate != null && selectedDate < seasonStartDate;
   const primaryGroup: EventGroup = config?.eventGroups[0] ?? 'throws';
 
   useEffect(() => {
@@ -276,6 +282,11 @@ export function CoachCalendarScreen() {
             onPressTraining={openWorkoutBuilder}
             onLongPressTraining={(card) => setCopySheetDay(card)}
           />
+          {beforeSeason && (
+            <Text style={{ fontSize: 12, color: colors.warning, textAlign: 'center', marginTop: 8 }}>
+              This date is before your season start ({formatFullDate(seasonStartDate!)}) — pick a later date to add a workout.
+            </Text>
+          )}
         </View>
       </Screen>
 
@@ -283,18 +294,18 @@ export function CoachCalendarScreen() {
         onPress={openWorkoutBuilder}
         accessibilityRole="button"
         accessibilityLabel="Add session"
-        disabled={!seasonStartDate}
+        disabled={!seasonStartDate || beforeSeason}
         style={({ pressed }) => [{
           position: 'absolute',
           right: 20,
-          bottom: 24,
+          bottom: 24 + insets.bottom,
           width: 52,
           height: 52,
           borderRadius: 26,
           backgroundColor: colors.accent,
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: pressed ? 0.85 : seasonStartDate ? 1 : 0.4,
+          opacity: pressed ? 0.85 : seasonStartDate && !beforeSeason ? 1 : 0.4,
           shadowColor: '#000',
           shadowOpacity: 0.2,
           shadowRadius: 6,

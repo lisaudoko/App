@@ -37,7 +37,10 @@ export const EVENT_GROUP_BLOCKS: Record<EventGroup, BlockTypeDef[]> = {
   throws: [
     { type: 'warm_up', group: 'throws', label: 'Warm Up', color: blockColors.warmUp.bg, textColor: blockColors.warmUp.text, exercises: ['Skipping', ...WARM_UP_GENERAL], fields: WARM_COOL_FIELDS },
     { type: 'olympic_lifts', group: 'throws', label: 'Olympic Lifts', color: blockColors.olympic.bg, textColor: blockColors.olympic.text, exercises: OLYMPIC_LIFTS, fields: LIFT_FIELDS },
-    { type: 'weightlifting', group: 'throws', label: 'Weightlifting', color: blockColors.weights.bg, textColor: blockColors.weights.text, exercises: WEIGHTLIFTING, fields: LIFT_FIELDS },
+    // Label is "Strength" (not "Weightlifting") to match how sprints/jumps label this same squat/bench/deadlift
+    // pool — "Weightlifting" is technically the Olympic lifts, which throwers already have as a separate block
+    // above. `type` stays 'weightlifting' unchanged: it's the persisted value on existing saved workouts.
+    { type: 'weightlifting', group: 'throws', label: 'Strength', color: blockColors.weights.bg, textColor: blockColors.weights.text, exercises: WEIGHTLIFTING, fields: LIFT_FIELDS },
     { type: 'plyometrics', group: 'throws', label: 'Plyometrics', color: blockColors.plyo.bg, textColor: blockColors.plyo.text, exercises: ['Explosive Harvards', 'Frog Jumps', 'Hop Hop Jump', 'Speed Skater', 'Split Jumps', 'Tuck Jumps', 'SL Squat Jumps', 'Star Jumps', 'Box Jumps'], fields: PLYO_FIELDS },
     { type: 'core_glutes', group: 'throws', label: 'Core & Glutes', color: blockColors.core.bg, textColor: blockColors.core.text, exercises: CORE_GLUTES, fields: CORE_FIELDS },
     { type: 'med_ball_mobility', group: 'throws', label: 'Med Ball & Mobility', color: blockColors.medBall.bg, textColor: blockColors.medBall.text, exercises: ['MBM Over Under', 'Upper Twist', 'Reverse Twist', 'Hi/Lo', 'Hurdle Mobility'], fields: MED_BALL_FIELDS },

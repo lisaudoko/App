@@ -185,7 +185,7 @@ export default function CoachAthleteDetailScreen() {
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <LegendDot color={colors.text} label="Squat" />
               <LegendDot color={colors.textMuted} label="Clean" />
-              <LegendDot color={colors.textFaint} label={athlete.eventGroup === 'jumps' ? 'RDL' : 'Bench'} />
+              <LegendDot color={colors.textFaint} label={athlete.eventGroup === 'jumps' ? 'Deadlift' : 'Bench'} />
             </View>
           </Card>
         )}

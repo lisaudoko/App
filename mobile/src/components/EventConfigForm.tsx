@@ -55,7 +55,6 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
   const [throwsConfig, setThrowsConfig] = useState<ThrowsConfig>(initial?.throws ?? defaultThrows());
   const [sprintsConfig, setSprintsConfig] = useState<SprintsConfig>(initial?.sprints ?? defaultSprints());
   const [jumpsConfig, setJumpsConfig] = useState<JumpsConfig>(initial?.jumps ?? defaultJumps());
-  const [competitionDate, setCompetitionDate] = useState(initial?.competitionDate ?? '');
   const [seasonStartDate, setSeasonStartDate] = useState(initial?.seasonStartDate ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +71,9 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
         throws: eventGroups.includes('throws') ? throwsConfig : null,
         sprints: eventGroups.includes('sprints') ? sprintsConfig : null,
         jumps: eventGroups.includes('jumps') ? jumpsConfig : null,
-        competitionDate: competitionDate || null as unknown as string,
+        // No longer user-editable here — pass through whatever was already saved so this
+        // form doesn't silently wipe it for coaches who set it before the field was removed.
+        competitionDate: initial?.competitionDate ?? (null as unknown as string),
         seasonStartDate,
       });
     } catch (err) {
@@ -212,14 +213,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
       )}
 
       <Card>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Competition</Text>
-        <TextField
-          label="Competition date (YYYY-MM-DD)"
-          value={competitionDate}
-          onChangeText={setCompetitionDate}
-          placeholder="2026-04-11"
-          keyboardType="numbers-and-punctuation"
-        />
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Season</Text>
         <TextField
           label="Season start date — Monday of week 1 (YYYY-MM-DD)"
           value={seasonStartDate}

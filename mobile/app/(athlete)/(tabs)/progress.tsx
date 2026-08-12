@@ -107,9 +107,9 @@ export default function AthleteProgressScreen() {
   const groupNoun = athlete.eventGroup === 'sprints' ? 'time' : athlete.eventGroup === 'jumps' ? 'jump' : 'throw';
 
   const strengthRows = [
-    { label: 'Back squat', current: athlete.currentMaxes.squat, target: athlete.targetMaxes.squat, color: colors.text },
-    { label: 'Power clean', current: athlete.currentMaxes.clean, target: athlete.targetMaxes.clean, color: colors.textMuted },
-    { label: 'Wide bench', current: athlete.currentMaxes.bench, target: athlete.targetMaxes.bench, color: colors.textFaint },
+    { label: 'Squat', current: athlete.currentMaxes.squat, target: athlete.targetMaxes.squat, color: colors.text },
+    { label: 'Clean', current: athlete.currentMaxes.clean, target: athlete.targetMaxes.clean, color: colors.textMuted },
+    { label: 'Bench', current: athlete.currentMaxes.bench, target: athlete.targetMaxes.bench, color: colors.textFaint },
   ];
 
   return (

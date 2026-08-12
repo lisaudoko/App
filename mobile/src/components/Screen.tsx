@@ -10,6 +10,7 @@ import {
   View,
   type ScrollViewProps,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 
 interface ScreenProps extends ScrollViewProps {
@@ -26,7 +27,12 @@ interface ScreenProps extends ScrollViewProps {
  */
 export function Screen({ onRefresh, scroll = true, padded = true, style, children, ...props }: ScreenProps) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  // Edge-to-edge (default since Expo SDK 53) lets content draw behind Android's system nav
+  // bar/gesture pill — the tab bar handles its own inset, but bottom-most buttons on any
+  // other screen need this added on top of the usual padding or the nav bar can cover them.
+  const bottomInsetStyle = { paddingBottom: 32 + insets.bottom };
 
   const handleRefresh = useCallback(async () => {
     if (!onRefresh) return;
@@ -41,7 +47,7 @@ export function Screen({ onRefresh, scroll = true, padded = true, style, childre
   if (!scroll) {
     return (
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={[styles.flex, { backgroundColor: colors.background }, padded && styles.padded, style]}>
+        <View style={[styles.flex, { backgroundColor: colors.background }, padded && styles.padded, padded && bottomInsetStyle, style]}>
           {children}
         </View>
       </TouchableWithoutFeedback>
@@ -51,15 +57,17 @@ export function Screen({ onRefresh, scroll = true, padded = true, style, childre
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      // Android's window already resizes around the keyboard (see app.json
-      // softwareKeyboardLayoutMode: "resize") — applying height/padding here
-      // too would double up the offset.
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      // Android 15+ (API 35) enforces edge-to-edge, which stops the OS from
+      // reliably auto-resizing the window around the keyboard — this can no
+      // longer rely on app.json's softwareKeyboardLayoutMode alone. "height"
+      // (not "padding") avoids the padding+resize double-compensation gap on
+      // Android devices where the OS does still resize.
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView
           style={[styles.flex, { backgroundColor: colors.background }]}
-          contentContainerStyle={[padded && styles.paddedContent, style]}
+          contentContainerStyle={[padded && styles.paddedContent, padded && bottomInsetStyle, style]}
           // iOS's pull-to-refresh is implemented as the same elastic overscroll as
           // rubber-banding, so screens with onRefresh must keep bounce enabled or
           // the pull gesture cannot be dragged far enough to trigger it.

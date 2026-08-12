@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -56,6 +57,7 @@ function emptyForm(athleteId: string | null = null): FormState {
 
 export function NotesScreen() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ athleteId?: string; new?: string; t?: string }>();
   const { data: squad } = useProgrammeData();
 
@@ -303,7 +305,7 @@ export function NotesScreen() {
         style={({ pressed }) => [{
           position: 'absolute',
           right: 20,
-          bottom: 24,
+          bottom: 24 + insets.bottom,
           width: 52,
           height: 52,
           borderRadius: 26,

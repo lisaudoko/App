@@ -8,6 +8,7 @@ import { useCoachAccess } from '@/hooks/useCoachAccess';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { LoadingState } from '@/components/LoadingState';
 import { AppTour } from '@/components/AppTour';
+import { TourMeasuredButton } from '@/components/TourMeasuredButton';
 
 export default function CoachTabsLayout() {
   const { colors } = useAppTheme();
@@ -51,27 +52,51 @@ export default function CoachTabsLayout() {
       >
         <Tabs.Screen
           name="index"
-          options={{ title: 'Squad', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
+          options={{
+            title: 'Squad',
+            tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="index" {...props} />,
+          }}
         />
         <Tabs.Screen
           name="calendar"
-          options={{ title: 'Calendar', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="calendar" {...props} />,
+          }}
         />
         <Tabs.Screen
           name="meets"
-          options={{ title: 'Meets', tabBarIcon: ({ color, size }) => <Ionicons name="trophy" color={color} size={size} /> }}
+          options={{
+            title: 'Meets',
+            tabBarIcon: ({ color, size }) => <Ionicons name="trophy" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="meets" {...props} />,
+          }}
         />
         <Tabs.Screen
           name="ai"
-          options={{ title: 'AI', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} /> }}
+          options={{
+            title: 'AI',
+            tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="ai" {...props} />,
+          }}
         />
         <Tabs.Screen
           name="notes"
-          options={{ title: 'Notes', tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} /> }}
+          options={{
+            title: 'Notes',
+            tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="notes" {...props} />,
+          }}
         />
         <Tabs.Screen
           name="settings"
-          options={{ title: 'Settings', tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} /> }}
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="settings" {...props} />,
+          }}
         />
       </Tabs>
       {/* Head-coach only — see AppTour.tsx. Renders as a Modal on top of the tabs

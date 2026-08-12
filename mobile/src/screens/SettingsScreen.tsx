@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
 import * as Clipboard from 'expo-clipboard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useThemeStore, type ThemeMode } from '@/theme/themeStore';
 import { useAuthStore } from '@/store/authStore';
@@ -46,6 +47,7 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: keyof typeof Ionico
 
 export function SettingsScreen() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const themeMode = useThemeStore((s) => s.mode);
   const setThemeMode = useThemeStore((s) => s.setMode);
   const session = useAuthStore((s) => s.session);
@@ -245,7 +247,7 @@ export function SettingsScreen() {
               <SettingsLink icon="people-outline" label="Manage squad" onPress={() => router.push('/(coach)/settings/squad')} />
               <SettingsLink
                 icon="options-outline"
-                label="Event groups & standards"
+                label="Manage programme"
                 onPress={() => router.push('/(coach)/settings/config')}
                 last
               />
@@ -359,6 +361,8 @@ export function SettingsScreen() {
       </Screen>
 
       <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={closeConfirm}>
+        {/* See Sheet.tsx — "height" behavior inside a Modal on Android can collapse content
+            to zero height, so this stays undefined here same as every other Modal in the app. */}
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1, justifyContent: 'flex-end' }}
@@ -369,7 +373,7 @@ export function SettingsScreen() {
               from={{ translateY: 300 }}
               animate={{ translateY: 0 }}
               transition={{ type: 'timing', duration: 250 }}
-              style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}
+              style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 + insets.bottom }}
             >
               <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Delete your account?</Text>
               <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 16, lineHeight: 18 }}>
