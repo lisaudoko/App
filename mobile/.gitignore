@@ -21,6 +21,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Google Play service account key (eas submit)
+google-play-key.json
+*-service-account*.json
+
 # Metro
 .metro-health-check*
 

@@ -17,6 +17,17 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 initRevenueCat();
 
+// Android requires a notification channel before any notification can be
+// shown with custom importance/vibration/light-color — a no-op on iOS.
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('default', {
+    name: 'TRU Performance',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#0FE68A',
+  }).catch(() => {});
+}
+
 function RootNavigation() {
   const { resolvedScheme, colors } = useAppTheme();
   const hasHydrated = useAuthStore((s) => s.hasHydrated);

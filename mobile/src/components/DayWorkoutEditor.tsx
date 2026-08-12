@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository, defaultWorkoutTemplate } from '@/data/repository';
@@ -10,7 +10,6 @@ import { blockChoicesForGroups, blockTypeDef, type BlockTypeDef } from '@/data/w
 import { Card } from '@/components/Card';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
-import { LoadingState } from '@/components/LoadingState';
 import { Sheet } from '@/components/Sheet';
 
 function emptyExercise(name: string): BlockExercise {
@@ -132,10 +131,13 @@ export function DayWorkoutEditor({ weekNumber, day, dateLabel, eventGroups, work
   const blockChoices = blockChoicesForGroups(eventGroups);
   const primaryGroup: EventGroup = eventGroups[0] ?? 'throws';
 
+  // Rendered inside the sheet's `colors.surface` card — LoadingState's own flex:1
+  // colors.background fill would paint the whole sheet the app's dark background
+  // color (near-black) instead of matching the card behind it.
   if (draft === null) {
     return (
-      <View style={{ padding: 16 }}>
-        <LoadingState />
+      <View style={{ flex: 1, minHeight: 200, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.textMuted} />
       </View>
     );
   }
