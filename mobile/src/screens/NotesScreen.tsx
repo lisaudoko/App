@@ -202,7 +202,7 @@ export function NotesScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Notes" subtitle="Coaching diary" />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 12, flexGrow: 0 }}>
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
           {[null, ...squad.athletes.map((a) => a.id)].map((id) => {
             const active = athleteFilter === id;

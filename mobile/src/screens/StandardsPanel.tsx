@@ -49,7 +49,7 @@ export function StandardsPanel() {
 
   return (
     <View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginBottom: 16 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginBottom: 16, flexGrow: 0 }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {data.meets.map((m) => {
             const active = m.id === meet?.id;

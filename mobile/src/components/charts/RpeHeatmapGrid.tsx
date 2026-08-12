@@ -29,7 +29,7 @@ export function RpeHeatmapGrid({ rows }: { rows: Row[] }) {
   const weekLabels = rows[0]?.cells.map((c) => c.label) ?? [];
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ flexGrow: 0 }}>
       <View>
         <View style={{ flexDirection: 'row', marginBottom: 4 }}>
           <View style={{ width: 84 }} />

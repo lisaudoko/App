@@ -393,7 +393,7 @@ export default function SquadScreen() {
       </View>
 
       {eventGroups.length > 1 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10, flexGrow: 0 }}>
           <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
             {[null, ...eventGroups].map((g) => {
               const active = activeEventGroup === g;
@@ -427,7 +427,7 @@ export default function SquadScreen() {
       )}
 
       {viewMode === 'list' && groups.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} style={{ marginTop: 10, flexGrow: 0 }}>
           <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
             {[null, ...groups].map((g) => {
               const active = activeGroup === g;
