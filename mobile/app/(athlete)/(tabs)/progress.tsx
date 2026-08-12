@@ -182,7 +182,7 @@ export default function AthleteProgressScreen() {
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression</Text>
             <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>1RM maxes across test dates (lbs)</Text>
-            <StrengthChart tests={tests} />
+            <StrengthChart tests={tests} thirdLift={athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench'} />
           </Card>
         )}
 

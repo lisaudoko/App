@@ -36,6 +36,11 @@ export default function AthleteStrengthScreen() {
   const tests = data.tests;
   const last = tests[tests.length - 1];
   const first = tests[0];
+  // Jumps programmes track deadlift instead of bench as the third lift — matches the coach's
+  // own view of this athlete (CoachAthleteDetailScreen), which was previously out of sync with
+  // this screen: this always showed "Bench" regardless of event group.
+  const thirdLift = data.athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench';
+  const thirdLiftLabel = thirdLift === 'deadlift' ? 'Deadlift' : 'Bench';
 
   async function handleSave() {
     if (!data.athlete) return;
@@ -83,14 +88,14 @@ export default function AthleteStrengthScreen() {
             <InfoTip term="1RM" explanation="One-Rep Max — the most weight you can lift for a single complete repetition of an exercise. It's the standard reference point strength programmes are built around." />
           </View>
           <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>
-            1RM maxes across test dates (lbs) · Squat / Clean / Bench
+            1RM maxes across test dates (lbs) · Squat / Clean / {thirdLiftLabel}
           </Text>
-          <StrengthChart tests={tests} />
+          <StrengthChart tests={tests} thirdLift={thirdLift} />
           {tests.length >= 3 && (
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <LegendDot color={colors.text} label="Squat" />
               <LegendDot color={colors.textMuted} label="Clean" />
-              <LegendDot color={colors.textFaint} label="Bench" />
+              <LegendDot color={colors.textFaint} label={thirdLiftLabel} />
             </View>
           )}
           {last && first && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
 import { isMonday } from '@/lib/calendarDates';
@@ -52,6 +53,7 @@ interface Props {
 
 export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Save' }: Props) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [throwsConfig, setThrowsConfig] = useState<ThrowsConfig>(initial?.throws ?? defaultThrows());
   const [sprintsConfig, setSprintsConfig] = useState<SprintsConfig>(initial?.sprints ?? defaultSprints());
   const [jumpsConfig, setJumpsConfig] = useState<JumpsConfig>(initial?.jumps ?? defaultJumps());
@@ -232,7 +234,9 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
       </Card>
 
       {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
-      <Button label={saveLabel} onPress={handleSave} loading={saving} />
+      <View style={{ marginBottom: insets.bottom }}>
+        <Button label={saveLabel} onPress={handleSave} loading={saving} />
+      </View>
     </View>
   );
 }
@@ -320,7 +324,7 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
       <Text style={{ fontSize: 15, color: colors.text }}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent, false: colors.border }} thumbColor={colors.surface} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent, false: colors.border }} thumbColor={colors.text} />
     </View>
   );
 }

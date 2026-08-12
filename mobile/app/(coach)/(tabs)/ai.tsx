@@ -156,7 +156,7 @@ export default function AiAssistantScreen() {
           value={deepAnalysis}
           onValueChange={setDeepAnalysis}
           trackColor={{ true: colors.accent, false: colors.border }}
-          thumbColor={colors.surface}
+          thumbColor={colors.text}
           accessibilityLabel="Deep analysis"
         />
       </View>

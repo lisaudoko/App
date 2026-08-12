@@ -59,7 +59,7 @@ export default function TermsScreen() {
         },
         {
           heading: '11. Contact us',
-          body: 'Questions about these Terms can be sent to support@truperformance.app.',
+          body: 'Questions about these Terms can be sent to admin@nexgenoptimize.com.',
         },
       ]}
     />

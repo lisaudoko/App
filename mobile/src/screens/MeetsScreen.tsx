@@ -17,7 +17,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { Sheet } from '@/components/Sheet';
 import { StandardsPanel } from '@/screens/StandardsPanel';
 
-const MEET_TYPE_LABEL: Record<MeetType, string> = {
+export const MEET_TYPE_LABEL: Record<MeetType, string> = {
   qualifier: 'Qualifier',
   championship: 'Championship',
   invitational: 'Invitational',

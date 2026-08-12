@@ -17,8 +17,10 @@ export function Pill({ label, tone }: { label: string; tone: PillTone }) {
   const { bg, fg } = toneStyles[tone];
 
   return (
-    <View style={{ backgroundColor: bg, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 }}>
-      <Text style={{ fontSize: 12, fontWeight: '600', color: fg, letterSpacing: 0.3 }}>{label}</Text>
+    <View style={{ backgroundColor: bg, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 3, flexShrink: 0 }}>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: fg, letterSpacing: 0.3 }} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }

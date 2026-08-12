@@ -16,14 +16,7 @@ import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { InlineNoteField } from '@/components/InlineNoteField';
 import { Sheet } from '@/components/Sheet';
-
-const MEET_TYPE_LABEL: Record<string, string> = {
-  qualifier: 'Qualifier',
-  championship: 'Championship',
-  invitational: 'Invitational',
-  dual_meet: 'Dual Meet',
-  time_trial: 'Time Trial',
-};
+import { MEET_TYPE_LABEL } from '@/screens/MeetsScreen';
 
 export default function MeetDetailScreen() {
   const { colors } = useAppTheme();

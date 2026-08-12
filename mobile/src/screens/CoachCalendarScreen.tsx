@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
@@ -281,6 +282,7 @@ export function CoachCalendarScreen() {
             cards={cards}
             onPressTraining={openWorkoutBuilder}
             onLongPressTraining={(card) => setCopySheetDay(card)}
+            onPressMeet={(card) => router.push(`/(coach)/meets/${card.id}`)}
           />
           {beforeSeason && (
             <Text style={{ fontSize: 12, color: colors.warning, textAlign: 'center', marginTop: 8 }}>

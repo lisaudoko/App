@@ -250,8 +250,10 @@ export function DayWorkoutEditor({ weekNumber, day, dateLabel, eventGroups, work
     <View style={{ flex: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{dateLabel}</Text>
-          <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 1 }}>Week {weekNumber}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>Training plan</Text>
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 1 }}>
+            {dateLabel} · Week {weekNumber}
+          </Text>
         </View>
         <Pressable
           onPress={() => shareWorkout(`Week ${weekNumber} plan`, draft, primaryGroup, null)}

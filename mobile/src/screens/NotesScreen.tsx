@@ -431,7 +431,7 @@ export function NotesScreen() {
                   value={form.flagFollowup}
                   onValueChange={(v) => setForm((f) => ({ ...f, flagFollowup: v }))}
                   trackColor={{ true: colors.accent, false: colors.border }}
-                  thumbColor={colors.surface}
+                  thumbColor={colors.text}
                 />
               </View>
 

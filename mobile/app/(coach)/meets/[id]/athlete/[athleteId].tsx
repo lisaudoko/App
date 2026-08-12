@@ -181,7 +181,7 @@ export default function AthleteMeetEntryScreen() {
                   style={{ alignItems: 'center' }}
                 >
                   <Text style={{ fontSize: 10, color: colors.textMuted }}>Foul</Text>
-                  <Switch value={a.foul} onValueChange={(v) => updateAttempt(i, { foul: v })} trackColor={{ true: colors.danger, false: colors.border }} thumbColor={colors.surface} />
+                  <Switch value={a.foul} onValueChange={(v) => updateAttempt(i, { foul: v })} trackColor={{ true: colors.danger, false: colors.border }} thumbColor={colors.text} />
                 </Pressable>
               </View>
             );

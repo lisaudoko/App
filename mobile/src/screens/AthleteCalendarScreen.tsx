@@ -5,8 +5,9 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
 import { blockTypeDef } from '@/data/workoutBlocks';
-import type { EventGroup, ProgrammeConfig, Workout } from '@/data/types';
-import { addDays, formatCountdown, getWeekLabel, weekDatesContaining, weekDayForDate } from '@/lib/calendarDates';
+import type { EventGroup, Meet, ProgrammeConfig, Workout } from '@/data/types';
+import { addDays, formatCountdown, formatFullDate, getWeekLabel, weekDatesContaining, weekDayForDate } from '@/lib/calendarDates';
+import { formatPerformance, inferEventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -14,6 +15,8 @@ import { LoadingState } from '@/components/LoadingState';
 import { WeekStrip } from '@/components/WeekStrip';
 import { DayEventList, type DayCardData } from '@/components/DayEventList';
 import { AddToCalendarButton } from '@/components/AddToCalendarButton';
+import { Sheet } from '@/components/Sheet';
+import { MEET_TYPE_LABEL } from '@/screens/MeetsScreen';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -26,6 +29,7 @@ export function AthleteCalendarScreen() {
   const [configLoading, setConfigLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(todayIso());
   const [workoutCache, setWorkoutCache] = useState<Record<number, Workout | null>>({});
+  const [meetSheet, setMeetSheet] = useState<Meet | null>(null);
 
   const seasonStartDate = config?.seasonStartDate ?? null;
   const primaryGroup: EventGroup = data.athlete?.eventGroup ?? 'throws';
@@ -143,6 +147,7 @@ export function AthleteCalendarScreen() {
         <View style={{ marginTop: 16 }}>
           <DayEventList
             cards={cards}
+            onPressMeet={(card) => setMeetSheet(meetsById.get(card.id) ?? null)}
             renderExtra={(card) =>
               card.kind === 'training' ? (
                 <AddToCalendarButton
@@ -174,14 +179,48 @@ export function AthleteCalendarScreen() {
               Upcoming meets
             </Text>
             {upcomingMeets.map((m) => (
-              <Card key={m.id} style={{ borderLeftWidth: 4, borderLeftColor: colors.warning }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{m.name}</Text>
-                <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{formatCountdown(m.date)}</Text>
-              </Card>
+              <Pressable key={m.id} onPress={() => setMeetSheet(m)}>
+                <Card style={{ borderLeftWidth: 4, borderLeftColor: colors.warning }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{m.name}</Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{formatCountdown(m.date)}</Text>
+                </Card>
+              </Pressable>
             ))}
           </View>
         )}
       </Screen>
+
+      <Sheet visible={meetSheet != null} onClose={() => setMeetSheet(null)}>
+        {meetSheet && (
+          <View style={{ padding: 20 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 4 }}>{meetSheet.name}</Text>
+            <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 12 }}>
+              {formatFullDate(meetSheet.date)}
+              {meetSheet.location ? ` · ${meetSheet.location}` : ''}
+            </Text>
+            {meetSheet.meetType && (
+              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>{MEET_TYPE_LABEL[meetSheet.meetType]}</Text>
+            )}
+            {meetSheet.conditions && (
+              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>Conditions: {meetSheet.conditions}</Text>
+            )}
+            {meetSheet.generalNotes && (
+              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>{meetSheet.generalNotes}</Text>
+            )}
+            {(() => {
+              const event = data.athlete?.event;
+              const standard = event ? meetSheet.standards[event] : undefined;
+              if (standard == null) return null;
+              const unit: PerformanceUnit = inferEventGroup(event!) === 'sprints' ? 'seconds' : 'metres';
+              return (
+                <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600', marginTop: 8 }}>
+                  Qualifying standard for {event}: {formatPerformance(standard, unit)}
+                </Text>
+              );
+            })()}
+          </View>
+        )}
+      </Sheet>
     </View>
   );
 }

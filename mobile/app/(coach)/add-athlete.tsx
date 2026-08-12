@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, Share, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -17,6 +18,7 @@ const TIER_LABEL: Record<string, string> = { starter: 'Starter', growth: 'Growth
 
 export default function AddAthleteScreen() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { access } = useCoachAccess();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -318,7 +320,9 @@ export default function AddAthleteScreen() {
 
         {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
 
-        <Button label="Add athlete" onPress={handleSubmit} loading={busy} disabled={!canSubmit} />
+        <View style={{ marginBottom: insets.bottom }}>
+          <Button label="Add athlete" onPress={handleSubmit} loading={busy} disabled={!canSubmit} />
+        </View>
       </Screen>
 
       <Modal visible={limitModalVisible} transparent animationType="fade" onRequestClose={() => setLimitModalVisible(false)}>

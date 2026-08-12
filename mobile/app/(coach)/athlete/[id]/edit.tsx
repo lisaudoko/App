@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
@@ -18,6 +19,7 @@ const ALL_GROUPS: EventGroup[] = ['throws', 'sprints', 'jumps'];
 export default function EditAthleteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [loading, setLoading] = useState(true);
@@ -272,7 +274,9 @@ export default function EditAthleteScreen() {
           </View>
           {testError && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{testError}</Text>}
           {testSaved && <Text style={{ color: colors.success, fontSize: 15, marginBottom: 8 }}>Strength test saved.</Text>}
-          <Button label="Add test" variant="outline" onPress={handleAddStrengthTest} loading={savingTest} />
+          <View style={{ marginBottom: insets.bottom }}>
+            <Button label="Add test" variant="outline" onPress={handleAddStrengthTest} loading={savingTest} />
+          </View>
         </Card>
       </Screen>
     </View>

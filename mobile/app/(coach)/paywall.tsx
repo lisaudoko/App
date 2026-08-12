@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { Purchases } from '@/lib/revenuecat';
@@ -27,6 +28,7 @@ const TIERS: Tier[] = [
 
 export default function PaywallScreen() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const session = useAuthStore((s) => s.session);
   const [packages, setPackages] = useState<Record<string, PurchasesPackage>>({});
   const [offeringsError, setOfferingsError] = useState<string | null>(null);
@@ -173,7 +175,7 @@ export default function PaywallScreen() {
             await useAuthStore.getState().logout();
             router.replace('/login');
           }}
-          style={{ marginTop: 16, alignItems: 'center' }}
+          style={{ marginTop: 16, marginBottom: insets.bottom, alignItems: 'center' }}
         >
           <Text style={{ fontSize: 15, color: colors.textFaint }}>Log out</Text>
         </Pressable>

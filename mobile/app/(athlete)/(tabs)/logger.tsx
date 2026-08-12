@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Keyboard, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MotiView, AnimatePresence } from 'moti';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +20,7 @@ import { InfoTip } from '@/components/InfoTip';
 
 export default function LoggerScreen() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { data, refresh } = useAthleteSelf();
   const eventGroup = data.athlete?.eventGroup ?? 'throws';
   const isTimed = eventGroup === 'sprints';
@@ -47,6 +49,7 @@ export default function LoggerScreen() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [loggedMark, setLoggedMark] = useState<number | null>(null);
   const [loggedRpe, setLoggedRpe] = useState<number | null>(null);
 
@@ -66,11 +69,8 @@ export default function LoggerScreen() {
 
   async function finishSubmit(mark: number | null, rpe: number | null, notes: string | null) {
     if (!data.athlete || mark == null) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSubmitting(true);
-    setLoggedMark(mark);
-    setLoggedRpe(rpe);
-    setSubmitted(true);
+    setSubmitError(null);
     try {
       const { isNewPersonalBest } = await repository.submitWeeklyResult(data.athlete.id, {
         mark,
@@ -82,10 +82,20 @@ export default function LoggerScreen() {
         bodyWeight: bodyWeight ? parseFloat(bodyWeight) : null,
         notes,
       });
+      // Only now, after the write actually succeeded, do we show the "Logged!" screen —
+      // this used to fire before the repository call, so a failed submit (network error,
+      // etc.) still told the athlete it was saved when nothing had actually been written.
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setLoggedMark(mark);
+      setLoggedRpe(rpe);
+      setSubmitted(true);
+      repository.notifyCoachLogSubmitted(mark, isNewPersonalBest).catch(() => {});
       await refresh();
       if (isNewPersonalBest) {
         notifyPersonalBest(data.athlete.id, data.athlete.name, mark, perfUnit).catch(() => {});
       }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not save your log — check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +136,7 @@ export default function LoggerScreen() {
         {!manualMode ? (
           <>
             <Card>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 }}>Natural language entry</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 }}>How are you feeling?</Text>
               <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>Type it how you&apos;d say it — we&apos;ll parse it</Text>
               <TextField
                 value={nlText}
@@ -174,6 +184,7 @@ export default function LoggerScreen() {
                         />
                       </View>
                     </View>
+                    {submitError && <Text style={{ fontSize: 13, color: colors.danger, marginTop: 8 }}>{submitError}</Text>}
                   </Card>
                 </MotiView>
               )}
@@ -187,7 +198,7 @@ export default function LoggerScreen() {
         ) : (
           <>
             <Pressable onPress={() => setManualMode(false)} style={{ marginBottom: 8 }}>
-              <Text style={{ fontSize: 13, color: colors.textMuted }}>← Back to natural language entry</Text>
+              <Text style={{ fontSize: 13, color: colors.textMuted }}>← Back to How are you feeling?</Text>
             </Pressable>
 
             <TextField
@@ -212,33 +223,38 @@ export default function LoggerScreen() {
           </>
         )}
 
-        <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 8, marginTop: 4 }}>Wellness check-in</Text>
-        <SliderRow label="Sleep" value={sleep} onChange={setSleep} max={10} />
-        <SliderRow label="Soreness" value={soreness} onChange={setSoreness} max={10} />
-        <SliderRow label="Energy" value={energy} onChange={setEnergy} max={10} />
-        <SliderRow label="Motivation" value={motivation} onChange={setMotivation} max={10} />
-        <TextField
-          label="Body weight (lbs) — optional"
-          value={bodyWeight}
-          onChangeText={setBodyWeight}
-          keyboardType="decimal-pad"
-          placeholder="e.g. 178"
-        />
+        <Card>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Wellness check</Text>
+          <SliderRow label="Sleep" value={sleep} onChange={setSleep} max={10} />
+          <SliderRow label="Soreness" value={soreness} onChange={setSoreness} max={10} />
+          <SliderRow label="Energy" value={energy} onChange={setEnergy} max={10} />
+          <SliderRow label="Motivation" value={motivation} onChange={setMotivation} max={10} />
+          <TextField
+            label="Body weight (lbs) — optional"
+            value={bodyWeight}
+            onChangeText={setBodyWeight}
+            keyboardType="decimal-pad"
+            placeholder="e.g. 178"
+          />
+        </Card>
 
         {manualMode && (
-          <Button
-            label="Save"
-            onPress={() => {
-              const mark = manualMark ? (isTimed ? parseTimeToSeconds(manualMark) : parseFloat(manualMark)) : null;
-              if (mark == null || !Number.isFinite(mark)) {
-                setManualMarkError(`Enter a valid ${isTimed ? 'time' : 'distance'} — e.g. ${isTimed ? '10.82 or 1:48.30' : '16.1'}.`);
-                return;
-              }
-              finishSubmit(mark, manualRpe, null);
-            }}
-            loading={submitting}
-            disabled={!manualMark}
-          />
+          <View style={{ marginBottom: insets.bottom }}>
+            {submitError && <Text style={{ fontSize: 13, color: colors.danger, marginBottom: 8 }}>{submitError}</Text>}
+            <Button
+              label="Save"
+              onPress={() => {
+                const mark = manualMark ? (isTimed ? parseTimeToSeconds(manualMark) : parseFloat(manualMark)) : null;
+                if (mark == null || !Number.isFinite(mark)) {
+                  setManualMarkError(`Enter a valid ${isTimed ? 'time' : 'distance'} — e.g. ${isTimed ? '10.82 or 1:48.30' : '16.1'}.`);
+                  return;
+                }
+                finishSubmit(mark, manualRpe, null);
+              }}
+              loading={submitting}
+              disabled={!manualMark}
+            />
+          </View>
         )}
       </Screen>
     </View>
@@ -274,6 +290,10 @@ function SliderRow({
         step={1}
         value={value}
         onValueChange={onChange}
+        // A still-focused TextField above (e.g. the mark entry field) leaves the keyboard
+        // open — dragging the slider doesn't count as the "tap elsewhere" that Screen's own
+        // dismiss-on-background-tap relies on, since the slider consumes that touch itself.
+        onSlidingStart={() => Keyboard.dismiss()}
         minimumTrackTintColor={colors.text}
         maximumTrackTintColor={colors.border}
         thumbTintColor={colors.text}

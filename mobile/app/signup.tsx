@@ -9,6 +9,7 @@ import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { LoadingState } from '@/components/LoadingState';
+import { useScrollToInput } from '@/hooks/useScrollToInput';
 import { SEX_LABEL, type Role, type Sex } from '@/data/types';
 
 export default function SignupScreen() {
@@ -36,9 +37,14 @@ function SelfSignupScreen() {
   const [sex, setSex] = useState<Sex | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const nameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
+  const programmeNameRef = useRef<TextInput>(null);
+  const eventRef = useRef<TextInput>(null);
+  const joinCodeRef = useRef<TextInput>(null);
+  const { scrollRef, scrollToInput } = useScrollToInput();
 
   const passwordsMatch = password === confirmPassword;
 
@@ -66,7 +72,7 @@ function SelfSignupScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <Screen>
+      <Screen scrollRef={scrollRef}>
           <Text style={{ fontSize: 25, fontWeight: '600', color: colors.text, marginTop: 12, marginBottom: 4 }}>
             Create your account
           </Text>
@@ -98,6 +104,7 @@ function SelfSignupScreen() {
           </View>
 
           <TextField
+            ref={nameRef}
             label="Full name"
             value={name}
             onChangeText={setName}
@@ -106,6 +113,7 @@ function SelfSignupScreen() {
             autoComplete="name"
             returnKeyType="next"
             onSubmitEditing={() => emailRef.current?.focus()}
+            onFocus={() => scrollToInput(nameRef)}
             blurOnSubmit={false}
           />
           <TextField
@@ -124,6 +132,7 @@ function SelfSignupScreen() {
             placeholder="you@example.com"
             returnKeyType="next"
             onSubmitEditing={() => passwordRef.current?.focus()}
+            onFocus={() => scrollToInput(emailRef)}
             blurOnSubmit={false}
           />
           <TextField
@@ -138,6 +147,7 @@ function SelfSignupScreen() {
             placeholder="At least 6 characters"
             returnKeyType="next"
             onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+            onFocus={() => scrollToInput(passwordRef)}
             blurOnSubmit={false}
           />
           <TextField
@@ -151,15 +161,38 @@ function SelfSignupScreen() {
             autoComplete="password-new"
             placeholder="Re-enter your password"
             returnKeyType={role === 'coach' ? 'done' : 'next'}
+            onFocus={() => scrollToInput(confirmPasswordRef)}
             error={confirmPassword.length > 0 && !passwordsMatch ? "Passwords don't match" : undefined}
           />
 
           {role === 'coach' ? (
-            <TextField label="Programme name" value={programmeName} onChangeText={setProgrammeName} placeholder="e.g. Kingston AC Throws" />
+            <TextField
+              ref={programmeNameRef}
+              label="Programme name"
+              value={programmeName}
+              onChangeText={setProgrammeName}
+              placeholder="e.g. Kingston AC Throws"
+              onFocus={() => scrollToInput(programmeNameRef)}
+            />
           ) : (
             <>
-              <TextField label="Primary event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
-              <TextField label="Team code" value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" placeholder="Ask your coach" />
+              <TextField
+                ref={eventRef}
+                label="Primary event"
+                value={event}
+                onChangeText={setEvent}
+                placeholder="e.g. Shot Put"
+                onFocus={() => scrollToInput(eventRef)}
+              />
+              <TextField
+                ref={joinCodeRef}
+                label="Team code"
+                value={joinCode}
+                onChangeText={setJoinCode}
+                autoCapitalize="characters"
+                placeholder="Ask your coach"
+                onFocus={() => scrollToInput(joinCodeRef)}
+              />
 
               <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 6 }}>Sex (optional)</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
@@ -256,8 +289,10 @@ function AcceptInviteScreen({ token }: { token: string }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const nameRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
+  const { scrollRef, scrollToInput } = useScrollToInput();
 
   useEffect(() => {
     async function resolve() {
@@ -303,7 +338,7 @@ function AcceptInviteScreen({ token }: { token: string }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <Screen>
+      <Screen scrollRef={scrollRef}>
         <Text style={{ fontSize: 25, fontWeight: '600', color: colors.text, marginTop: 12, marginBottom: 4 }}>
           Join {invite.programmeName}
         </Text>
@@ -313,6 +348,7 @@ function AcceptInviteScreen({ token }: { token: string }) {
 
         <TextField label="Email" value={invite.email} editable={false} />
         <TextField
+          ref={nameRef}
           label="Full name"
           value={name}
           onChangeText={setName}
@@ -321,6 +357,7 @@ function AcceptInviteScreen({ token }: { token: string }) {
           autoComplete="name"
           returnKeyType="next"
           onSubmitEditing={() => passwordRef.current?.focus()}
+          onFocus={() => scrollToInput(nameRef)}
           blurOnSubmit={false}
         />
         <TextField
@@ -335,6 +372,7 @@ function AcceptInviteScreen({ token }: { token: string }) {
           placeholder="At least 6 characters"
           returnKeyType="next"
           onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+          onFocus={() => scrollToInput(passwordRef)}
           blurOnSubmit={false}
         />
         <TextField
@@ -348,6 +386,7 @@ function AcceptInviteScreen({ token }: { token: string }) {
           autoComplete="password-new"
           placeholder="Re-enter your password"
           returnKeyType="done"
+          onFocus={() => scrollToInput(confirmPasswordRef)}
           error={confirmPassword.length > 0 && !passwordsMatch ? "Passwords don't match" : undefined}
         />
 

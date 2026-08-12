@@ -61,6 +61,11 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    // A sheet's content that runs taller than maxHeight must scroll, not spill past this
+    // box — without clipping, overflow renders past the card's own background and can land
+    // behind the system nav bar (looks identical to "covered by the nav bar" but isn't fixable
+    // with bottom padding since it's the content, not the card edge, that's out of bounds).
+    overflow: 'hidden',
     // Upward shadow for depth
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },

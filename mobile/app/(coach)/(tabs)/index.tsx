@@ -572,7 +572,7 @@ export default function SquadScreen() {
         <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Sort & filter</Text>
         </View>
-        <View style={{ padding: 16 }}>
+        <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
           <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Sort by</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
             {(Object.keys(SORT_LABEL) as SortBy[]).map((s) => {
@@ -665,7 +665,7 @@ export default function SquadScreen() {
               setSortBy('name');
             }}
           />
-        </View>
+        </ScrollView>
       </Sheet>
 
       <Sheet visible={statSheet != null} onClose={() => setStatSheet(null)} maxHeightPct="75%">

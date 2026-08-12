@@ -25,6 +25,7 @@ interface Props {
   cards: DayCardData[];
   onPressTraining?: (card: TrainingCardData) => void;
   onLongPressTraining?: (card: TrainingCardData) => void;
+  onPressMeet?: (card: MeetCardData) => void;
   /** Slot for role-specific extras per card — e.g. the athlete screen's AddToCalendarButton. */
   renderExtra?: (card: DayCardData) => React.ReactNode;
 }
@@ -32,7 +33,7 @@ interface Props {
 /** Renders the selected day's cards for both the coach and athlete Calendar screens: a teal-bordered
  *  training card, an amber-bordered card per meet, or a centred grey "Rest day" chip when neither
  *  applies. Presentational only — callers build `cards` from real data (workout blocks + meets). */
-export function DayEventList({ cards, onPressTraining, onLongPressTraining, renderExtra }: Props) {
+export function DayEventList({ cards, onPressTraining, onLongPressTraining, onPressMeet, renderExtra }: Props) {
   const { colors } = useAppTheme();
 
   if (cards.length === 0) {
@@ -64,11 +65,13 @@ export function DayEventList({ cards, onPressTraining, onLongPressTraining, rend
             </Card>
           </Pressable>
         ) : (
-          <Card key={`meet-${card.id}`} style={{ borderLeftWidth: 4, borderLeftColor: colors.warning }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{card.name}</Text>
-            {card.location && <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{card.location}</Text>}
-            {renderExtra && <View style={{ marginTop: 8 }}>{renderExtra(card)}</View>}
-          </Card>
+          <Pressable key={`meet-${card.id}`} onPress={() => onPressMeet?.(card)}>
+            <Card style={{ borderLeftWidth: 4, borderLeftColor: colors.warning }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{card.name}</Text>
+              {card.location && <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{card.location}</Text>}
+              {renderExtra && <View style={{ marginTop: 8 }}>{renderExtra(card)}</View>}
+            </Card>
+          </Pressable>
         ),
       )}
     </View>

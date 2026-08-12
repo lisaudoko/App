@@ -17,6 +17,9 @@ interface ScreenProps extends ScrollViewProps {
   onRefresh?: () => Promise<void> | void;
   scroll?: boolean;
   padded?: boolean;
+  /** Lets a caller drive scroll-to-focused-input manually (e.g. long forms on Android,
+   *  where there's no reliable native auto-scroll — see AGENTS.md/Android 15 notes). */
+  scrollRef?: React.Ref<ScrollView>;
 }
 
 /**
@@ -25,7 +28,7 @@ interface ScreenProps extends ScrollViewProps {
  * provided, keeps the focused input clear of the keyboard, and dismisses
  * the keyboard when the user taps anywhere that isn't itself a control.
  */
-export function Screen({ onRefresh, scroll = true, padded = true, style, children, ...props }: ScreenProps) {
+export function Screen({ onRefresh, scroll = true, padded = true, style, children, scrollRef, ...props }: ScreenProps) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -66,6 +69,7 @@ export function Screen({ onRefresh, scroll = true, padded = true, style, childre
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView
+          ref={scrollRef}
           style={[styles.flex, { backgroundColor: colors.background }]}
           contentContainerStyle={[padded && styles.paddedContent, padded && bottomInsetStyle, style]}
           // iOS's pull-to-refresh is implemented as the same elastic overscroll as

@@ -252,6 +252,7 @@ function toAthlete(profile: ProfileRow, weeklyLogs: WeeklyLog[], strengthTests: 
 
 const NOTIFICATION_COPY: Record<string, { title: string; severity: AppNotification['severity'] }> = {
   pb: { title: 'New PB', severity: 'success' },
+  log_submitted: { title: 'Log submitted', severity: 'info' },
   missing_log: { title: 'Missing log', severity: 'danger' },
   high_rpe: { title: 'High RPE', severity: 'warning' },
   anomaly: { title: 'Anomaly', severity: 'warning' },
@@ -535,6 +536,17 @@ export const repository = {
     const isNewPersonalBest =
       entry.mark != null && priorLogs.length > 0 && (priorBest == null || isBetter(entry.mark, priorBest, direction));
     return { log: toWeeklyLog(data), isNewPersonalBest };
+  },
+
+  /** Fire-and-forget: tells the head coach (in-app + push) that this athlete just logged
+   *  their week. Notifications_log has no client insert policy, so this has to go through
+   *  an edge function — callers should .catch() this rather than let it block the log
+   *  the athlete just successfully saved. */
+  async notifyCoachLogSubmitted(mark: number | null, isNewPersonalBest: boolean): Promise<void> {
+    const { error } = await supabase.functions.invoke('notify-log-submitted', {
+      body: { mark, isNewPersonalBest },
+    });
+    if (error) throw new Error(await edgeFunctionErrorMessage(error, 'Could not notify your coach'));
   },
 
   async getStrengthTests(athleteId: string): Promise<StrengthTest[]> {

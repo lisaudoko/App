@@ -333,7 +333,7 @@ export function SettingsScreen() {
           <SettingsLink
             icon="mail-outline"
             label="Contact support"
-            onPress={() => Linking.openURL('mailto:support@truperformance.app?subject=TRU%20Performance%20Support')}
+            onPress={() => Linking.openURL('mailto:admin@nexgenoptimize.com?subject=TRU%20Performance%20Support')}
             last
           />
         </Card>
@@ -356,7 +356,7 @@ export function SettingsScreen() {
         <Button label="Delete account" variant="danger" onPress={() => setConfirmVisible(true)} />
 
         <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 24, textAlign: 'center', lineHeight: 15 }}>
-          TRU Performance · v1.0.0{'\n'}Deleting your account permanently removes your profile and logged results from this device.
+          TRU Performance · v1.0.0{'\n'}Deleting your account permanently removes your profile and logged results. This cannot be undone.
         </Text>
       </Screen>
 

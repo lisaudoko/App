@@ -66,7 +66,7 @@ export default function PrivacyPolicyScreen() {
         },
         {
           heading: '10. Contact us',
-          body: 'Questions about this policy or your data can be sent to support@truperformance.app.',
+          body: 'Questions about this policy or your data can be sent to admin@nexgenoptimize.com.',
         },
       ]}
     />

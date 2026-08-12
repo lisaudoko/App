@@ -70,7 +70,7 @@ export function StrengthChart({ tests, thirdLift = 'bench' }: Props) {
   }
 
   const last = tests[tests.length - 1];
-  const thirdLabel = thirdLift === 'deadlift' ? 'RDL' : 'Bench';
+  const thirdLabel = thirdLift === 'deadlift' ? 'Deadlift' : 'Bench';
 
   return (
     <View>

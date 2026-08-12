@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAuthStore } from '@/store/authStore';
@@ -13,6 +14,7 @@ const ALL_GROUPS: EventGroup[] = ['throws', 'sprints', 'jumps'];
 
 export default function OnboardingEventsScreen() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<EventGroup[]>([]);
 
   function toggle(group: EventGroup) {
@@ -85,7 +87,7 @@ export default function OnboardingEventsScreen() {
             await useAuthStore.getState().logout();
             router.replace('/login');
           }}
-          style={{ marginTop: 16, alignItems: 'center' }}
+          style={{ marginTop: 16, marginBottom: insets.bottom, alignItems: 'center' }}
         >
           <Text style={{ fontSize: 15, color: colors.textFaint }}>Log out</Text>
         </Pressable>
