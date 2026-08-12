@@ -269,7 +269,7 @@ export function DayWorkoutEditor({ weekNumber, day, dateLabel, eventGroups, work
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
           <Pressable
             onPress={() => setScope('day')}
