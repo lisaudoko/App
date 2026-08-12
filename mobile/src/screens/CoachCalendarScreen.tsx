@@ -13,7 +13,7 @@ import { exportScheduleAsIcs } from '@/lib/exportSchedule';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
-import { TextField } from '@/components/TextField';
+import { DateField } from '@/components/DateField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { Sheet } from '@/components/Sheet';
@@ -217,7 +217,7 @@ export function CoachCalendarScreen() {
             <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 10 }}>
               This anchors training weeks to real calendar dates — the Monday of week 1.
             </Text>
-            <TextField label="Season start date (YYYY-MM-DD)" value={seasonStartInput} onChangeText={setSeasonStartInput} placeholder="2026-01-05" keyboardType="numbers-and-punctuation" />
+            <DateField label="Season start date" value={seasonStartInput} onChange={setSeasonStartInput} />
             {seasonStartInput.length > 0 && !isMonday(seasonStartInput) && (
               <Text style={{ fontSize: 12, color: colors.warning, marginTop: -4, marginBottom: 8 }}>
                 That date isn&apos;t a Monday — week dates are computed assuming week 1 starts on one.

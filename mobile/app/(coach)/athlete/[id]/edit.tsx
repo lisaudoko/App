@@ -10,6 +10,7 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { TextField } from '@/components/TextField';
+import { DateField } from '@/components/DateField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
@@ -169,7 +170,7 @@ export default function EditAthleteScreen() {
           <TextField label="Event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
           <TextField label="Group" value={group} onChangeText={setGroup} placeholder="e.g. Varsity" />
 
-          <TextField label="Date of birth" value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+          <DateField label="Date of birth" value={dateOfBirth} onChange={setDateOfBirth} maximumDate={new Date()} />
 
           <TextField label="Class / category" value={classCategory} onChangeText={setClassCategory} placeholder="e.g. Open, Class 1, U20" />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -6, marginBottom: 12 }}>
@@ -255,7 +256,7 @@ export default function EditAthleteScreen() {
 
         <Card>
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Add strength test</Text>
-          <TextField label="Date (YYYY-MM-DD)" value={testDate} onChangeText={setTestDate} keyboardType="numbers-and-punctuation" />
+          <DateField label="Date" value={testDate} onChange={setTestDate} maximumDate={new Date()} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
               <TextField label="Squat" keyboardType="decimal-pad" value={squat} onChangeText={setSquat} />

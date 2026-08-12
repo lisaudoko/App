@@ -10,6 +10,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Pill } from '@/components/Pill';
 import { TextField } from '@/components/TextField';
+import { DateField } from '@/components/DateField';
 import { LocationAutocomplete } from '@/components/LocationAutocomplete';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
@@ -76,7 +77,7 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
 
   async function handleSave() {
     if (!form.name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
-      setError('Name and a date (YYYY-MM-DD) are required.');
+      setError('A name and date are required.');
       return;
     }
     setSaving(true);
@@ -205,13 +206,7 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
         </View>
         <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
           <TextField label="Meet name" value={form.name} onChangeText={(t) => setForm((f) => ({ ...f, name: t }))} placeholder="e.g. Carifta Games" />
-              <TextField
-                label="Date (YYYY-MM-DD)"
-                value={form.date}
-                onChangeText={(t) => setForm((f) => ({ ...f, date: t }))}
-                placeholder="2026-04-11"
-                keyboardType="numbers-and-punctuation"
-              />
+              <DateField label="Date" value={form.date} onChange={(t) => setForm((f) => ({ ...f, date: t }))} />
               <LocationAutocomplete label="Location" value={form.location} onChangeText={(t) => setForm((f) => ({ ...f, location: t }))} placeholder="e.g. National Stadium" />
 
               <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Meet type</Text>

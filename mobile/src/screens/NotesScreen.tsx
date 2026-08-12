@@ -13,6 +13,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { Pill } from '@/components/Pill';
 import { Button } from '@/components/Button';
+import { DateField } from '@/components/DateField';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
 import { InlineNoteField } from '@/components/InlineNoteField';
@@ -379,15 +380,7 @@ export function NotesScreen() {
                 </View>
               )}
 
-              <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Date</Text>
-              <TextInput
-                value={form.noteDate}
-                onChangeText={(t) => setForm((f) => ({ ...f, noteDate: t }))}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.textFaint}
-                keyboardType="numbers-and-punctuation"
-                style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, color: colors.text, marginBottom: spacing.md }}
-              />
+              <DateField label="Date" value={form.noteDate} onChange={(t) => setForm((f) => ({ ...f, noteDate: t }))} maximumDate={new Date()} />
 
               <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Type</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.md }}>

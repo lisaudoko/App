@@ -12,6 +12,7 @@ import { CLASS_CATEGORY_PRESETS, SEX_LABEL, type Sex } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TextField } from '@/components/TextField';
+import { DateField } from '@/components/DateField';
 import { Button } from '@/components/Button';
 
 const TIER_LABEL: Record<string, string> = { starter: 'Starter', growth: 'Growth', pro: 'Pro' };
@@ -220,13 +221,7 @@ export default function AddAthleteScreen() {
           onChangeText={setEvent}
           placeholder={eventGroup === 'sprints' ? 'e.g. 100m' : eventGroup === 'jumps' ? 'e.g. Long Jump' : 'e.g. Shot Put'}
         />
-        <TextField
-          label="Date of birth — optional"
-          value={dateOfBirth}
-          onChangeText={setDateOfBirth}
-          placeholder="YYYY-MM-DD"
-          keyboardType="numbers-and-punctuation"
-        />
+        <DateField label="Date of birth — optional" value={dateOfBirth} onChange={setDateOfBirth} maximumDate={new Date()} />
         <TextField
           label="Class / category — optional"
           value={classCategory}

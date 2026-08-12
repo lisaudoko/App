@@ -8,6 +8,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
 import { StatRow } from '@/components/StatCard';
 import { TextField } from '@/components/TextField';
+import { DateField } from '@/components/DateField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
@@ -137,7 +138,7 @@ export default function AthleteStrengthScreen() {
 
         <Card>
           <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Log a strength test</Text>
-          <TextField label="Date (YYYY-MM-DD)" value={testDate} onChangeText={setTestDate} keyboardType="numbers-and-punctuation" />
+          <DateField label="Date" value={testDate} onChange={setTestDate} maximumDate={new Date()} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
               <TextField label="Squat" keyboardType="decimal-pad" value={squat} onChangeText={setSquat} />

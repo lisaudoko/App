@@ -7,6 +7,7 @@ import { isMonday } from '@/lib/calendarDates';
 import type { JumpsConfig, ProgrammeConfig, SprintsConfig, ThrowsConfig, WorkoutLift } from '@/data/types';
 import { Card } from './Card';
 import { TextField } from './TextField';
+import { DateField } from './DateField';
 import { Button } from './Button';
 
 const REP_DISTANCE_OPTIONS = [30, 60, 100, 150, 200, 300, 400];
@@ -216,13 +217,7 @@ export function EventConfigForm({ eventGroups, initial, onSave, saveLabel = 'Sav
 
       <Card>
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Season</Text>
-        <TextField
-          label="Season start date — Monday of week 1 (YYYY-MM-DD)"
-          value={seasonStartDate}
-          onChangeText={setSeasonStartDate}
-          placeholder="2026-01-05"
-          keyboardType="numbers-and-punctuation"
-        />
+        <DateField label="Season start date — Monday of week 1" value={seasonStartDate} onChange={setSeasonStartDate} />
         {seasonStartDate.length > 0 && !isMonday(seasonStartDate) && (
           <Text style={{ fontSize: 12, color: colors.warning, marginTop: -4, marginBottom: 8 }}>
             That date isn&apos;t a Monday — the Calendar screen assumes week 1 starts on a Monday.
