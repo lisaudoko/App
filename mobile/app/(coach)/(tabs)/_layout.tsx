@@ -66,9 +66,14 @@ export default function CoachTabsLayout() {
             tabBarButton: (props) => <TourMeasuredButton tabKey="workouts" {...props} />,
           }}
         />
-        {/* Reachable via the calendar icon on Squad's header, not the tab bar — href: null
-            keeps the route navigable while hiding it from this bar. */}
-        <Tabs.Screen name="calendar" options={{ href: null }} />
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="calendar" {...props} />,
+          }}
+        />
         <Tabs.Screen
           name="meets"
           options={{
@@ -93,14 +98,9 @@ export default function CoachTabsLayout() {
             tabBarButton: (props) => <TourMeasuredButton tabKey="notes" {...props} />,
           }}
         />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} />,
-            tabBarButton: (props) => <TourMeasuredButton tabKey="settings" {...props} />,
-          }}
-        />
+        {/* Reachable via the hamburger menu on Squad's header, not the tab bar — href: null
+            keeps the route navigable while hiding it from this bar. */}
+        <Tabs.Screen name="settings" options={{ href: null }} />
       </Tabs>
       {/* Head-coach only — see AppTour.tsx. Renders as a Modal on top of the tabs
           above, which keep loading/rendering their own data unaffected underneath. */}

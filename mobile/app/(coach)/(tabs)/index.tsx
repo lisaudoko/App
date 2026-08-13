@@ -570,19 +570,19 @@ export default function SquadScreen() {
             }}
           />
           <MenuRow
-            icon="calendar-outline"
-            label="Calendar"
-            onPress={() => {
-              setMenuVisible(false);
-              router.push('/(coach)/(tabs)/calendar');
-            }}
-          />
-          <MenuRow
             icon="filter-outline"
             label={activeFilterCount > 0 ? `Sort & filter (${activeFilterCount})` : 'Sort & filter'}
             onPress={() => {
               setMenuVisible(false);
               setFiltersVisible(true);
+            }}
+          />
+          <MenuRow
+            icon="settings-outline"
+            label="Settings"
+            onPress={() => {
+              setMenuVisible(false);
+              router.push('/(coach)/(tabs)/settings');
             }}
             last
           />

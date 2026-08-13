@@ -10,11 +10,11 @@ import { Button } from '@/components/Button';
 
 const STOPS: { key: string; route: string; icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
   { key: 'index', route: '/(coach)/(tabs)', icon: 'people', title: 'My Squad', body: 'See every athlete at a glance — who has logged, who needs a check-in.' },
-  { key: 'workouts', route: '/(coach)/(tabs)/workouts', icon: 'barbell', title: 'Workouts', body: 'Build out each week block by block. Tap a date on the Calendar icon up top to jump straight to a specific day.' },
+  { key: 'workouts', route: '/(coach)/(tabs)/workouts', icon: 'barbell', title: 'Workouts', body: 'Build out each week block by block — week picker up top, then pick a day to fill in.' },
+  { key: 'calendar', route: '/(coach)/(tabs)/calendar', icon: 'calendar', title: 'Calendar', body: 'See training sessions and meets laid out on real dates. Tap a day to jump straight to it in Workouts.' },
   { key: 'meets', route: '/(coach)/(tabs)/meets', icon: 'trophy', title: 'Meets', body: 'Track competition schedules and enter results on meet day.' },
   { key: 'ai', route: '/(coach)/(tabs)/ai', icon: 'sparkles', title: 'AI assistant', body: 'Ask about squad trends, risk flags, or a specific athlete.' },
-  { key: 'notes', route: '/(coach)/(tabs)/notes', icon: 'book', title: 'Notes', body: 'Keep a coaching diary — flag things to follow up on later.' },
-  { key: 'settings', route: '/(coach)/(tabs)/settings', icon: 'settings', title: 'Settings', body: 'Manage your programme and squad — and you can replay this tour any time from here.' },
+  { key: 'notes', route: '/(coach)/(tabs)/notes', icon: 'book', title: 'Notes', body: 'Keep a coaching diary — flag things to follow up on later. Settings, and replaying this tour, live in the ☰ menu on My Squad.' },
 ];
 
 /**
