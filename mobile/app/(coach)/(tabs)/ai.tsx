@@ -289,9 +289,9 @@ export default function AiAssistantScreen() {
             accessibilityLabel="Send message"
             accessibilityState={{ disabled: thinking || limitReached }}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
               backgroundColor: colors.accent,
               alignItems: 'center',
               justifyContent: 'center',

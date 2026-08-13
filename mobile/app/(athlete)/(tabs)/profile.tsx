@@ -122,9 +122,9 @@ export default function AthleteProfileScreen() {
               {session?.name?.[0]?.toUpperCase() ?? '?'}
             </Text>
           </View>
-          <Text style={{ fontSize: 19, fontWeight: '600', color: colors.text, marginTop: 10 }}>{session?.name}</Text>
-          <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 2 }}>{athlete?.event ?? '—'}</Text>
-          <Text style={{ fontSize: 13, color: colors.textFaint, marginTop: 2 }}>{session?.programmeName}</Text>
+          <Text style={{ fontSize: 19, fontWeight: '600', color: colors.text, marginTop: 10 }} numberOfLines={1}>{session?.name}</Text>
+          <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 2 }} numberOfLines={1}>{athlete?.event ?? '—'}</Text>
+          <Text style={{ fontSize: 13, color: colors.textFaint, marginTop: 2 }} numberOfLines={1}>{session?.programmeName}</Text>
         </Card>
 
         <Card style={{ flexDirection: 'row' }}>

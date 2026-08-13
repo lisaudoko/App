@@ -62,7 +62,7 @@ export function StandardsPanel() {
                 accessibilityLabel={m.name}
                 style={{
                   paddingHorizontal: 12,
-                  paddingVertical: 6,
+                  paddingVertical: 8,
                   borderRadius: 20,
                   backgroundColor: active ? colors.accent : 'transparent',
                   borderWidth: active ? 0 : 1,
@@ -113,8 +113,8 @@ export function StandardsPanel() {
                   <Card>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 17, fontWeight: '500', color: colors.text }}>{athlete.name}</Text>
-                        <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                        <Text style={{ fontSize: 17, fontWeight: '500', color: colors.text }} numberOfLines={1}>{athlete.name}</Text>
+                        <Text style={{ fontSize: 12, color: colors.textMuted }} numberOfLines={1}>
                           SB {formatPerformance(athlete.personalBest, unit)}
                           {projection ? ` · Proj ${formatPerformance(projection.mark, unit)}` : ' · No data'}
                         </Text>

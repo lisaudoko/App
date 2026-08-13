@@ -216,7 +216,7 @@ export function NotesScreen() {
                 accessibilityLabel={label}
                 style={{
                   paddingHorizontal: 12,
-                  paddingVertical: 6,
+                  paddingVertical: 8,
                   borderRadius: radius.pill,
                   backgroundColor: active ? colors.text : colors.surfaceAlt,
                   borderWidth: 1,
@@ -243,7 +243,7 @@ export function NotesScreen() {
               accessibilityLabel={label}
               style={{
                 paddingHorizontal: 12,
-                paddingVertical: 6,
+                paddingVertical: 8,
                 borderRadius: radius.pill,
                 backgroundColor: active ? colors.accent : 'transparent',
                 borderWidth: active ? 0 : 1,
@@ -279,7 +279,7 @@ export function NotesScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52 }}>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>{athlete?.name ?? 'Unknown athlete'}</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, flexShrink: 1 }} numberOfLines={1}>{athlete?.name ?? 'Unknown athlete'}</Text>
                         {athlete?.eventGroup && <Pill label={EVENT_GROUP_LABEL[athlete.eventGroup]} tone="neutral" />}
                       </View>
                       <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
@@ -395,7 +395,7 @@ export function NotesScreen() {
                       accessibilityLabel={NOTE_TYPE_LABEL[t]}
                       style={{
                         paddingHorizontal: 10,
-                        paddingVertical: 6,
+                        paddingVertical: 8,
                         borderRadius: radius.pill,
                         backgroundColor: active ? colors.accent : 'transparent',
                         borderWidth: active ? 0 : 1,

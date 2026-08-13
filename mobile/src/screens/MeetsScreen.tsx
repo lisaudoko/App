@@ -222,7 +222,7 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
                       accessibilityLabel={MEET_TYPE_LABEL[t]}
                       style={{
                         paddingHorizontal: 10,
-                        paddingVertical: 6,
+                        paddingVertical: 8,
                         borderRadius: 16,
                         backgroundColor: active ? colors.accent : 'transparent',
                         borderWidth: active ? 0 : 1,

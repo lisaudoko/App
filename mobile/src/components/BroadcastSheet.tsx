@@ -126,7 +126,7 @@ export function BroadcastSheet({ visible, onClose, athletes }: Props) {
                         accessibilityLabel={a.name}
                         style={{
                           paddingHorizontal: 10,
-                          paddingVertical: 6,
+                          paddingVertical: 8,
                           borderRadius: radius.pill,
                           backgroundColor: active ? colors.accent : 'transparent',
                           borderWidth: active ? 0 : 1,

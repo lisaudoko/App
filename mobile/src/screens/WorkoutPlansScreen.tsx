@@ -331,7 +331,7 @@ export function WorkoutPlansScreen({
                 accessibilityLabel={`Week ${w}${saved ? ', saved' : ', not saved yet'}`}
                 style={{
                   paddingHorizontal: 12,
-                  paddingVertical: 6,
+                  paddingVertical: 8,
                   borderRadius: 20,
                   backgroundColor: active ? colors.accent : 'transparent',
                   borderWidth: active ? 0 : 1,
@@ -360,7 +360,7 @@ export function WorkoutPlansScreen({
                 accessibilityLabel={`${label}${count > 0 ? `, ${count} block${count === 1 ? '' : 's'}` : ''}`}
                 style={{
                   paddingHorizontal: 12,
-                  paddingVertical: 6,
+                  paddingVertical: 8,
                   borderRadius: 20,
                   backgroundColor: active ? colors.text : 'transparent',
                   borderWidth: 1,
@@ -511,7 +511,7 @@ export function WorkoutPlansScreen({
         <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Add block</Text>
         </View>
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
           {blockChoices.map((choice) => (
             <Pressable
               key={choice.key}

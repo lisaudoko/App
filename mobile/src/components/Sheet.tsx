@@ -27,6 +27,8 @@ export function Sheet({ visible, onClose, maxHeightPct = '85%', children }: Prop
           any keyboard event fires. Modal's own Dialog window still hardcodes adjustResize,
           which is what Android falls back to here. See Screen.tsx for the non-Modal case,
           where "height" is safe and still used. */}
+      {/* "height" behavior inside a Modal on Android can collapse content to zero
+          height, so Android intentionally stays undefined (adjustResize handles it). */}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={onClose}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

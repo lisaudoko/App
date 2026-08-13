@@ -34,11 +34,11 @@ export function MonthGrid({ monthAnchor, selectedDate, onSelectDate, onChangeMon
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, marginBottom: 8 }}>
-        <Pressable onPress={() => onChangeMonth(-1)} accessibilityRole="button" accessibilityLabel="Previous month" style={{ padding: 6 }}>
+        <Pressable onPress={() => onChangeMonth(-1)} accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={10} style={{ padding: 6 }}>
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </Pressable>
         <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{monthLabel}</Text>
-        <Pressable onPress={() => onChangeMonth(1)} accessibilityRole="button" accessibilityLabel="Next month" style={{ padding: 6 }}>
+        <Pressable onPress={() => onChangeMonth(1)} accessibilityRole="button" accessibilityLabel="Next month" hitSlop={10} style={{ padding: 6 }}>
           <Ionicons name="chevron-forward" size={18} color={colors.text} />
         </Pressable>
       </View>
