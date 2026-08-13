@@ -51,6 +51,8 @@
   },
   "scripts": {
     "start": "expo start",
+    "fix-lockfile": "node scripts/fix-lockfile.js",
+    "postinstall": "node scripts/fix-lockfile.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
