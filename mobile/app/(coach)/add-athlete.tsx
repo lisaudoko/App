@@ -324,7 +324,7 @@ export default function AddAthleteScreen() {
         <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 20 }}>
             <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Plan limit reached</Text>
-            <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 16, lineHeight: 19 }}>
+            <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 16, lineHeight: 22 }}>
               You&apos;ve reached your {access.tier ? (TIER_LABEL[access.tier] ?? access.tier) : ''} plan limit of{' '}
               {Number.isFinite(access.athleteLimit) ? access.athleteLimit : ''} athletes. Upgrade to add more.
             </Text>

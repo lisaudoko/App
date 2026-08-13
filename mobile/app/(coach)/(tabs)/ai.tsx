@@ -179,7 +179,7 @@ export default function AiAssistantScreen() {
               <Text style={{ fontSize: 17, color: colors.textMuted, marginBottom: 8 }}>
                 Ask me anything about your squad — qualifying status, risk flags, or a specific athlete.
               </Text>
-              <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 14, lineHeight: 14 }}>
+              <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 14, lineHeight: 16 }}>
                 Responses are AI-generated from your squad&apos;s logged data and may be incomplete or inaccurate —
                 use your own judgement before acting on them.
               </Text>
@@ -225,7 +225,7 @@ export default function AiAssistantScreen() {
                   padding: 11,
                 }}
               >
-                <Text style={{ fontSize: 17, lineHeight: 19, color: m.role === 'user' ? colors.accentText : colors.text }}>
+                <Text style={{ fontSize: 17, lineHeight: 22, color: m.role === 'user' ? colors.accentText : colors.text }}>
                   {m.text}
                 </Text>
               </View>
