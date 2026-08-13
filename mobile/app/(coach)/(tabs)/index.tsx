@@ -68,6 +68,7 @@ export default function SquadScreen() {
   const [viewMode, setViewMode] = useState<'list' | 'heatmap'>('list');
   const [broadcastVisible, setBroadcastVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [statSheet, setStatSheet] = useState<'logged' | 'missing' | 'alerts' | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
@@ -295,32 +296,14 @@ export default function SquadScreen() {
             </Text>
           </View>
           <Pressable
-            onPress={() => router.push('/(coach)/add-athlete')}
+            onPress={() => setMenuVisible(true)}
             hitSlop={12}
             style={{ marginRight: 16 }}
             accessibilityRole="button"
-            accessibilityLabel="Add athlete"
-          >
-            <Ionicons name="person-add-outline" size={19} color={colors.navText} />
-          </Pressable>
-          <Pressable
-            onPress={() => setBroadcastVisible(true)}
-            hitSlop={12}
-            style={{ marginRight: 16 }}
-            accessibilityRole="button"
-            accessibilityLabel="Broadcast to squad"
-          >
-            <Ionicons name="megaphone-outline" size={19} color={colors.navText} />
-          </Pressable>
-          <Pressable
-            onPress={() => setFiltersVisible(true)}
-            hitSlop={12}
-            style={{ marginRight: 16 }}
-            accessibilityRole="button"
-            accessibilityLabel={activeFilterCount > 0 ? `Sort and filter, ${activeFilterCount} active` : 'Sort and filter'}
+            accessibilityLabel={activeFilterCount > 0 ? `Menu, ${activeFilterCount} filter active` : 'Menu'}
           >
             <View>
-              <Ionicons name="filter-outline" size={19} color={colors.navText} />
+              <Ionicons name="menu-outline" size={22} color={colors.navText} />
               {activeFilterCount > 0 && (
                 <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent }} />
               )}
@@ -568,6 +551,44 @@ export default function SquadScreen() {
 
       <BroadcastSheet visible={broadcastVisible} onClose={() => setBroadcastVisible(false)} athletes={data.athletes} />
 
+      <Sheet visible={menuVisible} onClose={() => setMenuVisible(false)}>
+        <View style={{ padding: 8 }}>
+          <MenuRow
+            icon="person-add-outline"
+            label="Add athlete"
+            onPress={() => {
+              setMenuVisible(false);
+              router.push('/(coach)/add-athlete');
+            }}
+          />
+          <MenuRow
+            icon="megaphone-outline"
+            label="Broadcast to squad"
+            onPress={() => {
+              setMenuVisible(false);
+              setBroadcastVisible(true);
+            }}
+          />
+          <MenuRow
+            icon="calendar-outline"
+            label="Calendar"
+            onPress={() => {
+              setMenuVisible(false);
+              router.push('/(coach)/(tabs)/calendar');
+            }}
+          />
+          <MenuRow
+            icon="filter-outline"
+            label={activeFilterCount > 0 ? `Sort & filter (${activeFilterCount})` : 'Sort & filter'}
+            onPress={() => {
+              setMenuVisible(false);
+              setFiltersVisible(true);
+            }}
+            last
+          />
+        </View>
+      </Sheet>
+
       <Sheet visible={filtersVisible} onClose={() => setFiltersVisible(false)}>
         <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Sort & filter</Text>
@@ -745,6 +766,40 @@ function StatBox({ value, label, bg, fg, onPress }: { value: number; label: stri
     >
       <Text style={{ fontSize: 21, fontWeight: '600', color: fg }}>{value}</Text>
       <Text style={{ fontSize: 12, color: fg }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function MenuRow({
+  icon,
+  label,
+  onPress,
+  last,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  last?: boolean;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 14,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: colors.border,
+        opacity: pressed ? 0.7 : 1,
+      }]}
+    >
+      <Ionicons name={icon} size={19} color={colors.text} />
+      <Text style={{ fontSize: 16, color: colors.text }}>{label}</Text>
     </Pressable>
   );
 }

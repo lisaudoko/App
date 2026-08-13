@@ -59,13 +59,16 @@ export default function CoachTabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="calendar"
+          name="workouts"
           options={{
-            title: 'Calendar',
-            tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
-            tabBarButton: (props) => <TourMeasuredButton tabKey="calendar" {...props} />,
+            title: 'Workouts',
+            tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} />,
+            tabBarButton: (props) => <TourMeasuredButton tabKey="workouts" {...props} />,
           }}
         />
+        {/* Reachable via the calendar icon on Squad's header, not the tab bar — href: null
+            keeps the route navigable while hiding it from this bar. */}
+        <Tabs.Screen name="calendar" options={{ href: null }} />
         <Tabs.Screen
           name="meets"
           options={{
