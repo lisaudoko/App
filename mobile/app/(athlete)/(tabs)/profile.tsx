@@ -17,6 +17,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { EventPicker } from '@/components/EventPicker';
 import { useUnitsStore } from '@/store/unitsStore';
+import { useTourStore } from '@/store/tourStore';
 
 export default function AthleteProfileScreen() {
   const { colors } = useAppTheme();
@@ -25,6 +26,7 @@ export default function AthleteProfileScreen() {
   const logout = useAuthStore((s) => s.logout);
   const athlete = data.athlete;
 
+  const replayTour = useTourStore((st) => st.replay);
   const weightUnit = useUnitsStore((st) => st.weightUnit);
   const setWeightUnit = useUnitsStore((st) => st.setWeightUnit);
   const [editVisible, setEditVisible] = useState(false);
@@ -242,6 +244,16 @@ export default function AthleteProfileScreen() {
         >
           <Ionicons name="list-outline" size={16} color={colors.textMuted} />
           <Text style={{ fontSize: 17, color: colors.text }}>My logs — fix or delete a result</Text>
+          <View style={{ flex: 1 }} />
+          <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+        </Pressable>
+
+        <Pressable
+          onPress={() => replayTour('athlete')}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14 }}
+        >
+          <Ionicons name="play-circle-outline" size={16} color={colors.textMuted} />
+          <Text style={{ fontSize: 17, color: colors.text }}>Replay app tour</Text>
           <View style={{ flex: 1 }} />
           <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
         </Pressable>

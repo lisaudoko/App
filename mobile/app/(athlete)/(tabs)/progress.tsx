@@ -99,7 +99,9 @@ export default function AthleteProgressScreen() {
 
   const hasBaseline = athlete.personalBest > 0;
   const hasQualifyingStandard = athlete.qualifyingStandard > 0;
-  const hasMaxesSet = athlete.currentMaxes.squat > 0 && athlete.currentMaxes.clean > 0 && athlete.currentMaxes.bench > 0;
+  // Jumpers track deadlift as their third lift (same as the Strength tab) and sprinters often skip
+  // cleans or bench, so a lift only needs a recorded max to appear — not all of them.
+  const thirdLift = athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench';
 
   const lastLog = logs[logs.length - 1];
   const latestMark = lastLog?.mark ?? athlete.personalBest;
@@ -114,10 +116,15 @@ export default function AthleteProgressScreen() {
   const groupNoun = athlete.eventGroup === 'sprints' ? 'time' : athlete.eventGroup === 'jumps' ? 'jump' : 'throw';
 
   const strengthRows = [
-    { label: 'Squat', current: athlete.currentMaxes.squat, target: athlete.targetMaxes.squat, color: colors.text },
-    { label: 'Clean', current: athlete.currentMaxes.clean, target: athlete.targetMaxes.clean, color: colors.textMuted },
-    { label: 'Bench', current: athlete.currentMaxes.bench, target: athlete.targetMaxes.bench, color: colors.textFaint },
-  ];
+    { label: 'Squat', current: athlete.currentMaxes.squat, target: athlete.targetMaxes.squat },
+    { label: 'Clean', current: athlete.currentMaxes.clean, target: athlete.targetMaxes.clean },
+    {
+      label: thirdLift === 'deadlift' ? 'Deadlift' : 'Bench',
+      current: athlete.currentMaxes[thirdLift],
+      target: athlete.targetMaxes[thirdLift],
+    },
+  ].filter((row) => row.current > 0);
+  const hasMaxesSet = strengthRows.length > 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -169,7 +176,7 @@ export default function AthleteProgressScreen() {
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 10 }}>Strength snapshot</Text>
           {!hasMaxesSet && (
             <Text style={{ fontSize: 15, color: colors.textMuted }}>
-              Your coach hasn&apos;t entered your lift maxes yet.
+              No lift maxes recorded yet — log a strength test on the Strength tab.
             </Text>
           )}
           {hasMaxesSet &&

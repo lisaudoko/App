@@ -4,17 +4,28 @@ import Svg, { Defs, Mask, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
-import { useTourStore } from '@/store/tourStore';
+import { useTourStore, type TourRole } from '@/store/tourStore';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 
-const STOPS: { key: string; route: string; icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
+type Stop = { key: string; route: string; icon: keyof typeof Ionicons.glyphMap; title: string; body: string };
+
+const COACH_STOPS: Stop[] = [
   { key: 'index', route: '/(coach)/(tabs)', icon: 'people', title: 'My Squad', body: 'See every athlete at a glance — who has logged, who needs a check-in.' },
   { key: 'workouts', route: '/(coach)/(tabs)/workouts', icon: 'barbell', title: 'Workouts', body: 'Build out each week block by block — week picker up top, then pick a day to fill in.' },
   { key: 'calendar', route: '/(coach)/(tabs)/calendar', icon: 'calendar', title: 'Calendar', body: 'See training sessions and meets laid out on real dates. Tap a day to jump straight to it in Workouts.' },
   { key: 'meets', route: '/(coach)/(tabs)/meets', icon: 'trophy', title: 'Meets', body: 'Track competition schedules and enter results on meet day.' },
   { key: 'ai', route: '/(coach)/(tabs)/ai', icon: 'sparkles', title: 'AI assistant', body: 'Ask about squad trends, risk flags, or a specific athlete.' },
   { key: 'notes', route: '/(coach)/(tabs)/notes', icon: 'book', title: 'Notes', body: 'Keep a coaching diary — flag things to follow up on later. Settings, and replaying this tour, live in the ☰ menu on My Squad.' },
+];
+
+const ATHLETE_STOPS: Stop[] = [
+  { key: 'index', route: '/(athlete)/(tabs)', icon: 'barbell', title: 'Workout', body: "Your coach's plan for each day. Pick a day, expand a block, and tap Mark done as you go — then submit it to your coach." },
+  { key: 'calendar', route: '/(athlete)/(tabs)/calendar', icon: 'calendar', title: 'Calendar', body: 'Your training days and upcoming meets on real dates. You can add any of them to your phone calendar.' },
+  { key: 'progress', route: '/(athlete)/(tabs)/progress', icon: 'stats-chart', title: 'Progress', body: 'Your results over the season, your best so far, and how close you are to your qualifying standard.' },
+  { key: 'strength', route: '/(athlete)/(tabs)/strength', icon: 'fitness', title: 'Strength', body: 'Log your squat, bench, clean and deadlift maxes here and watch them climb. Switch between lbs and kg in Profile.' },
+  { key: 'logger', route: '/(athlete)/(tabs)/logger', icon: 'add-circle', title: 'Log', body: 'Once a week, log your best result and how hard it felt (RPE). Type it the way you would say it, or enter it manually.' },
+  { key: 'profile', route: '/(athlete)/(tabs)/profile', icon: 'person', title: 'Profile', body: 'Your personal bests, meet results and settings. Made a typo? "My logs" lets you fix or delete a past result.' },
 ];
 
 /**
@@ -25,9 +36,11 @@ const STOPS: { key: string; route: string; icon: keyof typeof Ionicons.glyphMap;
  * autoplay. Renders as a Modal so it sits on top of the tabs underneath,
  * which keep loading/rendering their own data unaffected.
  */
-export function AppTour() {
+export function AppTour({ variant = 'coach' }: { variant?: TourRole }) {
   const { colors } = useAppTheme();
-  const active = useTourStore((s) => s.active);
+  const activeRole = useTourStore((s) => s.activeRole);
+  const completed = useTourStore((s) => (variant === 'athlete' ? s.athleteCompleted : s.completed));
+  const startTour = useTourStore((s) => s.replay);
   const hasHydrated = useTourStore((s) => s.hasHydrated);
   const stepIndex = useTourStore((s) => s.stepIndex);
   const tabLayouts = useTourStore((s) => s.tabLayouts);
@@ -35,8 +48,14 @@ export function AppTour() {
   const goBack = useTourStore((s) => s.back);
   const finish = useTourStore((s) => s.finish);
 
-  const visible = hasHydrated && active;
-  const step = STOPS[stepIndex];
+  const stops = variant === 'athlete' ? ATHLETE_STOPS : COACH_STOPS;
+  const visible = hasHydrated && activeRole === variant;
+  const step = stops[stepIndex];
+
+  // First run: a role that has never finished its walkthrough gets it automatically, once.
+  useEffect(() => {
+    if (hasHydrated && !completed && activeRole == null) startTour(variant);
+  }, [hasHydrated, completed, activeRole, variant, startTour]);
 
   useEffect(() => {
     if (!visible || !step) return;
@@ -47,7 +66,7 @@ export function AppTour() {
 
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
   const cutout = tabLayouts[step.key];
-  const isLast = stepIndex === STOPS.length - 1;
+  const isLast = stepIndex === stops.length - 1;
 
   function handleNext() {
     if (isLast) finish();
@@ -93,7 +112,7 @@ export function AppTour() {
             <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 17, marginBottom: 14 }}>{step.body}</Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 14 }}>
-              {STOPS.map((s, i) => (
+              {stops.map((s, i) => (
                 <View
                   key={s.key}
                   style={{

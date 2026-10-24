@@ -2,6 +2,8 @@ import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAuthStore } from '@/store/authStore';
+import { AppTour } from '@/components/AppTour';
+import { TourMeasuredButton } from '@/components/TourMeasuredButton';
 
 export default function AthleteTabsLayout() {
   const { colors } = useAppTheme();
@@ -13,6 +15,7 @@ export default function AthleteTabsLayout() {
   if (mustChangePassword) return <Redirect href="/change-password" />;
 
   return (
+    <>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -24,28 +27,31 @@ export default function AthleteTabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Workout', tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }}
+        options={{ title: 'Workout', tabBarButton: (props) => <TourMeasuredButton tabKey="index" {...props} />, tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="calendar"
-        options={{ title: 'Calendar', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
+        options={{ title: 'Calendar', tabBarButton: (props) => <TourMeasuredButton tabKey="calendar" {...props} />, tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="progress"
-        options={{ title: 'Progress', tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart" color={color} size={size} /> }}
+        options={{ title: 'Progress', tabBarButton: (props) => <TourMeasuredButton tabKey="progress" {...props} />, tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="strength"
-        options={{ title: 'Strength', tabBarIcon: ({ color, size }) => <Ionicons name="fitness" color={color} size={size} /> }}
+        options={{ title: 'Strength', tabBarButton: (props) => <TourMeasuredButton tabKey="strength" {...props} />, tabBarIcon: ({ color, size }) => <Ionicons name="fitness" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="logger"
-        options={{ title: 'Log', tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={color} size={size} /> }}
+        options={{ title: 'Log', tabBarButton: (props) => <TourMeasuredButton tabKey="logger" {...props} />, tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} /> }}
+        options={{ title: 'Profile', tabBarButton: (props) => <TourMeasuredButton tabKey="profile" {...props} />, tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} /> }}
       />
     </Tabs>
+    {/* Renders as a Modal on top of the tabs; first-run walkthrough for new athletes. */}
+    <AppTour variant="athlete" />
+    </>
   );
 }
