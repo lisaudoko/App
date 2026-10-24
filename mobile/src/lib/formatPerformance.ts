@@ -16,13 +16,13 @@ export const EVENT_GROUP_UNIT: Record<EventGroup, PerformanceUnit> = {
 
 export const EVENT_GROUP_LABEL: Record<EventGroup, string> = {
   throws: 'Throws',
-  sprints: 'Sprints',
+  sprints: 'Sprints & track',
   jumps: 'Jumps',
 };
 
 export const EVENT_GROUP_EVENTS: Record<EventGroup, string[]> = {
   throws: ['Shot Put', 'Discus', 'Hammer', 'Javelin'],
-  sprints: ['100m', '200m', '400m', '110mH', '400mH'],
+  sprints: ['100m', '200m', '400m', '800m', '1500m', '110mH', '400mH'],
   jumps: ['Long Jump', 'Triple Jump', 'High Jump', 'Pole Vault'],
 };
 
