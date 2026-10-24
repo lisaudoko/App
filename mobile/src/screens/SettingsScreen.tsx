@@ -17,6 +17,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { Sheet } from '@/components/Sheet';
+import { WeightUnitToggle } from '@/components/WeightUnitToggle';
 
 interface AssistantCoachRow {
   id: string;
@@ -120,7 +121,9 @@ export function SettingsScreen() {
   async function handleShareInviteLink() {
     if (!inviteLink) return;
     try {
-      await Share.share({ message: `You've been invited to help coach on TRU Performance. Tap to join: ${inviteLink}` });
+      await Share.share({
+        message: `You've been invited to help coach on TRU Performance. Tap to join: ${inviteLink}\n\nIf tapping doesn't open the app, install TRU Performance, then on the sign up screen tap "Have an assistant coach invite link?" and paste this link in.`,
+      });
     } catch {
       // user dismissed the share sheet — nothing to do
     }
@@ -317,6 +320,11 @@ export function SettingsScreen() {
 
         {session?.role === 'coach' && (
           <>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Weight units
+            </Text>
+            <WeightUnitToggle hint="Used when you build workouts and view athlete strength on this device. Athletes choose their own." />
+
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
               Help
             </Text>

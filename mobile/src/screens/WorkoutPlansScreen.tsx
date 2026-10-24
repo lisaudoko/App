@@ -15,6 +15,9 @@ import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/LoadingState';
 import { Sheet } from '@/components/Sheet';
+import { WeightField } from '@/components/WeightField';
+import { useUnitsStore } from '@/store/unitsStore';
+import { lbsToPrescribedDisplay, type WeightUnit } from '@/lib/weightUnits';
 
 function emptyExercise(name: string): BlockExercise {
   return {
@@ -49,13 +52,13 @@ function blocksFromGenerated(
   }));
 }
 
-function describeExercise(ex: BlockExercise, blockType: WorkoutBlock['type'], maxes: { squat: number; clean: number; bench: number; deadlift: number } | null): string {
+function describeExercise(ex: BlockExercise, blockType: WorkoutBlock['type'], maxes: { squat: number; clean: number; bench: number; deadlift: number } | null, unit: WeightUnit): string {
   const parts: string[] = [];
   if (blockType === 'olympic_lifts' || blockType === 'weightlifting' || blockType === 'strength') {
     if (ex.sets != null) parts.push(`${ex.sets} sets`);
     if (ex.repsPattern) parts.push(ex.repsPattern);
     const weight = maxes ? computeExerciseWeight(ex, 5, maxes) : ex.weightLbs;
-    if (weight != null) parts.push(`@ ${weight} lbs`);
+    if (weight != null) parts.push(`@ ${lbsToPrescribedDisplay(weight, unit)} ${unit}`);
     else if (ex.pctOfMax != null) parts.push(`@ ${Math.round(ex.pctOfMax * 100)}%`);
     if (ex.restSeconds != null) parts.push(`${ex.restSeconds}s rest`);
   } else if (blockType === 'technical_drills') {
@@ -91,6 +94,7 @@ export function WorkoutPlansScreen({
   initialDay,
 }: { onBack?: () => void; initialWeek?: number; initialDay?: number | null } = {}) {
   const { colors } = useAppTheme();
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
   const [existingWeeks, setExistingWeeks] = useState<number[]>([]);
   const [week, setWeek] = useState(initialWeek ?? 1);
   const [selectedDay, setSelectedDay] = useState<number | null>(initialDay !== undefined ? initialDay : null);
@@ -396,12 +400,12 @@ export function WorkoutPlansScreen({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <TextField
-                  label="Round to nearest (lbs)"
-                  keyboardType="decimal-pad"
-                  value={String(workout.roundingIncrement)}
-                  onChangeText={(t) => {
-                    const inc = parseFloat(t) || 5;
+                <WeightField
+                  label={`Round to nearest (${weightUnit})`}
+                  lbs={workout.roundingIncrement}
+                  unit={weightUnit}
+                  onChangeLbs={(lbs) => {
+                    const inc = lbs && lbs > 0 ? lbs : 5;
                     setWorkout((w) => (w ? { ...w, roundingIncrement: inc } : w));
                   }}
                 />
@@ -449,7 +453,7 @@ export function WorkoutPlansScreen({
                         >
                           <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>{ex.name}</Text>
-                            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{describeExercise(ex, block.type, null)}</Text>
+                            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{describeExercise(ex, block.type, null, weightUnit)}</Text>
                           </View>
                           <Pressable onPress={() => removeExercise(block.id, ex.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${ex.name}`}>
                             <Ionicons name="close-circle-outline" size={18} color={colors.danger} />
@@ -601,6 +605,7 @@ function ExerciseFieldsForm({
   blockType: WorkoutBlock['type'];
   onChange: (patch: Partial<BlockExercise>) => void;
 }) {
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
   const isDuration = blockType === 'warm_up' || blockType === 'cool_down';
   const has = (f: keyof BlockExercise) => fields.includes(f);
 
@@ -631,11 +636,11 @@ function ExerciseFieldsForm({
         />
       )}
       {has('weightLbs') && (
-        <TextField
-          label="Fixed weight (lbs, overrides % of max)"
-          keyboardType="decimal-pad"
-          value={exercise.weightLbs != null ? String(exercise.weightLbs) : ''}
-          onChangeText={(t) => onChange({ weightLbs: t ? parseFloat(t) : null })}
+        <WeightField
+          label={`Fixed weight (${weightUnit}, overrides % of max)`}
+          lbs={exercise.weightLbs}
+          unit={weightUnit}
+          onChangeLbs={(lbs) => onChange({ weightLbs: lbs })}
         />
       )}
       {has('distanceMetres') && (

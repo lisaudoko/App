@@ -22,6 +22,8 @@ import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
 import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
+import { useUnitsStore } from '@/store/unitsStore';
+import { lbsToDisplay } from '@/lib/weightUnits';
 import { InfoTip } from '@/components/InfoTip';
 
 export default function CoachAthleteDetailScreen() {
@@ -33,7 +35,12 @@ export default function CoachAthleteDetailScreen() {
 
   const athlete = data.athletes.find((a) => a.id === id);
   const logs = data.weeklyLogs[id ?? ''] ?? [];
-  const tests = data.strengthTests[id ?? ''] ?? [];
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
+  const rawTests = data.strengthTests[id ?? ''] ?? [];
+  const tests = useMemo(
+    () => rawTests.map((t) => ({ ...t, squat: lbsToDisplay(t.squat, weightUnit), clean: lbsToDisplay(t.clean, weightUnit), bench: lbsToDisplay(t.bench, weightUnit), deadlift: lbsToDisplay(t.deadlift, weightUnit) })),
+    [rawTests, weightUnit],
+  );
   const direction = EVENT_GROUP_DIRECTION[athlete?.eventGroup ?? 'throws'];
   const perfUnit: PerformanceUnit = athlete?.unit === 's' ? 'seconds' : 'metres';
 
@@ -180,7 +187,7 @@ export default function CoachAthleteDetailScreen() {
               <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression — test weeks</Text>
               <InfoTip term="1RM" explanation="One-Rep Max — the most weight this athlete can lift for a single complete repetition of an exercise." />
             </View>
-            <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season (lbs)</Text>
+            <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season ({weightUnit})</Text>
             <StrengthChart tests={tests} thirdLift={athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench'} />
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <LegendDot color={colors.text} label="Squat" />
@@ -194,7 +201,7 @@ export default function CoachAthleteDetailScreen() {
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
             <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} {groupNoun === 'time' ? 'time' : 'mark'} · Each dot = test week</Text>
-            <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel="Squat (lbs)" />
+            <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel={`Squat (${weightUnit})`} />
             <Text style={{ fontSize: 12, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
               {Math.abs(correlation.r) >= 0.7
                 ? 'Strength gains are translating. Continue current approach.'
