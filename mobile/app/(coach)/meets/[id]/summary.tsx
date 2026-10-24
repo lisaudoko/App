@@ -74,7 +74,7 @@ export default function MeetSummaryScreen() {
       const parts = [
         athlete?.name ?? 'Unknown',
         entry.event,
-        entry.finalMark != null ? formatPerformance(entry.finalMark, unit) : 'No mark',
+        entry.finalMark != null ? formatPerformance(entry.finalMark, unit) : unit === 'seconds' ? 'No time' : 'No mark',
         entry.place != null ? `${entry.place} place` : null,
         vsSb != null ? `${vsSb >= 0 ? '+' : ''}${vsSb.toFixed(2)}${unit === 'seconds' ? 's' : 'm'} vs SB` : null,
         entry.qualified ? 'QUALIFIED ✓' : null,
@@ -109,12 +109,12 @@ export default function MeetSummaryScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.surfaceAlt }}>
             <Text style={{ flex: 1.4, fontSize: 11, fontWeight: '700', color: colors.textMuted }}>Athlete</Text>
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted }}>Mark</Text>
-              <InfoTip term="vs SB" explanation="Shows how this result compares to the athlete's Season Best (SB) — their best legal mark logged so far this season." />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted }}>Result</Text>
+              <InfoTip term="vs SB" explanation="Shows how this result compares to the athlete's Season Best (SB) — their best legal result logged so far this season." />
             </View>
             <Text style={{ width: 40, fontSize: 11, fontWeight: '700', color: colors.textMuted, textAlign: 'center' }}>Place</Text>
             <View style={{ width: 40, alignItems: 'center' }}>
-              <InfoTip term="Q" explanation="Qualified — this athlete's mark met or beat this meet's qualifying standard for their event." />
+              <InfoTip term="Q" explanation="Qualified — this athlete's result met or beat this meet's qualifying standard for their event." />
             </View>
           </View>
           {entries.map((entry, i) => {

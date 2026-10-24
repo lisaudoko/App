@@ -500,7 +500,7 @@ export function WorkoutPlansScreen({
           <Button label="Save day" variant="outline" onPress={saveDay} loading={savingDay} disabled={visibleBlocks.length === 0} />
           <Button label="Save week" onPress={handleSave} loading={saving} disabled={!allDaysHaveContent} />
           {!allDaysHaveContent && (
-            <Text style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: -4 }}>
+            <Text style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: 8, marginBottom: 8, paddingHorizontal: 16 }}>
               Every day (Mon–Sun) needs at least one block before you can save the week.
             </Text>
           )}

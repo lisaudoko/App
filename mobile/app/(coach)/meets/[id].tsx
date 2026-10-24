@@ -6,7 +6,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
 import { repository } from '@/data/repository';
 import type { Meet, MeetEntry } from '@/data/types';
-import { formatPerformance, inferEventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
+import { formatPerformance, inferEventGroup, performanceNoun, type PerformanceUnit } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -193,7 +193,7 @@ export default function MeetDetailScreen() {
               <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>
                 {Object.keys(meet.standards).length > 0
                   ? Object.keys(meet.standards).join(', ')
-                  : 'Set the cutoff mark per event for this meet'}
+                  : 'Set the cutoff per event for this meet'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
@@ -221,7 +221,7 @@ export default function MeetDetailScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: '500', color: colors.text }}>{athlete?.name ?? 'Unknown athlete'}</Text>
                   <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>
-                    {entry.event} · {entry.finalMark != null ? formatPerformance(entry.finalMark, unit) : 'No mark yet'}
+                    {entry.event} · {entry.finalMark != null ? formatPerformance(entry.finalMark, unit) : (unit === 'seconds' ? 'No time yet' : 'No mark yet')}
                     {entry.place != null ? ` · ${entry.place}${placeSuffix(entry.place)}` : ''}
                   </Text>
                 </View>
@@ -266,7 +266,7 @@ export default function MeetDetailScreen() {
         ) : (
           <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
             <TextField label="Event" value={entryEvent} onChangeText={setEntryEvent} placeholder="e.g. Shot Put" />
-            <TextField label="Seed mark (optional)" value={entrySeedMark} onChangeText={setEntrySeedMark} keyboardType="decimal-pad" />
+            <TextField label={`Seed ${performanceNoun(inferEventGroup(entryEvent) === 'sprints' ? 'seconds' : 'metres')} (optional)`} value={entrySeedMark} onChangeText={setEntrySeedMark} keyboardType="decimal-pad" />
             {addError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{addError}</Text>}
             <Button label="Add to meet" onPress={confirmAddEntry} loading={addBusy} disabled={!entryEvent.trim()} />
             <Button label="Back" variant="outline" onPress={() => setPickerAthleteId(null)} />

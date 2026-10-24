@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
 import type { Athlete, Meet, MeetAttempt, MeetEntry } from '@/data/types';
-import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, inferEventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, inferEventGroup, performanceNoun, type PerformanceUnit } from '@/lib/formatPerformance';
 import { bestLegalAttempt, deriveMeetEntryResult } from '@/engine/meetEntry';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -152,7 +152,7 @@ export default function AthleteMeetEntryScreen() {
                   value={a.mark != null ? String(a.mark) : ''}
                   onChangeText={(t) => updateAttempt(i, { mark: t ? parseFloat(t) : null })}
                   keyboardType="decimal-pad"
-                  placeholder="mark"
+                  placeholder={performanceNoun(unit)}
                   placeholderTextColor={colors.textFaint}
                   style={{
                     flex: 1.2,
@@ -177,10 +177,10 @@ export default function AthleteMeetEntryScreen() {
                   onPress={() => updateAttempt(i, { foul: !a.foul })}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: a.foul }}
-                  accessibilityLabel={`Attempt ${a.attempt} foul`}
+                  accessibilityLabel={`${eventGroup === 'sprints' ? 'Run' : 'Attempt'} ${a.attempt} ${eventGroup === 'sprints' ? 'false start' : 'foul'}`}
                   style={{ alignItems: 'center' }}
                 >
-                  <Text style={{ fontSize: 10, color: colors.textMuted }}>Foul</Text>
+                  <Text style={{ fontSize: 10, color: colors.textMuted }}>{eventGroup === 'sprints' ? 'False start' : 'Foul'}</Text>
                   <Switch value={a.foul} onValueChange={(v) => updateAttempt(i, { foul: v })} trackColor={{ true: colors.danger, false: colors.border }} thumbColor={colors.text} />
                 </Pressable>
               </View>

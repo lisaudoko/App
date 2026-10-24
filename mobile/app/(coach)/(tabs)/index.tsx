@@ -701,7 +701,7 @@ export default function SquadScreen() {
             const perfUnit = row.athlete.unit === 's' ? 'seconds' : 'metres';
             let detail: string;
             if (statSheet === 'logged') {
-              detail = `${row.thisWeekMark != null ? formatPerformance(row.thisWeekMark, perfUnit) : 'No mark'}${row.thisWeekRpe != null ? ` · RPE ${row.thisWeekRpe}` : ''}`;
+              detail = `${row.thisWeekMark != null ? formatPerformance(row.thisWeekMark, perfUnit) : (perfUnit === 'seconds' ? 'No time' : 'No mark')}${row.thisWeekRpe != null ? ` · RPE ${row.thisWeekRpe}` : ''}`;
             } else if (statSheet === 'missing') {
               detail = 'No result logged this week';
             } else {

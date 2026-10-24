@@ -271,7 +271,7 @@ export default function AddAthleteScreen() {
           ))}
         </View>
         <TextField
-          label={`Baseline mark${eventGroup === 'sprints' ? ' (seconds)' : ' (metres)'} — optional`}
+          label={`Baseline ${eventGroup === 'sprints' ? 'time' : 'mark'}${eventGroup === 'sprints' ? ' (seconds)' : ' (metres)'} — optional`}
           value={baselineMark}
           onChangeText={setBaselineMark}
           keyboardType="decimal-pad"

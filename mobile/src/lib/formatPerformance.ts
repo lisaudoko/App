@@ -77,3 +77,8 @@ export function parseTimeToSeconds(text: string): number | null {
   }
   return null;
 }
+
+/** User-facing word for a result: sprinters run a "time", field athletes record a "mark". */
+export function performanceNoun(unit: PerformanceUnit): 'time' | 'mark' {
+  return unit === 'seconds' ? 'time' : 'mark';
+}

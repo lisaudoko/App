@@ -212,7 +212,7 @@ export default function AthleteProfileScreen() {
           <Screen>
             <TextField label="Name" value={name} onChangeText={setName} />
             <TextField label="Event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
-            <TextField label="Baseline mark (m)" keyboardType="decimal-pad" value={baselineMark} onChangeText={setBaselineMark} />
+            <TextField label={athlete?.unit === 's' ? 'Baseline time (s)' : 'Baseline mark (m)'} keyboardType="decimal-pad" value={baselineMark} onChangeText={setBaselineMark} />
             <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Sex</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
               {(['male', 'female'] as Sex[]).map((s) => {

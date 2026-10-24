@@ -245,7 +245,7 @@ export default function EditAthleteScreen() {
           </View>
 
           <TextField
-            label={`Baseline mark (${eventGroup === 'sprints' ? 'seconds' : 'm'})`}
+            label={`Baseline ${eventGroup === 'sprints' ? 'time' : 'mark'} (${eventGroup === 'sprints' ? 'seconds' : 'm'})`}
             keyboardType="decimal-pad"
             value={baselineMark}
             onChangeText={setBaselineMark}
