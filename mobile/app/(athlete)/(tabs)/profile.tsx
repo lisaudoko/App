@@ -198,6 +198,16 @@ export default function AthleteProfileScreen() {
         </Card>
 
         <Pressable
+          onPress={() => router.push('/(athlete)/logs')}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, marginTop: 8 }}
+        >
+          <Ionicons name="list-outline" size={16} color={colors.textMuted} />
+          <Text style={{ fontSize: 17, color: colors.text }}>My logs — fix or delete a result</Text>
+          <View style={{ flex: 1 }} />
+          <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+        </Pressable>
+
+        <Pressable
           onPress={() => router.push('/(athlete)/settings')}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, marginTop: 8 }}
         >

@@ -465,6 +465,35 @@ export const repository = {
     return (data ?? []).map(toWeeklyLog);
   },
 
+  /** Corrects a past week's result. Wellness scores and body weight are left as they were;
+   *  a note is only overwritten when one is supplied. RLS limits this to the athlete's own rows. */
+  async updateWeeklyLog(
+    athleteId: string,
+    week: number,
+    fields: { mark: number | null; rpe: number | null; notes?: string },
+  ): Promise<void> {
+    const profile = await myProfile();
+    const eventGroup = (profile.event_group as EventGroup | null) ?? inferEventGroup(profile.event ?? '') ?? 'throws';
+    const unit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
+    const { error } = await supabase
+      .from('weekly_logs')
+      .update({
+        best_performance: fields.mark,
+        performance_unit: unit,
+        best_throw: unit === 'metres' ? fields.mark : null,
+        rpe: fields.rpe,
+        ...(fields.notes !== undefined ? { notes: fields.notes } : {}),
+      })
+      .eq('athlete_id', athleteId)
+      .eq('week_number', week);
+    if (error) throw error;
+  },
+
+  async deleteWeeklyLog(athleteId: string, week: number): Promise<void> {
+    const { error } = await supabase.from('weekly_logs').delete().eq('athlete_id', athleteId).eq('week_number', week);
+    if (error) throw error;
+  },
+
   async submitWeeklyResult(
     athleteId: string,
     entry: {
