@@ -20,6 +20,8 @@ import { useDailyWelcome } from '@/hooks/useDailyWelcome';
 import { computeExerciseWeight } from '@/engine/workoutWeight';
 import { shareWorkout } from '@/lib/shareWorkout';
 import { blockTypeDef } from '@/data/workoutBlocks';
+import { useUnitsStore } from '@/store/unitsStore';
+import { displayToLbs, formatWeight, lbsToDisplay, lbsToPrescribedDisplay, type WeightUnit } from '@/lib/weightUnits';
 
 const BLOCK_ICON: Record<BlockType, keyof typeof Ionicons.glyphMap> = {
   warm_up: 'walk-outline',
@@ -38,12 +40,12 @@ const BLOCK_ICON: Record<BlockType, keyof typeof Ionicons.glyphMap> = {
   cool_down: 'snow-outline',
 };
 
-function exerciseLine(ex: BlockExercise, blockType: BlockType, weight: number | null): string {
+function exerciseLine(ex: BlockExercise, blockType: BlockType, weight: number | null, unit: WeightUnit): string {
   if (blockType === 'olympic_lifts' || blockType === 'weightlifting' || blockType === 'strength') {
     const parts: string[] = [];
     if (ex.sets != null && ex.repsPattern) parts.push(`${ex.sets} sets: ${ex.repsPattern}`);
     else if (ex.sets != null) parts.push(`${ex.sets} sets`);
-    if (weight != null) parts.push(`@ ${weight} lbs`);
+    if (weight != null) parts.push(`@ ${lbsToPrescribedDisplay(weight, unit)} ${unit}`);
     else if (ex.pctOfMax != null) parts.push(`@ ${Math.round(ex.pctOfMax * 100)}%`);
     if (ex.restSeconds != null) parts.push(`${ex.restSeconds}s rest`);
     return parts.join(' · ');
@@ -93,6 +95,7 @@ export default function AthleteWorkoutScreen() {
   const insets = useSafeAreaInsets();
   const { data, loading, isStale, error, refresh } = useAthleteSelf();
   const welcome = useDailyWelcome();
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -141,12 +144,18 @@ export default function AthleteWorkoutScreen() {
         exercises: block.exercises.map((ex) => {
           const isLiftBlock = block.type === 'olympic_lifts' || block.type === 'weightlifting' || block.type === 'strength';
           const weight = isLiftBlock ? computeExerciseWeight(ex, workout.roundingIncrement, maxes) : null;
-          return { ex, weight, key: `${block.id}:${ex.id}`, line: exerciseLine(ex, block.type, weight) };
+          // General (every-day) blocks are checked off per day, so Monday's warm-up doesn't tick Tuesday's.
+          const key = block.day == null ? `${block.id}:${ex.id}@d${selectedDay}` : `${block.id}:${ex.id}`;
+          return { ex, weight, key, line: exerciseLine(ex, block.type, weight, weightUnit) };
         }),
       }));
-  }, [workout, data.athlete, eventGroup, selectedDay]);
+  }, [workout, data.athlete, eventGroup, selectedDay, weightUnit]);
 
   const totalExercises = useMemo(() => blockRows.reduce((sum, r) => sum + r.exercises.length, 0), [blockRows]);
+  const checkedCount = useMemo(
+    () => blockRows.reduce((sum, r) => sum + r.exercises.filter((e) => completedIds.includes(e.key)).length, 0),
+    [blockRows, completedIds],
+  );
 
   // Re-expand the first block whenever the visible set changes (new workout loaded, or the
   // athlete switches days) — previously this only ran once on workout load, off the unfiltered list.
@@ -227,7 +236,7 @@ export default function AthleteWorkoutScreen() {
             </Text>
           </View>
           <Pressable
-            onPress={() => shareWorkout(`${data.athlete?.name ?? 'My'} workout`, workout, eventGroup, data.athlete!.currentMaxes)}
+            onPress={() => shareWorkout(`${data.athlete?.name ?? 'My'} workout`, workout, eventGroup, data.athlete!.currentMaxes, weightUnit)}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Export workout"
@@ -277,16 +286,16 @@ export default function AthleteWorkoutScreen() {
         )}
         {(squat > 0 || clean > 0 || bench > 0) && (
           <Card style={{ marginBottom: 12 }}>
-            <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>Your current maxes</Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>Your current maxes ({weightUnit})</Text>
             <View style={{ flexDirection: 'row', gap: 14 }}>
               <Text style={{ fontSize: 17, color: colors.text }}>
-                Squat <Text style={{ fontWeight: '600' }}>{squat}</Text>
+                Squat <Text style={{ fontWeight: '600' }}>{formatWeight(squat, weightUnit)}</Text>
               </Text>
               <Text style={{ fontSize: 17, color: colors.text }}>
-                Bench <Text style={{ fontWeight: '600' }}>{bench}</Text>
+                Bench <Text style={{ fontWeight: '600' }}>{formatWeight(bench, weightUnit)}</Text>
               </Text>
               <Text style={{ fontSize: 17, color: colors.text }}>
-                Clean <Text style={{ fontWeight: '600' }}>{clean}</Text>
+                Clean <Text style={{ fontWeight: '600' }}>{formatWeight(clean, weightUnit)}</Text>
               </Text>
             </View>
           </Card>
@@ -377,7 +386,7 @@ export default function AthleteWorkoutScreen() {
                 {submittedAt ? 'Submitted to your coach' : 'Submit this workout'}
               </Text>
               <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
-                {hydrated ? `${completedIds.length}/${totalExercises} exercises checked` : ''}
+                {hydrated ? `${checkedCount}/${totalExercises} exercises checked today` : ''}
                 {submittedAt
                   ? ` · Sent ${new Date(submittedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
                   : ''}

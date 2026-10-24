@@ -2,8 +2,9 @@ import { Share } from 'react-native';
 import { DAY_LABELS, type BlockExercise, type EventGroup, type LiftMaxes, type Workout, type WorkoutBlock } from '@/data/types';
 import { blockTypeDef, inferLiftForExercise } from '@/data/workoutBlocks';
 import { roundToIncrement } from '@/engine/workoutWeight';
+import { lbsToPrescribedDisplay, type WeightUnit } from '@/lib/weightUnits';
 
-function describeForExport(ex: BlockExercise, blockType: WorkoutBlock['type'], roundingIncrement: number, maxes: LiftMaxes | null): string {
+function describeForExport(ex: BlockExercise, blockType: WorkoutBlock['type'], roundingIncrement: number, maxes: LiftMaxes | null, unit: WeightUnit): string {
   const isDuration = blockType === 'warm_up' || blockType === 'cool_down';
   const parts: string[] = [];
 
@@ -15,7 +16,7 @@ function describeForExport(ex: BlockExercise, blockType: WorkoutBlock['type'], r
       const lift = inferLiftForExercise(ex.name);
       if (lift) weight = roundToIncrement(ex.pctOfMax * maxes[lift], roundingIncrement);
     }
-    if (weight != null) parts.push(`@ ${weight} lbs`);
+    if (weight != null) parts.push(`@ ${lbsToPrescribedDisplay(weight, unit)} ${unit}`);
     else if (ex.pctOfMax != null) parts.push(`@ ${Math.round(ex.pctOfMax * 100)}%`);
     if (ex.restSeconds != null) parts.push(`${ex.restSeconds}s rest`);
   } else if (blockType === 'speed_work' || blockType === 'speed_endurance' || blockType === 'tempo' || blockType === 'conditioning') {
@@ -49,7 +50,7 @@ function describeForExport(ex: BlockExercise, blockType: WorkoutBlock['type'], r
 }
 
 /** Formats a week's plan as plain text and opens the native share sheet (email, messages, save to files, etc). */
-export async function shareWorkout(title: string, workout: Workout, group: EventGroup, maxes: LiftMaxes | null): Promise<void> {
+export async function shareWorkout(title: string, workout: Workout, group: EventGroup, maxes: LiftMaxes | null, unit: WeightUnit = 'lbs'): Promise<void> {
   const lines = [title, `Week ${workout.weekNumber} · ${Math.round(workout.intensityPct * 100)}% intensity`, ''];
 
   // General (day: null) blocks apply to every day, so they're listed first, unlabeled — then
@@ -66,7 +67,7 @@ export async function shareWorkout(title: string, workout: Workout, group: Event
       const def = blockTypeDef(block.type, group);
       lines.push(`${block.label || def?.label || block.type}:`);
       for (const ex of block.exercises) {
-        lines.push(`  ${describeForExport(ex, block.type, workout.roundingIncrement, maxes)}`);
+        lines.push(`  ${describeForExport(ex, block.type, workout.roundingIncrement, maxes, unit)}`);
       }
       lines.push('');
     }

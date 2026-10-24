@@ -17,11 +17,14 @@ import { Card } from '@/components/Card';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { InfoTip } from '@/components/InfoTip';
+import { useUnitsStore } from '@/store/unitsStore';
+import { displayToLbs } from '@/lib/weightUnits';
 
 export default function LoggerScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { data, refresh } = useAthleteSelf();
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
   const eventGroup = data.athlete?.eventGroup ?? 'throws';
   const isTimed = eventGroup === 'sprints';
   const perfUnit: PerformanceUnit = isTimed ? 'seconds' : 'metres';
@@ -79,7 +82,7 @@ export default function LoggerScreen() {
         soreness,
         energy,
         motivation,
-        bodyWeight: bodyWeight ? parseFloat(bodyWeight) : null,
+        bodyWeight: bodyWeight && Number.isFinite(parseFloat(bodyWeight)) ? displayToLbs(parseFloat(bodyWeight), weightUnit) : null,
         notes,
       });
       // Only now, after the write actually succeeded, do we show the "Logged!" screen —
@@ -137,7 +140,10 @@ export default function LoggerScreen() {
           <>
             <Card>
               <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 }}>How are you feeling?</Text>
-              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>Type it how you&apos;d say it — we&apos;ll parse it</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, color: colors.textMuted }}>Type it how you&apos;d say it — include your RPE (effort, 1–10)</Text>
+                <InfoTip term="RPE" explanation="Rate of Perceived Exertion — how hard this session felt, on a scale of 1 (very easy) to 10 (maximal effort). It's a subjective effort score, not tied to any specific pace or weight." />
+              </View>
               <TextField
                 value={nlText}
                 onChangeText={(t) => {
@@ -225,16 +231,16 @@ export default function LoggerScreen() {
 
         <Card>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>Wellness check</Text>
-          <SliderRow label="Sleep" value={sleep} onChange={setSleep} max={10} />
-          <SliderRow label="Soreness" value={soreness} onChange={setSoreness} max={10} />
-          <SliderRow label="Energy" value={energy} onChange={setEnergy} max={10} />
-          <SliderRow label="Motivation" value={motivation} onChange={setMotivation} max={10} />
+          <SliderRow label="Sleep" value={sleep} onChange={setSleep} max={10} lowLabel="1 = barely slept" highLabel="10 = slept great" />
+          <SliderRow label="Soreness" value={soreness} onChange={setSoreness} max={10} lowLabel="1 = not sore" highLabel="10 = very sore" />
+          <SliderRow label="Energy" value={energy} onChange={setEnergy} max={10} lowLabel="1 = drained" highLabel="10 = full of energy" />
+          <SliderRow label="Motivation" value={motivation} onChange={setMotivation} max={10} lowLabel="1 = not feeling it" highLabel="10 = fired up" />
           <TextField
-            label="Body weight (lbs) — optional"
+            label={`Body weight (${weightUnit}) — optional`}
             value={bodyWeight}
             onChangeText={setBodyWeight}
             keyboardType="decimal-pad"
-            placeholder="e.g. 178"
+            placeholder={weightUnit === 'kg' ? 'e.g. 80' : 'e.g. 178'}
           />
         </Card>
 
@@ -267,12 +273,16 @@ function SliderRow({
   onChange,
   max,
   info,
+  lowLabel,
+  highLabel,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   max: number;
   info?: string;
+  lowLabel?: string;
+  highLabel?: string;
 }) {
   const { colors } = useAppTheme();
   return (
@@ -298,6 +308,12 @@ function SliderRow({
         maximumTrackTintColor={colors.border}
         thumbTintColor={colors.text}
       />
+      {(lowLabel || highLabel) && (
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 12, color: colors.textFaint }}>{lowLabel}</Text>
+          <Text style={{ fontSize: 12, color: colors.textFaint }}>{highLabel}</Text>
+        </View>
+      )}
     </View>
   );
 }

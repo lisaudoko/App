@@ -18,12 +18,19 @@ import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
 import { StaleBanner } from '@/components/StaleBanner';
 import { pearsonCorrelation } from '@/engine/stats';
+import { useUnitsStore } from '@/store/unitsStore';
+import { displayToLbs, formatWeight, lbsToDisplay, lbsToPrescribedDisplay, type WeightUnit } from '@/lib/weightUnits';
 import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
 
 export default function AthleteProgressScreen() {
   const { colors } = useAppTheme();
   const { data, loading, isStale, error, refresh } = useAthleteSelf();
-  const { athlete, logs, tests } = data;
+  const { athlete, logs, tests: rawTests } = data;
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
+  const tests = useMemo(
+    () => rawTests.map((t) => ({ ...t, squat: lbsToDisplay(t.squat, weightUnit), clean: lbsToDisplay(t.clean, weightUnit), bench: lbsToDisplay(t.bench, weightUnit), deadlift: lbsToDisplay(t.deadlift, weightUnit) })),
+    [rawTests, weightUnit],
+  );
   const direction = EVENT_GROUP_DIRECTION[athlete?.eventGroup ?? 'throws'];
   const perfUnit: PerformanceUnit = athlete?.unit === 's' ? 'seconds' : 'metres';
   const [meetResults, setMeetResults] = useState<{ entry: MeetEntry; meet: Meet }[]>([]);
@@ -136,6 +143,11 @@ export default function AthleteProgressScreen() {
           ]}
         />
 
+        <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12, lineHeight: 16 }}>
+          Season best is your best result this season. vs baseline is how far you&apos;ve moved from your starting {groupNoun === 'time' ? 'time' : 'mark'}.
+          to qualify is the gap to your qualifying standard.
+        </Text>
+
         <Card>
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>
             My {groupNoun} trajectory
@@ -169,7 +181,7 @@ export default function AthleteProgressScreen() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
                     <Text style={{ fontSize: 13, color: colors.textMuted }}>{row.label}</Text>
                     <Text style={{ fontSize: 13, color: colors.text, fontWeight: '500' }}>
-                      {row.current} / {row.target} lbs
+                      {formatWeight(row.current, weightUnit)} / {formatWeight(row.target, weightUnit)} {weightUnit}
                     </Text>
                   </View>
                   <ProgressBar pct={pct} color={barColor} />
@@ -181,7 +193,7 @@ export default function AthleteProgressScreen() {
         {tests.length >= 3 && (
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression</Text>
-            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>1RM maxes across test dates (lbs)</Text>
+            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>1RM maxes across test dates ({weightUnit})</Text>
             <StrengthChart tests={tests} thirdLift={athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench'} />
           </Card>
         )}
@@ -190,7 +202,7 @@ export default function AthleteProgressScreen() {
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
             <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} {groupNoun === 'time' ? 'time' : 'mark'} · Each dot = test week</Text>
-            <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel="Squat (lbs)" />
+            <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel={`Squat (${weightUnit})`} />
             <Text style={{ fontSize: 12, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
               {Math.abs(correlation.r) >= 0.7
                 ? 'Your strength gains are translating well.'

@@ -16,6 +16,7 @@ import { TextField } from '@/components/TextField';
 import { LoadingState } from '@/components/LoadingState';
 import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { EventPicker } from '@/components/EventPicker';
+import { useUnitsStore } from '@/store/unitsStore';
 
 export default function AthleteProfileScreen() {
   const { colors } = useAppTheme();
@@ -24,6 +25,8 @@ export default function AthleteProfileScreen() {
   const logout = useAuthStore((s) => s.logout);
   const athlete = data.athlete;
 
+  const weightUnit = useUnitsStore((st) => st.weightUnit);
+  const setWeightUnit = useUnitsStore((st) => st.setWeightUnit);
   const [editVisible, setEditVisible] = useState(false);
   const [name, setName] = useState('');
   const [event, setEvent] = useState('');
@@ -195,6 +198,42 @@ export default function AthleteProfileScreen() {
               </View>
             );
           })}
+        </Card>
+
+        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          Weight units
+        </Text>
+        <Card>
+          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>
+            Used for lifts, maxes and body weight on this device.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(['lbs', 'kg'] as const).map((u) => {
+              const active = weightUnit === u;
+              return (
+                <Pressable
+                  key={u}
+                  onPress={() => setWeightUnit(u)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={u === 'kg' ? 'Kilograms' : 'Pounds'}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    backgroundColor: active ? colors.accent : 'transparent',
+                    borderWidth: active ? 0 : 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>
+                    {u === 'kg' ? 'Kilograms (kg)' : 'Pounds (lbs)'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </Card>
 
         <Pressable

@@ -15,10 +15,13 @@ import { ErrorState } from '@/components/ErrorState';
 import { StaleBanner } from '@/components/StaleBanner';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { InfoTip } from '@/components/InfoTip';
+import { useUnitsStore } from '@/store/unitsStore';
+import { displayToLbs, formatWeight, lbsToDisplay, lbsToPrescribedDisplay, type WeightUnit } from '@/lib/weightUnits';
 
 export default function AthleteStrengthScreen() {
   const { colors } = useAppTheme();
   const { data, loading, isStale, error: loadError, refresh } = useAthleteSelf();
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
 
   const [squat, setSquat] = useState('');
   const [bench, setBench] = useState('');
@@ -34,7 +37,7 @@ export default function AthleteStrengthScreen() {
   if (!data.athlete) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   const { squat: curSquat, clean: curClean, bench: curBench, deadlift: curDeadlift } = data.athlete.currentMaxes;
-  const tests = data.tests;
+  const tests = data.tests.map((t) => ({ ...t, squat: lbsToDisplay(t.squat, weightUnit), clean: lbsToDisplay(t.clean, weightUnit), bench: lbsToDisplay(t.bench, weightUnit), deadlift: lbsToDisplay(t.deadlift, weightUnit) }));
   const last = tests[tests.length - 1];
   const first = tests[0];
   // Jumps programmes track deadlift instead of bench as the third lift — matches the coach's
@@ -51,10 +54,10 @@ export default function AthleteStrengthScreen() {
     try {
       await repository.addStrengthLog(data.athlete.id, {
         loggedAt: testDate,
-        squat: squat ? parseFloat(squat) : null,
-        bench: bench ? parseFloat(bench) : null,
-        clean: clean ? parseFloat(clean) : null,
-        deadlift: deadlift ? parseFloat(deadlift) : null,
+        squat: squat ? displayToLbs(parseFloat(squat), weightUnit) : null,
+        bench: bench ? displayToLbs(parseFloat(bench), weightUnit) : null,
+        clean: clean ? displayToLbs(parseFloat(clean), weightUnit) : null,
+        deadlift: deadlift ? displayToLbs(parseFloat(deadlift), weightUnit) : null,
       });
       setSquat('');
       setBench('');
@@ -76,10 +79,10 @@ export default function AthleteStrengthScreen() {
       <Screen onRefresh={refresh}>
         <StatRow
           stats={[
-            { label: 'Squat', value: curSquat ? `${curSquat}` : '—' },
-            { label: 'Bench', value: curBench ? `${curBench}` : '—' },
-            { label: 'Clean', value: curClean ? `${curClean}` : '—' },
-            { label: 'Deadlift', value: curDeadlift ? `${curDeadlift}` : '—' },
+            { label: `Squat (${weightUnit})`, value: curSquat ? formatWeight(curSquat, weightUnit) : '—' },
+            { label: `Bench (${weightUnit})`, value: curBench ? formatWeight(curBench, weightUnit) : '—' },
+            { label: `Clean (${weightUnit})`, value: curClean ? formatWeight(curClean, weightUnit) : '—' },
+            { label: `Deadlift (${weightUnit})`, value: curDeadlift ? formatWeight(curDeadlift, weightUnit) : '—' },
           ]}
         />
 
@@ -89,7 +92,7 @@ export default function AthleteStrengthScreen() {
             <InfoTip term="1RM" explanation="One-Rep Max — the most weight you can lift for a single complete repetition of an exercise. It's the standard reference point strength programmes are built around." />
           </View>
           <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>
-            1RM maxes across test dates (lbs) · Squat / Clean / {thirdLiftLabel}
+            1RM maxes across test dates ({weightUnit}) · Squat / Clean / {thirdLiftLabel}
           </Text>
           <StrengthChart tests={tests} thirdLift={thirdLift} />
           {tests.length >= 3 && (
@@ -101,7 +104,7 @@ export default function AthleteStrengthScreen() {
           )}
           {last && first && (
             <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 8 }}>
-              Deadlift: {last.deadlift} lbs{last.deadlift !== first.deadlift ? ` (from ${first.deadlift})` : ''}
+              Deadlift: {last.deadlift} {weightUnit}{last.deadlift !== first.deadlift ? ` (from ${first.deadlift})` : ''}
             </Text>
           )}
         </Card>
@@ -141,18 +144,18 @@ export default function AthleteStrengthScreen() {
           <DateField label="Date" value={testDate} onChange={setTestDate} maximumDate={new Date()} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <TextField label="Squat" keyboardType="decimal-pad" value={squat} onChangeText={setSquat} />
+              <TextField label={`Squat (${weightUnit})`} keyboardType="decimal-pad" value={squat} onChangeText={setSquat} />
             </View>
             <View style={{ flex: 1 }}>
-              <TextField label="Bench" keyboardType="decimal-pad" value={bench} onChangeText={setBench} />
+              <TextField label={`Bench (${weightUnit})`} keyboardType="decimal-pad" value={bench} onChangeText={setBench} />
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <TextField label="Clean" keyboardType="decimal-pad" value={clean} onChangeText={setClean} />
+              <TextField label={`Clean (${weightUnit})`} keyboardType="decimal-pad" value={clean} onChangeText={setClean} />
             </View>
             <View style={{ flex: 1 }}>
-              <TextField label="Deadlift" keyboardType="decimal-pad" value={deadlift} onChangeText={setDeadlift} />
+              <TextField label={`Deadlift (${weightUnit})`} keyboardType="decimal-pad" value={deadlift} onChangeText={setDeadlift} />
             </View>
           </View>
           {error && <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 8 }}>{error}</Text>}
