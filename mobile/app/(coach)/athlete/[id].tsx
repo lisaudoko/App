@@ -141,13 +141,13 @@ export default function CoachAthleteDetailScreen() {
             { label: 'vs baseline', value: `${vsBaseline >= 0 ? '+' : ''}${vsBaseline.toFixed(2)}${unitSuffix}`, color: vsBaseline >= 0 ? colors.success : colors.danger },
           ]}
         />
-        <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: -8, marginBottom: 12 }}>Avg RPE: {avgRpe ? avgRpe.toFixed(1) : '—'}</Text>
+        <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: -8, marginBottom: 12 }}>Avg RPE: {avgRpe ? avgRpe.toFixed(1) : '—'}</Text>
 
         <Card>
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>
             {groupNoun.charAt(0).toUpperCase() + groupNoun.slice(1)} trajectory + projection
           </Text>
-          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>
             Solid = actual · Dotted = projected · Shaded = confidence band · ■ = meet result
           </Text>
           <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={perfUnit} meetPoints={meetPoints} direction={direction} />
@@ -158,7 +158,7 @@ export default function CoachAthleteDetailScreen() {
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Training load + RPE</Text>
             <InfoTip term="RPE" explanation="Rate of Perceived Exertion — this athlete's self-reported effort (1–10) for each week's training." />
           </View>
-          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Bars = volume load · Line = RPE · Red dashed = RPE 8 threshold</Text>
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Bars = volume load · Line = RPE · Red dashed = RPE 8 threshold</Text>
           <LoadRpeChart logs={logs} />
           {acRatio != null && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
@@ -180,7 +180,7 @@ export default function CoachAthleteDetailScreen() {
               <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression — test weeks</Text>
               <InfoTip term="1RM" explanation="One-Rep Max — the most weight this athlete can lift for a single complete repetition of an exercise." />
             </View>
-            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season (lbs)</Text>
+            <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Key lift 1RM maxes across the season (lbs)</Text>
             <StrengthChart tests={tests} thirdLift={athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench'} />
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <LegendDot color={colors.text} label="Squat" />
@@ -193,7 +193,7 @@ export default function CoachAthleteDetailScreen() {
         {correlation && (
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
-            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} {groupNoun === 'time' ? 'time' : 'mark'} · Each dot = test week</Text>
+            <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} {groupNoun === 'time' ? 'time' : 'mark'} · Each dot = test week</Text>
             <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel="Squat (lbs)" />
             <Text style={{ fontSize: 12, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
               {Math.abs(correlation.r) >= 0.7

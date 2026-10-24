@@ -107,7 +107,7 @@ export function AddToCalendarButton({ appKey, title, startDate, endDate, locatio
         }}
       />
       {state === 'confirm-remove' && (
-        <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 2, textAlign: 'center' }}>Tap again to remove</Text>
+        <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 2, textAlign: 'center' }}>Tap again to remove</Text>
       )}
     </View>
   );

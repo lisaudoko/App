@@ -23,7 +23,7 @@ export function LegalDocument({ title, lastUpdated, intro, sections }: Props) {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={title} onBack={() => (router.canGoBack() ? router.back() : router.replace('/login'))} />
       <Screen>
-        <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 16 }}>Last updated: {lastUpdated}</Text>
+        <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 16 }}>Last updated: {lastUpdated}</Text>
         {intro && <Text style={{ fontSize: 12, color: colors.textMuted, lineHeight: 19, marginBottom: 18 }}>{intro}</Text>}
         {sections.map((s) => (
           <View key={s.heading} style={{ marginBottom: 18 }}>

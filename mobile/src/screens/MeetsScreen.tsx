@@ -178,7 +178,7 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
 
           {upcoming.length > 0 && (
             <>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textMuted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                 Upcoming
               </Text>
               {upcoming.map((meet) => (
@@ -189,7 +189,7 @@ export function MeetsScreen({ onBack }: { onBack?: () => void } = {}) {
 
           {completed.length > 0 && (
             <>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                 Completed
               </Text>
               {completed.map((meet) => (

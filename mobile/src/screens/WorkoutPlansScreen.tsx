@@ -449,7 +449,7 @@ export function WorkoutPlansScreen({
                         >
                           <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>{ex.name}</Text>
-                            <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 1 }}>{describeExercise(ex, block.type, null)}</Text>
+                            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{describeExercise(ex, block.type, null)}</Text>
                           </View>
                           <Pressable onPress={() => removeExercise(block.id, ex.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${ex.name}`}>
                             <Ionicons name="close-circle-outline" size={18} color={colors.danger} />
@@ -500,7 +500,7 @@ export function WorkoutPlansScreen({
           <Button label="Save day" variant="outline" onPress={saveDay} loading={savingDay} disabled={visibleBlocks.length === 0} />
           <Button label="Save week" onPress={handleSave} loading={saving} disabled={!allDaysHaveContent} />
           {!allDaysHaveContent && (
-            <Text style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: 8, marginBottom: 8, paddingHorizontal: 16 }}>
+            <Text style={{ fontSize: 12, color: colors.textFaint, textAlign: 'center', marginTop: 8, marginBottom: 8, paddingHorizontal: 16 }}>
               Every day (Mon–Sun) needs at least one block before you can save the week.
             </Text>
           )}

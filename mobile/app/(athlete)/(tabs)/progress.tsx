@@ -159,7 +159,7 @@ export default function AthleteProgressScreen() {
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>
             My {groupNoun} trajectory
           </Text>
-          <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>
             {athlete.event} this season · Dotted = projection · ■ = meet result
           </Text>
           <TrajectoryChart
@@ -200,7 +200,7 @@ export default function AthleteProgressScreen() {
         {tests.length >= 3 && (
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength progression</Text>
-            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>1RM maxes across test dates ({weightUnit})</Text>
+            <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>1RM maxes across test dates ({weightUnit})</Text>
             <StrengthChart tests={tests} thirdLift={athlete.eventGroup === 'jumps' ? 'deadlift' : 'bench'} />
           </Card>
         )}
@@ -208,7 +208,7 @@ export default function AthleteProgressScreen() {
         {correlation && (
           <Card>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>Strength ↔ {groupNoun} correlation</Text>
-            <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} {groupNoun === 'time' ? 'time' : 'mark'} · Each dot = test week</Text>
+            <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Squat max vs {athlete.event.toLowerCase()} {groupNoun === 'time' ? 'time' : 'mark'} · Each dot = test week</Text>
             <CorrelationChart xs={correlation.squats} ys={correlation.marks} r={correlation.r} xLabel={`Squat (${weightUnit})`} />
             <Text style={{ fontSize: 12, color: Math.abs(correlation.r) >= 0.7 ? colors.success : colors.warning, marginTop: 4, fontWeight: '500' }}>
               {Math.abs(correlation.r) >= 0.7

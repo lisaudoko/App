@@ -88,10 +88,10 @@ export default function AthleteStrengthScreen() {
 
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>Strength progression</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>Strength progression</Text>
             <InfoTip term="1RM" explanation="One-Rep Max — the most weight you can lift for a single complete repetition of an exercise. It's the standard reference point strength programmes are built around." />
           </View>
-          <Text style={{ fontSize: 9, color: colors.textFaint, marginBottom: 4 }}>
+          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>
             1RM maxes across test dates ({weightUnit}) · Squat / Clean / {thirdLiftLabel}
           </Text>
           <StrengthChart tests={tests} thirdLift={thirdLift} />
@@ -103,7 +103,7 @@ export default function AthleteStrengthScreen() {
             </View>
           )}
           {last && first && (
-            <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 8 }}>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 8 }}>
               Deadlift: {last.deadlift} {weightUnit}{last.deadlift !== first.deadlift ? ` (from ${first.deadlift})` : ''}
             </Text>
           )}
@@ -140,7 +140,7 @@ export default function AthleteStrengthScreen() {
         )}
 
         <Card>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Log a strength test</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Log a strength test</Text>
           <DateField label="Date" value={testDate} onChange={setTestDate} maximumDate={new Date()} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
@@ -177,7 +177,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
       <View style={{ width: 14, height: 2, backgroundColor: color }} />
-      <Text style={{ fontSize: 10, color: colors.textMuted }}>{label}</Text>
+      <Text style={{ fontSize: 12, color: colors.textMuted }}>{label}</Text>
     </View>
   );
 }

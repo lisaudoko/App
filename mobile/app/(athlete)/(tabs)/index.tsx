@@ -316,7 +316,7 @@ export default function AthleteWorkoutScreen() {
               >
                 <Ionicons name={BLOCK_ICON[block.type] ?? 'ellipse-outline'} size={17} color={textColor} />
                 <Text style={{ fontSize: 14, fontWeight: '700', color: textColor, flex: 1 }}>{block.label}</Text>
-                <Text style={{ fontSize: 11, color: textColor, opacity: 0.8 }}>{block.exercises.length}</Text>
+                <Text style={{ fontSize: 12, color: textColor, opacity: 0.8 }}>{block.exercises.length}</Text>
                 <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={textColor} />
               </Pressable>
 
@@ -346,9 +346,9 @@ export default function AthleteWorkoutScreen() {
                             <Text style={{ fontSize: 15, fontWeight: '500', color: colors.text }}>{ex.name}</Text>
                             {!!line && <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{line}</Text>}
                             {!!ex.coachingCue && (
-                              <Text style={{ fontSize: 11, color: colors.textFaint, fontStyle: 'italic', marginTop: 2 }}>{ex.coachingCue}</Text>
+                              <Text style={{ fontSize: 12, color: colors.textFaint, fontStyle: 'italic', marginTop: 2 }}>{ex.coachingCue}</Text>
                             )}
-                            {!!ex.notes && <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 1 }}>{ex.notes}</Text>}
+                            {!!ex.notes && <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 1 }}>{ex.notes}</Text>}
                           </View>
                           <View
                             style={{

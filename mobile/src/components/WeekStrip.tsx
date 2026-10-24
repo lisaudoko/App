@@ -35,7 +35,7 @@ export function WeekStrip({ weekDates, selectedDate, onSelectDate, hasTraining, 
             accessibilityLabel={`${DAY_LABELS[i]} ${dayNumber}${training ? ', training' : ''}${meet ? ', meet' : ''}`}
             style={{ flex: 1, alignItems: 'center', paddingVertical: 8, marginHorizontal: 2, borderRadius: 12, backgroundColor: active ? colors.accent : 'transparent' }}
           >
-            <Text style={{ fontSize: 11, color: active ? colors.accentText : colors.textFaint }}>{DAY_LABELS[i]}</Text>
+            <Text style={{ fontSize: 12, color: active ? colors.accentText : colors.textFaint }}>{DAY_LABELS[i]}</Text>
             <Text style={{ fontSize: 16, fontWeight: '700', marginTop: 2, color: active ? colors.accentText : colors.text }}>{dayNumber}</Text>
             <View style={{ flexDirection: 'row', gap: 3, marginTop: 4, height: 5 }}>
               {training && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: active ? colors.accentText : colors.accent }} />}

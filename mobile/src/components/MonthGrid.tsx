@@ -45,7 +45,7 @@ export function MonthGrid({ monthAnchor, selectedDate, onSelectDate, onChangeMon
 
       <View style={{ flexDirection: 'row', paddingHorizontal: 8 }}>
         {WEEKDAY_HEADERS.map((h, i) => (
-          <Text key={i} style={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textFaint }}>{h}</Text>
+          <Text key={i} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: colors.textFaint }}>{h}</Text>
         ))}
       </View>
 
