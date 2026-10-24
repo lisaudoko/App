@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
-import { repository } from '@/data/repository';
+import { repository, weekBucket } from '@/data/repository';
 import { DAY_LABELS, todayAsWorkoutDay, type BlockExercise, type BlockType, type Workout, type WorkoutBlock } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { Card } from '@/components/Card';
@@ -151,6 +151,13 @@ export default function AthleteWorkoutScreen() {
       }));
   }, [workout, data.athlete, eventGroup, selectedDay, weightUnit]);
 
+  // Same Mon–Sun bucketing the logger uses to decide whether a submit updates this week's row or starts a new one.
+  const loggedThisWeek = useMemo(() => {
+    const last = data.logs[data.logs.length - 1];
+    if (!last?.loggedAt) return false;
+    return weekBucket(last.loggedAt) === weekBucket(new Date().toISOString().slice(0, 10));
+  }, [data.logs]);
+
   const totalExercises = useMemo(() => blockRows.reduce((sum, r) => sum + r.exercises.length, 0), [blockRows]);
   const checkedCount = useMemo(
     () => blockRows.reduce((sum, r) => sum + r.exercises.filter((e) => completedIds.includes(e.key)).length, 0),
@@ -218,6 +225,7 @@ export default function AthleteWorkoutScreen() {
           <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
             Your coach hasn&apos;t published a workout for this week yet.
           </Text>
+          <Button label="Log this week's result" variant="outline" onPress={() => router.push('/(athlete)/(tabs)/logger')} />
         </Screen>
       </View>
     );
@@ -277,6 +285,21 @@ export default function AthleteWorkoutScreen() {
       {isStale && <StaleBanner />}
 
       <Screen onRefresh={refresh}>
+        <Pressable onPress={() => router.push('/(athlete)/(tabs)/logger')} accessibilityRole="button" accessibilityLabel="Log this week's result">
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <Ionicons name={loggedThisWeek ? 'checkmark-circle' : 'add-circle'} size={24} color={loggedThisWeek ? colors.success : colors.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>
+                {loggedThisWeek ? 'Logged this week' : "Log this week's result"}
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>
+                {loggedThisWeek ? 'Tap to update it' : 'Best result, effort and how you feel'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          </Card>
+        </Pressable>
+
         {blockRows.length === 0 && (
           <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
             <Ionicons name="cafe-outline" size={26} color={colors.textFaint} />
