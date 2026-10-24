@@ -24,7 +24,7 @@ import type {
   Workout,
   WorkoutBlock,
 } from './types';
-import type { Database } from '../../types/supabase';
+import type { Database, Json } from '../../types/supabase';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type WeeklyLogRow = Database['public']['Tables']['weekly_logs']['Row'];
@@ -190,6 +190,7 @@ function toWeeklyLog(row: WeeklyLogRow): WeeklyLog {
     bodyWeight: row.body_weight,
     isCompetition: false,
     loggedAt: row.week_start,
+    attempts: toMeetAttempts(row.attempts),
   };
 }
 
@@ -505,6 +506,9 @@ export const repository = {
       motivation?: number | null;
       bodyWeight?: number | null;
       notes?: string | null;
+      /** When given, `mark` is the best legal of these. Always written (empty when omitted) so a same-week
+       *  re-log without attempts can't leave stale attempts next to a different best result. */
+      attempts?: MeetAttempt[];
     },
   ): Promise<{ log: WeeklyLog; isNewPersonalBest: boolean }> {
     const [profile, existingLogs] = await Promise.all([myProfile(), this.getWeeklyLogs(athleteId)]);
@@ -541,6 +545,7 @@ export const repository = {
       motivation_score: entry.motivation ?? null,
       body_weight: entry.bodyWeight ?? null,
       notes: entry.notes ?? null,
+      attempts: (entry.attempts ?? []) as unknown as Json,
     };
 
     const { data, error } = updatingThisWeek

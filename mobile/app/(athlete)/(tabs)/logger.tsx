@@ -10,7 +10,10 @@ import { useAthleteSelf } from '@/hooks/useAthleteSelf';
 import { parseLogText, type ParsedLogResult } from '@/lib/parseLog';
 import { repository } from '@/data/repository';
 import { notifyPersonalBest } from '@/notifications/localNotifications';
-import { formatPerformance, parseTimeToSeconds, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, attemptWording, eventUsesWind, formatPerformance, parseTimeToSeconds, type PerformanceUnit } from '@/lib/formatPerformance';
+import { bestLegalAttempt } from '@/engine/meetEntry';
+import type { MeetAttempt } from '@/data/types';
+import { AttemptsInput, emptyAttemptRows, type AttemptRow } from '@/components/AttemptsInput';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -39,6 +42,8 @@ export default function LoggerScreen() {
   const [parseError, setParseError] = useState<string | null>(null);
 
   // Manual flow
+  const [entryMode, setEntryMode] = useState<'best' | 'attempts'>('best');
+  const [attemptRows, setAttemptRows] = useState<AttemptRow[]>(() => emptyAttemptRows(3));
   const [manualMark, setManualMark] = useState('');
   const [manualMarkError, setManualMarkError] = useState<string | null>(null);
   const [manualRpe, setManualRpe] = useState(6);
@@ -49,6 +54,20 @@ export default function LoggerScreen() {
   const [energy, setEnergy] = useState(7);
   const [motivation, setMotivation] = useState(7);
   const [bodyWeight, setBodyWeight] = useState('');
+
+  const wording = attemptWording(eventGroup, data.athlete?.event ?? '');
+  const showWind = eventUsesWind(data.athlete?.event ?? '');
+  const parsedAttempts: MeetAttempt[] = attemptRows
+    .map((r, i) => {
+      const raw = r.result.trim() ? (isTimed ? parseTimeToSeconds(r.result) : parseFloat(r.result)) : null;
+      return { attempt: i + 1, mark: raw != null && Number.isFinite(raw) ? raw : null, wind: r.wind.trim() || null, foul: r.foul, notes: '' };
+    })
+    .filter((a) => a.mark != null || a.foul);
+  const bestFromAttempts = bestLegalAttempt(parsedAttempts, EVENT_GROUP_DIRECTION[eventGroup]);
+  const bestAttemptIndex = bestFromAttempts == null ? null : attemptRows.findIndex((r, i) => {
+    const a = parsedAttempts.find((p) => p.attempt === i + 1);
+    return a != null && !a.foul && a.mark === bestFromAttempts;
+  });
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -70,7 +89,7 @@ export default function LoggerScreen() {
     }
   }
 
-  async function finishSubmit(mark: number | null, rpe: number | null, notes: string | null) {
+  async function finishSubmit(mark: number | null, rpe: number | null, notes: string | null, attempts?: MeetAttempt[]) {
     if (!data.athlete || mark == null) return;
     setSubmitting(true);
     setSubmitError(null);
@@ -84,6 +103,7 @@ export default function LoggerScreen() {
         motivation,
         bodyWeight: bodyWeight && Number.isFinite(parseFloat(bodyWeight)) ? displayToLbs(parseFloat(bodyWeight), weightUnit) : null,
         notes,
+        attempts,
       });
       // Only now, after the write actually succeeded, do we show the "Logged!" screen —
       // this used to fire before the repository call, so a failed submit (network error,
@@ -110,6 +130,7 @@ export default function LoggerScreen() {
     setParsed(null);
     setParseError(null);
     setManualMark('');
+    setAttemptRows(emptyAttemptRows(3));
     setBodyWeight('');
   }
 
@@ -207,17 +228,76 @@ export default function LoggerScreen() {
               <Text style={{ fontSize: 13, color: colors.textMuted }}>← Back to How are you feeling?</Text>
             </Pressable>
 
-            <TextField
-              label={metricLabel}
-              value={manualMark}
-              onChangeText={(t) => {
-                setManualMark(t);
-                setManualMarkError(null);
-              }}
-              keyboardType={isTimed ? 'numbers-and-punctuation' : 'decimal-pad'}
-              placeholder={isTimed ? 'e.g. 10.82 or 1:48.30' : 'e.g. 16.1'}
-              error={manualMarkError ?? undefined}
-            />
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {([
+                ['best', 'Best result only'],
+                ['attempts', `Each ${wording.unitNoun.toLowerCase()}`],
+              ] as const).map(([mode, label]) => {
+                const active = entryMode === mode;
+                return (
+                  <Pressable
+                    key={mode}
+                    onPress={() => {
+                      setEntryMode(mode);
+                      setManualMarkError(null);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                    style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      borderRadius: 8,
+                      backgroundColor: active ? colors.accent : 'transparent',
+                      borderWidth: active ? 0 : 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: active ? colors.accentText : colors.textMuted }}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {entryMode === 'best' ? (
+              <TextField
+                label={metricLabel}
+                value={manualMark}
+                onChangeText={(t) => {
+                  setManualMark(t);
+                  setManualMarkError(null);
+                }}
+                keyboardType={isTimed ? 'numbers-and-punctuation' : 'decimal-pad'}
+                placeholder={isTimed ? 'e.g. 10.82 or 1:48.30' : 'e.g. 16.1'}
+                error={manualMarkError ?? undefined}
+              />
+            ) : (
+              <Card>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 }}>
+                  {wording.unitNoun === 'Run' ? 'Your runs this week' : 'Your attempts this week'}
+                </Text>
+                <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>
+                  Fill in what you did and flip {wording.failLabel.toLowerCase()} on any that didn&apos;t count. Your best counted result is picked for you.
+                </Text>
+                <AttemptsInput
+                  rows={attemptRows}
+                  onChange={(rows) => {
+                    setAttemptRows(rows);
+                    setManualMarkError(null);
+                  }}
+                  unitNoun={wording.unitNoun}
+                  failLabel={wording.failLabel}
+                  resultPlaceholder={isTimed ? '10.82' : '16.10'}
+                  keyboardType={isTimed ? 'numbers-and-punctuation' : 'decimal-pad'}
+                  showWind={showWind}
+                  bestIndex={bestAttemptIndex != null && bestAttemptIndex >= 0 ? bestAttemptIndex : null}
+                />
+                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginTop: 10 }}>
+                  {bestFromAttempts != null ? `Best: ${formatPerformance(bestFromAttempts, perfUnit)}` : `Best: no counted ${isTimed ? 'time' : 'result'} yet`}
+                </Text>
+                {manualMarkError && <Text style={{ fontSize: 13, color: colors.danger, marginTop: 4 }}>{manualMarkError}</Text>}
+              </Card>
+            )}
 
             <SliderRow
               label="RPE"
@@ -250,6 +330,14 @@ export default function LoggerScreen() {
             <Button
               label="Save"
               onPress={() => {
+                if (entryMode === 'attempts') {
+                  if (bestFromAttempts == null) {
+                    setManualMarkError(`Enter at least one counted ${isTimed ? 'time' : 'result'} — an entry marked ${wording.failLabel.toLowerCase()} doesn't count.`);
+                    return;
+                  }
+                  finishSubmit(bestFromAttempts, manualRpe, null, parsedAttempts.map((a, i) => ({ ...a, attempt: i + 1 })));
+                  return;
+                }
                 const mark = manualMark ? (isTimed ? parseTimeToSeconds(manualMark) : parseFloat(manualMark)) : null;
                 if (mark == null || !Number.isFinite(mark)) {
                   setManualMarkError(`Enter a valid ${isTimed ? 'time' : 'distance'} — e.g. ${isTimed ? '10.82 or 1:48.30' : '16.1'}.`);
@@ -258,7 +346,7 @@ export default function LoggerScreen() {
                 finishSubmit(mark, manualRpe, null);
               }}
               loading={submitting}
-              disabled={!manualMark}
+              disabled={entryMode === 'attempts' ? bestFromAttempts == null : !manualMark}
             />
           </View>
         )}

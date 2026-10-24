@@ -164,6 +164,8 @@ export interface WeeklyLog {
   isCompetition: boolean;
   meetName?: string;
   loggedAt: string | null;
+  /** Per-attempt detail when the athlete logged each attempt; `mark` is then the best legal one. */
+  attempts?: MeetAttempt[];
 }
 
 export interface StrengthTest {

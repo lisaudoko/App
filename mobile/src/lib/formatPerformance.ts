@@ -82,3 +82,32 @@ export function parseTimeToSeconds(text: string): number | null {
 export function performanceNoun(unit: PerformanceUnit): 'time' | 'mark' {
   return unit === 'seconds' ? 'time' : 'mark';
 }
+
+/** Wind is only recorded (and only legal-checked) for the short sprints, hurdles and the horizontal jumps. */
+export function eventUsesWind(eventName: string): boolean {
+  return /\b(100|200|110)\s*m?(h|\b)|hurdle|long jump|triple jump/i.test(eventName);
+}
+
+/** Per-attempt wording that fits the event: throws/horizontal jumps have fouls, sprints have false starts, the bar events have misses. */
+export function attemptWording(group: EventGroup, eventName: string): { unitNoun: 'Attempt' | 'Run'; failLabel: 'Foul' | 'False start' | 'Miss' } {
+  if (group === 'sprints') return { unitNoun: 'Run', failLabel: 'False start' };
+  if (/high jump|pole vault/i.test(eventName)) return { unitNoun: 'Attempt', failLabel: 'Miss' };
+  return { unitNoun: 'Attempt', failLabel: 'Foul' };
+}
+
+
+/** One-line attempt summary, e.g. "16.10 · X · 15.82 (+1.2)". X = foul/miss, FS = false start. */
+export function formatAttemptsSummary(
+  attempts: { mark: number | null; wind: string | null; foul: boolean }[],
+  unit: PerformanceUnit,
+  group: EventGroup,
+): string {
+  const failShort = group === 'sprints' ? 'FS' : 'X';
+  return attempts
+    .map((a) => {
+      if (a.foul) return failShort;
+      if (a.mark == null) return '—';
+      return `${formatPerformance(a.mark, unit)}${a.wind ? ` (${a.wind})` : ''}`;
+    })
+    .join(' · ');
+}

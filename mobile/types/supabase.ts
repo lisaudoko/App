@@ -647,6 +647,7 @@ export type Database = {
       weekly_logs: {
         Row: {
           athlete_id: string
+          attempts: Json
           best_performance: number | null
           best_throw: number | null
           body_weight: number | null
@@ -665,6 +666,7 @@ export type Database = {
         }
         Insert: {
           athlete_id: string
+          attempts?: Json
           best_performance?: number | null
           best_throw?: number | null
           body_weight?: number | null
@@ -683,6 +685,7 @@ export type Database = {
         }
         Update: {
           athlete_id?: string
+          attempts?: Json
           best_performance?: number | null
           best_throw?: number | null
           body_weight?: number | null

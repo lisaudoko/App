@@ -21,7 +21,7 @@ import { TrajectoryChart } from '@/components/charts/TrajectoryChart';
 import { LoadRpeChart } from '@/components/charts/LoadRpeChart';
 import { StrengthChart } from '@/components/charts/StrengthChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
-import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, formatAttemptsSummary, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
 import { useUnitsStore } from '@/store/unitsStore';
 import { lbsToDisplay } from '@/lib/weightUnits';
 import { InfoTip } from '@/components/InfoTip';
@@ -159,6 +159,31 @@ export default function CoachAthleteDetailScreen() {
           </Text>
           <TrajectoryChart actual={trajectory.actual} projected={trajectory.projected} standard={athlete.qualifyingStandard} unit={perfUnit} meetPoints={meetPoints} direction={direction} />
         </Card>
+
+        {logs.some((l) => l.mark != null) && (
+          <Card>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Recent weeks</Text>
+            {[...logs].filter((l) => l.mark != null || l.rpe != null).sort((a, b) => b.week - a.week).slice(0, 5).map((l, i, arr) => (
+              <View
+                key={l.week}
+                style={{ paddingVertical: 8, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 14, color: colors.textMuted }}>Week {l.week}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>
+                    {l.mark != null ? formatPerformance(l.mark, perfUnit) : '—'}
+                    {l.rpe != null ? ` · RPE ${l.rpe}` : ''}
+                  </Text>
+                </View>
+                {!!l.attempts?.length && (
+                  <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 2 }}>
+                    {formatAttemptsSummary(l.attempts, perfUnit, athlete.eventGroup ?? 'throws')}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </Card>
+        )}
 
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>

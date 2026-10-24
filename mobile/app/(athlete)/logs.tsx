@@ -6,7 +6,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { useAthleteSelf } from '@/hooks/useAthleteSelf';
 import { repository } from '@/data/repository';
 import type { WeeklyLog } from '@/data/types';
-import { formatPerformance, parseTimeToSeconds, performanceNoun, type PerformanceUnit } from '@/lib/formatPerformance';
+import { formatAttemptsSummary, formatPerformance, parseTimeToSeconds, performanceNoun, type PerformanceUnit } from '@/lib/formatPerformance';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -108,6 +108,11 @@ export default function MyLogsScreen() {
                     ? new Date(`${log.loggedAt}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
                     : ''}
                 </Text>
+                {!!log.attempts?.length && (
+                  <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 2 }}>
+                    {formatAttemptsSummary(log.attempts, perfUnit, athlete?.eventGroup ?? 'throws')}
+                  </Text>
+                )}
               </View>
               <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>
                 {log.mark != null ? formatPerformance(log.mark, perfUnit) : `No ${noun}`}
