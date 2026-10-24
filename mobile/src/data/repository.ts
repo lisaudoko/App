@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { EVENT_GROUP_DIRECTION, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, inferEventGroup, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { edgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { genId } from '@/lib/id';
 import type {
@@ -205,7 +205,9 @@ function toStrengthTest(row: StrengthLogRow): StrengthTest {
 }
 
 function toAthlete(profile: ProfileRow, weeklyLogs: WeeklyLog[], strengthTests: StrengthTest[]): Athlete {
-  const eventGroup = (profile.event_group as EventGroup | null) ?? null;
+  // Fall back to the typed event for profiles created before the signup event picker
+  // existed (event_group was left null, which the UI then treated as throws).
+  const eventGroup = (profile.event_group as EventGroup | null) ?? inferEventGroup(profile.event ?? '');
   const direction = EVENT_GROUP_DIRECTION[eventGroup ?? 'throws'];
 
   let personalBest: number | null = null;

@@ -14,7 +14,8 @@ import { Pill } from '@/components/Pill';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { LoadingState } from '@/components/LoadingState';
-import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EventPicker } from '@/components/EventPicker';
 
 export default function AthleteProfileScreen() {
   const { colors } = useAppTheme();
@@ -26,6 +27,7 @@ export default function AthleteProfileScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [name, setName] = useState('');
   const [event, setEvent] = useState('');
+  const [eventGroup, setEventGroup] = useState<EventGroup | null>(null);
   const [baselineMark, setBaselineMark] = useState('');
   const [sex, setSex] = useState<Sex | null>(null);
   const [saving, setSaving] = useState(false);
@@ -35,6 +37,7 @@ export default function AthleteProfileScreen() {
     if (!athlete) return;
     setName(session?.name ?? '');
     setEvent(athlete.event);
+    setEventGroup(athlete.eventGroup);
     setBaselineMark(athlete.baselineMark ? String(athlete.baselineMark) : '');
     setSex(athlete.sex);
     setError(null);
@@ -49,6 +52,7 @@ export default function AthleteProfileScreen() {
       await repository.updateProfile(athlete.id, {
         name,
         event,
+        eventGroup: eventGroup ?? undefined,
         baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
         sex,
       });
@@ -211,8 +215,21 @@ export default function AthleteProfileScreen() {
           <ScreenHeader title="Edit profile" onBack={() => setEditVisible(false)} />
           <Screen>
             <TextField label="Name" value={name} onChangeText={setName} />
-            <TextField label="Event" value={event} onChangeText={setEvent} placeholder="e.g. Shot Put" />
-            <TextField label={athlete?.unit === 's' ? 'Baseline time (s)' : 'Baseline mark (m)'} keyboardType="decimal-pad" value={baselineMark} onChangeText={setBaselineMark} />
+            <EventPicker
+              label="Event"
+              event={event}
+              eventGroup={eventGroup}
+              onChange={(e, g) => {
+                setEvent(e);
+                setEventGroup(g);
+              }}
+            />
+            {eventGroup !== athlete?.eventGroup && (
+              <Text style={{ fontSize: 13, color: colors.warning, marginBottom: 12 }}>
+                Changing event type switches your results between metres and seconds. Your past logs keep their original numbers.
+              </Text>
+            )}
+            <TextField label={eventGroup === 'sprints' ? 'Baseline time (s)' : 'Baseline mark (m)'} keyboardType="decimal-pad" value={baselineMark} onChangeText={setBaselineMark} />
             <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Sex</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
               {(['male', 'female'] as Sex[]).map((s) => {
@@ -242,7 +259,7 @@ export default function AthleteProfileScreen() {
               })}
             </View>
             {error && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{error}</Text>}
-            <Button label="Save" onPress={handleSaveProfile} loading={saving} />
+            <Button label="Save" onPress={handleSaveProfile} loading={saving} disabled={!eventGroup || !event || event === 'Other'} />
           </Screen>
         </View>
       </Modal>

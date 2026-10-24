@@ -7,6 +7,7 @@ import { identifyRevenueCatUser, signOutRevenueCat } from '@/lib/revenuecat';
 import { startTrialIfNeeded } from '@/lib/subscription';
 import { edgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import type { Sex, UserAccount } from '@/data/types';
+import type { EventGroup } from '@/lib/formatPerformance';
 
 export class AuthError extends Error {}
 
@@ -23,6 +24,7 @@ interface AuthState {
     password: string;
     joinCode: string;
     event: string;
+    eventGroup: EventGroup;
     sex?: Sex;
   }) => Promise<void>;
   /** Consumes a pending coach_invites token, creating a fresh assistant_coach account. */
@@ -186,6 +188,7 @@ export const useAuthStore = create<AuthState>()(
             role: 'athlete',
             full_name: input.name,
             event: input.event,
+            event_group: input.eventGroup,
             qualifying_event: input.event,
             sex: input.sex ?? null,
           });

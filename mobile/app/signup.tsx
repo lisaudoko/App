@@ -11,6 +11,8 @@ import { Screen } from '@/components/Screen';
 import { LoadingState } from '@/components/LoadingState';
 import { useScrollToInput } from '@/hooks/useScrollToInput';
 import { SEX_LABEL, type Role, type Sex } from '@/data/types';
+import type { EventGroup } from '@/lib/formatPerformance';
+import { EventPicker } from '@/components/EventPicker';
 
 export default function SignupScreen() {
   const { inviteToken } = useLocalSearchParams<{ inviteToken?: string }>();
@@ -34,15 +36,18 @@ function SelfSignupScreen() {
   const [programmeName, setProgrammeName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [event, setEvent] = useState('');
+  const [eventGroup, setEventGroup] = useState<EventGroup | null>(null);
   const [sex, setSex] = useState<Sex | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showInvitePaste, setShowInvitePaste] = useState(false);
+  const [invitePaste, setInvitePaste] = useState('');
+  const [invitePasteError, setInvitePasteError] = useState<string | null>(null);
 
   const nameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
   const programmeNameRef = useRef<TextInput>(null);
-  const eventRef = useRef<TextInput>(null);
   const joinCodeRef = useRef<TextInput>(null);
   const { scrollRef, scrollToInput } = useScrollToInput();
 
@@ -54,7 +59,7 @@ function SelfSignupScreen() {
       if (role === 'coach') {
         await signupCoach({ name, email, password, programmeName: programmeName || `${name}'s Programme` });
       } else {
-        await signupAthlete({ name, email, password, joinCode, event, sex: sex ?? undefined });
+        await signupAthlete({ name, email, password, joinCode, event, eventGroup: eventGroup as EventGroup, sex: sex ?? undefined });
       }
       router.replace('/');
     } catch {
@@ -68,7 +73,19 @@ function SelfSignupScreen() {
     password.length >= 6 &&
     passwordsMatch &&
     agreedToTerms &&
-    (role === 'coach' ? true : !!joinCode && !!event);
+    (role === 'coach' ? true : !!joinCode && !!event && event !== 'Other' && !!eventGroup);
+
+  function handleContinueWithInvite() {
+    setInvitePasteError(null);
+    // Accepts either the full truperformance://signup?inviteToken=... link (as sent via
+    // Share.share, which most texting/email apps won't auto-linkify) or a bare token.
+    const match = invitePaste.match(/inviteToken=([a-f0-9-]{8,})/i) ?? invitePaste.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i);
+    if (!match) {
+      setInvitePasteError("That doesn't look like an invite link. Ask your coach to resend it.");
+      return;
+    }
+    router.push({ pathname: '/signup', params: { inviteToken: match[1] ?? match[0] } });
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -176,13 +193,13 @@ function SelfSignupScreen() {
             />
           ) : (
             <>
-              <TextField
-                ref={eventRef}
-                label="Primary event"
-                value={event}
-                onChangeText={setEvent}
-                placeholder="e.g. Shot Put"
-                onFocus={() => scrollToInput(eventRef)}
+              <EventPicker
+                event={event}
+                eventGroup={eventGroup}
+                onChange={(e, g) => {
+                  setEvent(e);
+                  setEventGroup(g);
+                }}
               />
               <TextField
                 ref={joinCodeRef}
@@ -266,6 +283,35 @@ function SelfSignupScreen() {
               </Link>
             </Text>
           </View>
+
+          <View style={{ alignItems: 'center', marginTop: 10 }}>
+            <Pressable onPress={() => setShowInvitePaste((v) => !v)} hitSlop={8}>
+              <Text style={{ fontSize: 13, color: colors.textMuted, textDecorationLine: 'underline' }}>
+                Have an assistant coach invite link?
+              </Text>
+            </Pressable>
+          </View>
+
+          {showInvitePaste && (
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8, lineHeight: 16 }}>
+                If tapping the link your coach sent didn&apos;t open the app, paste it (or just the code) here instead.
+              </Text>
+              <TextField
+                label="Invite link or code"
+                value={invitePaste}
+                onChangeText={(t) => {
+                  setInvitePaste(t);
+                  if (invitePasteError) setInvitePasteError(null);
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="truperformance://signup?inviteToken=..."
+                error={invitePasteError ?? undefined}
+              />
+              <Button label="Continue" variant="outline" onPress={handleContinueWithInvite} disabled={!invitePaste} />
+            </View>
+          )}
       </Screen>
     </SafeAreaView>
   );
