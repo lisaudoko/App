@@ -11,7 +11,8 @@ import { useAuthStore } from '@/store/authStore';
 import { detectAnomalies } from '@/engine/anomalies';
 import { estimatePeakTiming } from '@/engine/peakTiming';
 import { projectAtWeek } from '@/engine/projections';
-import { currentWeekFromLogs, buildRpeRow } from '@/engine/load';
+import { buildRpeRow } from '@/engine/load';
+import { currentWeekBucket, weekBucket, weekBucketLabel } from '@/lib/weekBuckets';
 import { Screen } from '@/components/Screen';
 import { Pill, type PillTone } from '@/components/Pill';
 import { StaleBanner } from '@/components/StaleBanner';
@@ -93,8 +94,9 @@ export default function SquadScreen() {
     }, [refresh]),
   );
 
-  const currentWeek = useMemo(() => currentWeekFromLogs(data.weeklyLogs), [data.weeklyLogs]);
-  const currentWeekLabel = currentWeek > 0 ? `W${currentWeek}` : 'No results logged yet';
+  // The current calendar week (Mon–Sun), not "the highest log count anyone has" — see lib/weekBuckets.
+  const currentWeek = useMemo(() => currentWeekBucket(), []);
+  const currentWeekLabel = `Week of ${weekBucketLabel(currentWeek)}`;
 
   // Dismissals are scoped per week_number, so switching to a new week naturally starts
   // with none dismissed — refetching here (rather than filtering a stale set) is what
@@ -138,7 +140,7 @@ export default function SquadScreen() {
       const logs = data.weeklyLogs[athlete.id] ?? [];
       const tests = data.strengthTests[athlete.id] ?? [];
       const lastLog = logs[logs.length - 1];
-      const loggedThisWeek = currentWeek > 0 && logs.some((l) => l.week === currentWeek);
+      const loggedThisWeek = logs.some((l) => l.loggedAt != null && weekBucket(l.loggedAt) === currentWeek);
       const anomalies = detectAnomalies(athlete, logs, tests, currentWeek);
       const direction = EVENT_GROUP_DIRECTION[athlete.eventGroup ?? 'throws'];
       const peak = estimatePeakTiming(logs, direction);
@@ -183,7 +185,7 @@ export default function SquadScreen() {
         projection ? ` · Proj ${formatPerformance(projection.mark, perfUnit)}` : ''
       }`;
 
-      const thisWeekLog = loggedThisWeek ? logs.find((l) => l.week === currentWeek) : undefined;
+      const thisWeekLog = loggedThisWeek ? logs.find((l) => l.loggedAt != null && weekBucket(l.loggedAt) === currentWeek) : undefined;
       const alertMessage = danger?.message ?? warning?.message ?? null;
 
       return {
@@ -295,6 +297,15 @@ export default function SquadScreen() {
               {programmeName} · {currentWeekLabel}
             </Text>
           </View>
+          <Pressable
+            onPress={() => router.push('/(coach)/add-athlete')}
+            hitSlop={12}
+            style={{ marginRight: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel="Add athlete"
+          >
+            <Ionicons name="add-circle-outline" size={24} color={colors.navText} />
+          </Pressable>
           <Pressable
             onPress={() => setMenuVisible(true)}
             hitSlop={12}

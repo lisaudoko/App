@@ -7,6 +7,7 @@ import { repository } from '@/data/repository';
 import type { Athlete, Meet, MeetAttempt, MeetEntry } from '@/data/types';
 import { EVENT_GROUP_DIRECTION, computeGap, formatPerformance, inferEventGroup, performanceNoun, type PerformanceUnit } from '@/lib/formatPerformance';
 import { bestLegalAttempt, deriveMeetEntryResult } from '@/engine/meetEntry';
+import { PerformanceTextInput } from '@/components/PerformanceTextInput';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -148,10 +149,10 @@ export default function AthleteMeetEntryScreen() {
                 }}
               >
                 <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted, width: 18 }}>{a.attempt}</Text>
-                <TextInput
-                  value={a.mark != null ? String(a.mark) : ''}
-                  onChangeText={(t) => updateAttempt(i, { mark: t ? parseFloat(t) : null })}
-                  keyboardType="decimal-pad"
+                <PerformanceTextInput
+                  value={a.mark}
+                  unit={unit}
+                  onChangeValue={(m) => updateAttempt(i, { mark: m })}
                   placeholder={performanceNoun(unit)}
                   placeholderTextColor={colors.textFaint}
                   style={{

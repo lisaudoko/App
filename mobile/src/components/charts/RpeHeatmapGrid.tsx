@@ -34,7 +34,7 @@ export function RpeHeatmapGrid({ rows }: { rows: Row[] }) {
         <View style={{ flexDirection: 'row', marginBottom: 4 }}>
           <View style={{ width: 84 }} />
           {weekLabels.map((label) => (
-            <Text key={label} style={{ width: 34, fontSize: 12, color: colors.textFaint, textAlign: 'center' }}>
+            <Text key={label} style={{ width: 44, fontSize: 12, color: colors.textFaint, textAlign: 'center' }}>
               {label}
             </Text>
           ))}
@@ -53,7 +53,7 @@ export function RpeHeatmapGrid({ rows }: { rows: Row[] }) {
                   accessible
                   accessibilityLabel={`${row.name}, ${cell.label}: ${cell.rpe != null ? `RPE ${cell.rpe}` : 'no log'}, ${statusWord}`}
                   style={{
-                    width: 30,
+                    width: 40,
                     height: 26,
                     marginHorizontal: 2,
                     borderRadius: 4,

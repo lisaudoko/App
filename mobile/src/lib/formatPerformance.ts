@@ -111,3 +111,26 @@ export function formatAttemptsSummary(
     })
     .join(' · ');
 }
+
+/** Parses what someone typed into a result field: "16.42" for metres, "10.82" or "1:48.30" for seconds. */
+export function parsePerformanceText(text: string, unit: PerformanceUnit): number | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const value = unit === 'seconds' ? parseTimeToSeconds(trimmed) : parseFloat(trimmed);
+  return value != null && Number.isFinite(value) ? value : null;
+}
+
+/** The inverse, for filling an input from a stored value: 108.3s → "1:48.30", everything else as-is. */
+export function performanceToInput(value: number | null, unit: PerformanceUnit): string {
+  if (value == null) return '';
+  if (unit === 'seconds' && value >= 60) {
+    const minutes = Math.floor(value / 60);
+    return `${minutes}:${(value - minutes * 60).toFixed(2).padStart(5, '0')}`;
+  }
+  return String(value);
+}
+
+/** iOS's decimal pad has no colon, so timed fields need the fuller punctuation keyboard to allow 1:48.30. */
+export function performanceKeyboard(unit: PerformanceUnit): 'decimal-pad' | 'numbers-and-punctuation' {
+  return unit === 'seconds' ? 'numbers-and-punctuation' : 'decimal-pad';
+}

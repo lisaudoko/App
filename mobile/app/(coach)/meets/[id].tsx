@@ -6,7 +6,11 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { useProgrammeData } from '@/hooks/useProgrammeData';
 import { repository } from '@/data/repository';
 import type { Meet, MeetEntry } from '@/data/types';
-import { formatPerformance, inferEventGroup, performanceNoun, type PerformanceUnit } from '@/lib/formatPerformance';
+import { formatPerformance, inferEventGroup, parsePerformanceText, performanceKeyboard, performanceNoun, performanceToInput, type PerformanceUnit } from '@/lib/formatPerformance';
+
+function unitForEvent(event: string): PerformanceUnit {
+  return inferEventGroup(event) === 'sprints' ? 'seconds' : 'metres';
+}
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -89,7 +93,7 @@ export default function MeetDetailScreen() {
     const athlete = athletesById.get(athleteId);
     setPickerAthleteId(athleteId);
     setEntryEvent(athlete?.event ?? '');
-    setEntrySeedMark(athlete?.personalBest ? String(athlete.personalBest) : '');
+    setEntrySeedMark(athlete?.personalBest ? performanceToInput(athlete.personalBest, unitForEvent(athlete.event)) : '');
   }
 
   async function confirmAddEntry() {
@@ -101,7 +105,7 @@ export default function MeetDetailScreen() {
         meetId: id,
         athleteId: pickerAthleteId,
         event: entryEvent.trim(),
-        seedMark: entrySeedMark ? parseFloat(entrySeedMark) : undefined,
+        seedMark: parsePerformanceText(entrySeedMark, unitForEvent(entryEvent)) ?? undefined,
       });
       setPickerVisible(false);
       load();
@@ -142,9 +146,9 @@ export default function MeetDetailScreen() {
 
   function addStandard() {
     if (!meet || !newStandardEvent.trim() || !newStandardValue.trim()) return;
-    const value = parseFloat(newStandardValue);
-    if (!Number.isFinite(value)) {
-      setStandardsError('Enter a valid number for the standard.');
+    const value = parsePerformanceText(newStandardValue, unitForEvent(newStandardEvent));
+    if (value == null) {
+      setStandardsError(unitForEvent(newStandardEvent) === 'seconds' ? 'Enter a valid time, e.g. 10.82 or 1:48.30.' : 'Enter a valid number for the standard.');
       return;
     }
     saveStandards({ ...meet.standards, [newStandardEvent.trim()]: value });
@@ -266,7 +270,7 @@ export default function MeetDetailScreen() {
         ) : (
           <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
             <TextField label="Event" value={entryEvent} onChangeText={setEntryEvent} placeholder="e.g. Shot Put" />
-            <TextField label={`Seed ${performanceNoun(inferEventGroup(entryEvent) === 'sprints' ? 'seconds' : 'metres')} (optional)`} value={entrySeedMark} onChangeText={setEntrySeedMark} keyboardType="decimal-pad" />
+            <TextField label={`Seed ${performanceNoun(inferEventGroup(entryEvent) === 'sprints' ? 'seconds' : 'metres')} (optional)`} value={entrySeedMark} onChangeText={setEntrySeedMark} keyboardType={performanceKeyboard(unitForEvent(entryEvent))} />
             {addError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{addError}</Text>}
             <Button label="Add to meet" onPress={confirmAddEntry} loading={addBusy} disabled={!entryEvent.trim()} />
             <Button label="Back" variant="outline" onPress={() => setPickerAthleteId(null)} />
@@ -306,11 +310,11 @@ export default function MeetDetailScreen() {
           <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 16, marginBottom: 6, fontWeight: '500' }}>Add a standard</Text>
           <TextField label="Event" value={newStandardEvent} onChangeText={setNewStandardEvent} placeholder="e.g. Shot Put" />
           <TextField
-            label={`Standard${inferEventGroup(newStandardEvent) === 'sprints' ? ' (seconds)' : ' (metres)'}`}
+            label={`Standard${unitForEvent(newStandardEvent) === 'seconds' ? ' (seconds, or m:ss)' : ' (metres)'}`}
             value={newStandardValue}
             onChangeText={setNewStandardValue}
-            keyboardType="decimal-pad"
-            placeholder="e.g. 16.00"
+            keyboardType={performanceKeyboard(unitForEvent(newStandardEvent))}
+            placeholder={unitForEvent(newStandardEvent) === 'seconds' ? 'e.g. 10.82 or 1:48.30' : 'e.g. 16.00'}
           />
           {standardsError && <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{standardsError}</Text>}
           <Button

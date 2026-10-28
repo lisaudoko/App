@@ -1,5 +1,6 @@
 import type { WeeklyLog } from '@/data/types';
 import { mean } from './stats';
+import { weekBucket, weekBucketLabel } from '@/lib/weekBuckets';
 
 export type LoadStatus = 'ok' | 'high' | 'low' | 'missing';
 
@@ -22,33 +23,25 @@ export function acuteChronicRatio(logs: WeeklyLog[]): number | null {
   return acute / chronic;
 }
 
-/** The programme's current week: the highest week_number logged by anyone. */
-export function currentWeekFromLogs(weeklyLogsByAthlete: Record<string, WeeklyLog[]>): number {
-  let max = 0;
-  for (const logs of Object.values(weeklyLogsByAthlete)) {
-    for (const l of logs) if (l.week > max) max = l.week;
-  }
-  return max;
-}
-
 const RPE_THRESHOLD = 8;
 
 /**
- * Squad RPE heatmap row data for the trailing `weeks` weeks up to
- * `currentWeek`, filling in "missing" cells for weeks with no logged row —
- * un-logged weeks have no row at all, so gaps can't be found by slicing.
+ * Squad RPE heatmap row data for the trailing `weeks` calendar weeks up to `currentBucket`
+ * (see lib/weekBuckets), filling in "missing" cells for weeks with no logged row. Columns are real
+ * calendar weeks rather than each athlete's own log count, so every athlete lines up in the same column.
  */
-export function buildRpeRow(logs: WeeklyLog[], weeks: number, currentWeek: number): WeekLoadInfo[] {
-  const byWeek = new Map(logs.map((l) => [l.week, l]));
-  const startWeek = Math.max(1, currentWeek - weeks + 1);
+export function buildRpeRow(logs: WeeklyLog[], weeks: number, currentBucket: number): WeekLoadInfo[] {
+  const byWeek = new Map<number, WeeklyLog>();
+  for (const l of logs) if (l.loggedAt) byWeek.set(weekBucket(l.loggedAt), l);
+  const startWeek = currentBucket - weeks + 1;
   const out: WeekLoadInfo[] = [];
-  for (let week = startWeek; week <= currentWeek; week++) {
+  for (let week = startWeek; week <= currentBucket; week++) {
     const log = byWeek.get(week);
     let status: LoadStatus = 'missing';
     if (log?.rpe != null) {
       status = log.rpe >= RPE_THRESHOLD ? 'high' : log.rpe >= RPE_THRESHOLD - 2 ? 'ok' : 'low';
     }
-    out.push({ week, label: log?.label ?? `W${week}`, rpe: log?.rpe ?? null, status });
+    out.push({ week, label: weekBucketLabel(week), rpe: log?.rpe ?? null, status });
   }
   return out;
 }

@@ -5,7 +5,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { repository } from '@/data/repository';
 import { ATHLETE_STATUS_LABEL, CLASS_CATEGORY_PRESETS, SEX_LABEL, type Athlete, type AthleteStatus, type Sex } from '@/data/types';
-import { EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
+import { EVENT_GROUP_LABEL, parsePerformanceText, performanceKeyboard, performanceToInput, type EventGroup } from '@/lib/formatPerformance';
+import { useUnitsStore } from '@/store/unitsStore';
+import { displayToLbs } from '@/lib/weightUnits';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Card } from '@/components/Card';
@@ -21,6 +23,7 @@ export default function EditAthleteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const weightUnit = useUnitsStore((s) => s.weightUnit);
 
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +63,7 @@ export default function EditAthleteScreen() {
         setEvent(a.event);
         setEventGroup(a.eventGroup ?? 'throws');
         setGroup(a.group);
-        setBaselineMark(a.baselineMark ? String(a.baselineMark) : '');
+        setBaselineMark(a.baselineMark ? performanceToInput(a.baselineMark, a.eventGroup === 'sprints' ? 'seconds' : 'metres') : '');
         setDateOfBirth(a.dateOfBirth ?? '');
         setClassCategory(a.classCategory ?? '');
         setSex(a.sex);
@@ -85,7 +88,7 @@ export default function EditAthleteScreen() {
         event,
         eventGroup,
         group,
-        baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
+        baselineMark: parsePerformanceText(baselineMark, eventGroup === 'sprints' ? 'seconds' : 'metres') ?? undefined,
         dateOfBirth: dateOfBirth.trim() || null,
         classCategory: classCategory.trim() || null,
         sex,
@@ -106,10 +109,10 @@ export default function EditAthleteScreen() {
     try {
       await repository.addStrengthLog(id, {
         loggedAt: testDate,
-        squat: squat ? parseFloat(squat) : null,
-        bench: bench ? parseFloat(bench) : null,
-        clean: clean ? parseFloat(clean) : null,
-        deadlift: deadlift ? parseFloat(deadlift) : null,
+        squat: squat ? displayToLbs(parseFloat(squat), weightUnit) : null,
+        bench: bench ? displayToLbs(parseFloat(bench), weightUnit) : null,
+        clean: clean ? displayToLbs(parseFloat(clean), weightUnit) : null,
+        deadlift: deadlift ? displayToLbs(parseFloat(deadlift), weightUnit) : null,
       });
       setSquat('');
       setBench('');
@@ -246,7 +249,7 @@ export default function EditAthleteScreen() {
 
           <TextField
             label={`Baseline ${eventGroup === 'sprints' ? 'time' : 'mark'} (${eventGroup === 'sprints' ? 'seconds' : 'm'})`}
-            keyboardType="decimal-pad"
+            keyboardType={performanceKeyboard(eventGroup === 'sprints' ? 'seconds' : 'metres')}
             value={baselineMark}
             onChangeText={setBaselineMark}
           />
@@ -259,18 +262,18 @@ export default function EditAthleteScreen() {
           <DateField label="Date" value={testDate} onChange={setTestDate} maximumDate={new Date()} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <TextField label="Squat" keyboardType="decimal-pad" value={squat} onChangeText={setSquat} />
+              <TextField label={`Squat (${weightUnit})`} keyboardType="decimal-pad" value={squat} onChangeText={setSquat} />
             </View>
             <View style={{ flex: 1 }}>
-              <TextField label="Bench" keyboardType="decimal-pad" value={bench} onChangeText={setBench} />
+              <TextField label={`Bench (${weightUnit})`} keyboardType="decimal-pad" value={bench} onChangeText={setBench} />
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <TextField label="Clean" keyboardType="decimal-pad" value={clean} onChangeText={setClean} />
+              <TextField label={`Clean (${weightUnit})`} keyboardType="decimal-pad" value={clean} onChangeText={setClean} />
             </View>
             <View style={{ flex: 1 }}>
-              <TextField label="Deadlift" keyboardType="decimal-pad" value={deadlift} onChangeText={setDeadlift} />
+              <TextField label={`Deadlift (${weightUnit})`} keyboardType="decimal-pad" value={deadlift} onChangeText={setDeadlift} />
             </View>
           </View>
           {testError && <Text style={{ color: colors.danger, fontSize: 15, marginBottom: 8 }}>{testError}</Text>}

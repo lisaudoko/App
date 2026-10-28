@@ -258,18 +258,21 @@ async function checkMissingLogsForProgramme(programmeId: string) {
     .eq('role', 'athlete');
   if (!athletes || athletes.length === 0) return;
 
-  const { data: allLogs } = await supabase
+  // An athlete's week_number is just how many logs they've made, so it can't be compared across
+  // athletes (a late joiner or anyone who skipped a week would always look "behind"). Use the log's
+  // date instead: has this athlete logged anything in the past 7 days?
+  const sinceDate = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const { data: recentLogs } = await supabase
     .from('weekly_logs')
-    .select('athlete_id, week_number')
-    .eq('programme_id', programmeId);
-  const currentWeek = (allLogs ?? []).reduce((max, l) => Math.max(max, l.week_number), 0);
-  if (currentWeek === 0) return;
+    .select('athlete_id')
+    .eq('programme_id', programmeId)
+    .gte('week_start', sinceDate);
 
-  const loggedThisWeek = new Set((allLogs ?? []).filter((l) => l.week_number === currentWeek).map((l) => l.athlete_id));
+  const loggedRecently = new Set((recentLogs ?? []).map((l) => l.athlete_id));
 
   for (const athlete of athletes) {
-    if (loggedThisWeek.has(athlete.id)) continue;
-    const message = `${athlete.full_name} has no log for week ${currentWeek}`;
+    if (loggedRecently.has(athlete.id)) continue;
+    const message = `${athlete.full_name} hasn't logged in the past week`;
     await log(
       athlete.id,
       programmeId,

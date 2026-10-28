@@ -14,7 +14,7 @@ import { Pill } from '@/components/Pill';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { LoadingState } from '@/components/LoadingState';
-import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
+import { EVENT_GROUP_DIRECTION, formatPerformance, isBetter, parsePerformanceText, performanceKeyboard, performanceToInput, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { EventPicker } from '@/components/EventPicker';
 import { useUnitsStore } from '@/store/unitsStore';
 import { useTourStore } from '@/store/tourStore';
@@ -43,7 +43,7 @@ export default function AthleteProfileScreen() {
     setName(session?.name ?? '');
     setEvent(athlete.event);
     setEventGroup(athlete.eventGroup);
-    setBaselineMark(athlete.baselineMark ? String(athlete.baselineMark) : '');
+    setBaselineMark(athlete.baselineMark ? performanceToInput(athlete.baselineMark, athlete.eventGroup === 'sprints' ? 'seconds' : 'metres') : '');
     setSex(athlete.sex);
     setError(null);
     setEditVisible(true);
@@ -58,7 +58,7 @@ export default function AthleteProfileScreen() {
         name,
         event,
         eventGroup: eventGroup ?? undefined,
-        baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
+        baselineMark: parsePerformanceText(baselineMark, eventGroup === 'sprints' ? 'seconds' : 'metres') ?? undefined,
         sex,
       });
       await Promise.all([refresh(), useAuthStore.getState().restoreSession()]);
@@ -290,7 +290,7 @@ export default function AthleteProfileScreen() {
                 Changing event type switches your results between metres and seconds. Your past logs keep their original numbers.
               </Text>
             )}
-            <TextField label={eventGroup === 'sprints' ? 'Baseline time (s)' : 'Baseline mark (m)'} keyboardType="decimal-pad" value={baselineMark} onChangeText={setBaselineMark} />
+            <TextField label={eventGroup === 'sprints' ? 'Baseline time (s)' : 'Baseline mark (m)'} keyboardType={performanceKeyboard(eventGroup === 'sprints' ? 'seconds' : 'metres')} value={baselineMark} onChangeText={setBaselineMark} />
             <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 6, fontWeight: '500' }}>Sex</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
               {(['male', 'female'] as Sex[]).map((s) => {

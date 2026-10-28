@@ -1,6 +1,7 @@
 import type { Athlete, StrengthTest, WeeklyLog } from '@/data/types';
 import { EVENT_GROUP_DIRECTION } from '@/lib/formatPerformance';
 import { pearsonCorrelation, mean } from './stats';
+import { weekBucket } from '@/lib/weekBuckets';
 
 export interface Anomaly {
   athleteId: string;
@@ -50,18 +51,21 @@ function disengagementRisk(athlete: Athlete, logs: WeeklyLog[]): Anomaly | null 
   return null;
 }
 
-function missingLogStreak(athlete: Athlete, logs: WeeklyLog[], currentWeek: number): Anomaly | null {
-  // Rows simply don't exist for un-logged weeks (no null-placeholder rows are
-  // stored), so gaps must be detected against the programme's current week
-  // rather than by scanning trailing array entries.
-  if (currentWeek < 2) return null;
-  const loggedWeeks = new Set(logs.filter((l) => l.mark != null || l.rpe != null).map((l) => l.week));
-  if (!loggedWeeks.has(currentWeek) && !loggedWeeks.has(currentWeek - 1)) {
+function missingLogStreak(athlete: Athlete, logs: WeeklyLog[], currentBucket: number): Anomaly | null {
+  // An athlete's week_number is just their own log count, so gaps are found by log DATE against the
+  // current calendar week. Flags two full weeks with nothing (this week doesn't count against them
+  // yet — on a Monday nobody has logged). An athlete who has never logged isn't flagged here: there's
+  // no way to tell a new joiner from a no-show, and they already show as "No log".
+  const loggedBuckets = new Set(
+    logs.filter((l) => (l.mark != null || l.rpe != null) && l.loggedAt).map((l) => weekBucket(l.loggedAt as string)),
+  );
+  if (loggedBuckets.size === 0) return null;
+  if (!loggedBuckets.has(currentBucket) && !loggedBuckets.has(currentBucket - 1) && !loggedBuckets.has(currentBucket - 2)) {
     return {
       athleteId: athlete.id,
       athleteName: athlete.name,
       severity: 'danger',
-      message: `No log for weeks ${currentWeek - 1}-${currentWeek} — attendance risk.`,
+      message: 'No log for 2+ weeks — attendance risk.',
     };
   }
   return null;
@@ -82,11 +86,11 @@ function overreachRisk(athlete: Athlete, logs: WeeklyLog[]): Anomaly | null {
   return null;
 }
 
-export function detectAnomalies(athlete: Athlete, logs: WeeklyLog[], tests: StrengthTest[], currentWeek: number): Anomaly[] {
+export function detectAnomalies(athlete: Athlete, logs: WeeklyLog[], tests: StrengthTest[], currentBucket: number): Anomaly[] {
   return [
     strengthVsThrowFlat(athlete, logs, tests),
     disengagementRisk(athlete, logs),
-    missingLogStreak(athlete, logs, currentWeek),
+    missingLogStreak(athlete, logs, currentBucket),
     overreachRisk(athlete, logs),
   ].filter((a): a is Anomaly => a !== null);
 }

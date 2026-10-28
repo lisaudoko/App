@@ -25,6 +25,7 @@ import type {
   WorkoutBlock,
 } from './types';
 import type { Database, Json } from '../../types/supabase';
+import { weekBucket } from '@/lib/weekBuckets';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type WeeklyLogRow = Database['public']['Tables']['weekly_logs']['Row'];
@@ -165,12 +166,7 @@ function toAthleteNote(row: AthleteNoteRow): AthleteNote {
   };
 }
 
-const EPOCH_MONDAY_UTC = Date.UTC(2020, 0, 6);
-/** Deterministic Mon–Sun (UTC) week bucket for a "YYYY-MM-DD" date string — used only to detect
- *  "already logged this calendar week" (not tied to real ISO week numbers, just needs consistent equality). */
-export function weekBucket(dateStr: string): number {
-  return Math.floor((new Date(`${dateStr}T00:00:00Z`).getTime() - EPOCH_MONDAY_UTC) / (7 * 24 * 60 * 60 * 1000));
-}
+export { weekBucket };
 
 function toWeeklyLog(row: WeeklyLogRow): WeeklyLog {
   return {

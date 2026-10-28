@@ -7,7 +7,7 @@ import { useAppTheme } from '@/theme/ThemeProvider';
 import { supabase } from '@/lib/supabase';
 import { repository } from '@/data/repository';
 import { useCoachAccess } from '@/hooks/useCoachAccess';
-import { EVENT_GROUP_LABEL, type EventGroup } from '@/lib/formatPerformance';
+import { EVENT_GROUP_LABEL, parsePerformanceText, performanceKeyboard, type EventGroup, type PerformanceUnit } from '@/lib/formatPerformance';
 import { CLASS_CATEGORY_PRESETS, SEX_LABEL, type Sex } from '@/data/types';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -56,6 +56,7 @@ export default function AddAthleteScreen() {
     loadConfig();
   }, []);
 
+  const resultUnit: PerformanceUnit = eventGroup === 'sprints' ? 'seconds' : 'metres';
   const canSubmit = !!name && !!email && password.length >= 6 && !!eventGroup && hasPermission;
 
   async function handleSubmit() {
@@ -82,8 +83,8 @@ export default function AddAthleteScreen() {
         password,
         event,
         eventGroup,
-        baselineMark: baselineMark ? parseFloat(baselineMark) : undefined,
-        qualifyingStandard: qualifyingStandard ? parseFloat(qualifyingStandard) : undefined,
+        baselineMark: parsePerformanceText(baselineMark, resultUnit) ?? undefined,
+        qualifyingStandard: parsePerformanceText(qualifyingStandard, resultUnit) ?? undefined,
         dateOfBirth: dateOfBirth.trim() || undefined,
         classCategory: classCategory.trim() || undefined,
         sex: sex ?? undefined,
@@ -274,14 +275,14 @@ export default function AddAthleteScreen() {
           label={`Baseline ${eventGroup === 'sprints' ? 'time' : 'mark'}${eventGroup === 'sprints' ? ' (seconds)' : ' (metres)'} — optional`}
           value={baselineMark}
           onChangeText={setBaselineMark}
-          keyboardType="decimal-pad"
+          keyboardType={performanceKeyboard(resultUnit)}
           placeholder="Current best, if known"
         />
         <TextField
           label={`Qualifying standard${eventGroup === 'sprints' ? ' (seconds)' : ' (metres)'} — optional`}
           value={qualifyingStandard}
           onChangeText={setQualifyingStandard}
-          keyboardType="decimal-pad"
+          keyboardType={performanceKeyboard(resultUnit)}
           placeholder="Target standard for this athlete"
         />
 
